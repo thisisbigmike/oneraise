@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          String?   // "creator", "backer", "admin"
+  bushaProfileId String?  @unique
+  bushaStatus    String?  @default("unverified")
+  
+  accounts      Account[]
+  sessions      Session[]
+  campaigns     Campaign[]
+  donations     Donation[]
+  payoutMethods PayoutMethod[]
+  payouts       Payout[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Campaign {
+  id          String     @id @default(cuid())
+  title       String
+  slug        String     @unique
+  description String?
+  goal        Float
+  raised      Float      @default(0)
+  image       String?
+  category    String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  status      String     @default("active") // active, completed, draft
+
+  userId      String?
+  user        User?      @relation(fields: [userId], references: [id])
+  
+  donations   Donation[]
+  payouts     Payout[]
+}
+
+model Donation {
+  id            String   @id @default(cuid())
+  amount        Float
+  currency      String   @default("USD")
+  status        String   @default("pending") // pending, completed, failed
+  provider      String   // moonpay, busha_crypto, busha_ng, busha_ke
+  paymentId     String?  @unique // Busha Event ID / Payment ID
+  quoteId       String?
+  checkoutUrl   String?
+  providerRef   String?
+  providerStatus String?
+  asset         String?
+  network       String?
+  instructionsJson String?
+  providerDataJson String?
+  expiresAt     DateTime?
+  completedAt   DateTime?
+  creditedAt    DateTime?
+  createdAt     DateTime @default(now())
+  donorName     String?  
+  donorEmail    String?
+  donorMessage  String?
+  isAnonymous   Boolean  @default(false)
+  coverFee      Boolean  @default(false)
+
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id])
+
+  campaignId    String
+  campaign      Campaign @relation(fields: [campaignId], references: [id])
+}
+
+model PayoutMethod {
+  id              String   @id @default(cuid())
+  type            String   // bank, crypto
+  provider        String   @default("busha")
+  label           String
+  accountName     String?
+  accountNumber   String?
+  bankName        String?
+  bankCode        String?
+  walletAddress   String?
+  network         String?
+  currency        String
+  countryCode     String?
+  bushaRecipientId String? @unique
+  metaJson        String?
+  isPrimary       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  payouts         Payout[]
+}
+
+model Payout {
+  id              String   @id @default(cuid())
+  amount          Float
+  sourceCurrency  String
+  targetCurrency  String
+  status          String   @default("pending")
+  provider        String   @default("busha")
+  paymentId       String?  @unique
+  quoteId         String?
+  providerDataJson String?
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  campaignId      String?
+  campaign        Campaign? @relation(fields: [campaignId], references: [id])
+
+  payoutMethodId  String?
+  payoutMethod    PayoutMethod? @relation(fields: [payoutMethodId], references: [id], onDelete: SetNull)
+}
