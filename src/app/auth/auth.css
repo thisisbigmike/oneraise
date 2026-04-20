@@ -175,6 +175,14 @@
   color:var(--white);margin-bottom:6px;
 }
 .auth-wrapper .form-sub{font-size:14px;color:var(--w50);font-weight:300;line-height:1.5;}
+.auth-wrapper .role-context{
+  display:inline-flex;align-items:center;gap:8px;
+  margin-top:14px;padding:8px 12px;border-radius:999px;
+  border:1px solid rgba(93,202,165,0.24);
+  background:rgba(29,158,117,0.12);
+  color:var(--teal-200);font-size:12px;font-weight:700;
+  letter-spacing:0.04em;text-transform:uppercase;
+}
 
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
 
@@ -521,5 +529,4 @@
   .auth-wrapper .oauth-row{flex-direction:column;}
   .auth-wrapper .right{padding:28px 16px 48px;}
 }
-
 

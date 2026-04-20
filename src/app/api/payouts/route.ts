@@ -4,19 +4,34 @@ import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import {
   createBushaPayout,
+  formatBushaQuote,
   getDefaultSettlementAsset,
+  quoteBushaPayout,
 } from "@/lib/payments";
 import { getCreatorPayoutSummary } from "@/lib/payment-records";
 
 function formatPayout(payout: any) {
+  let providerData: any = null;
+
+  try {
+    providerData = payout.providerDataJson ? JSON.parse(payout.providerDataJson) : null;
+  } catch {
+    providerData = null;
+  }
+
+  const quote = providerData?.quote ? formatBushaQuote(providerData.quote) : null;
+
   return {
     id: payout.id,
     amount: payout.amount,
     sourceCurrency: payout.sourceCurrency,
     targetCurrency: payout.targetCurrency,
+    receiveAmount: quote?.targetAmount || null,
+    receiveCurrency: quote?.targetCurrency || payout.targetCurrency,
     status: payout.status,
     createdAt: payout.createdAt,
     completedAt: payout.completedAt,
+    quote,
     payoutMethod: payout.payoutMethod
       ? {
           id: payout.payoutMethod.id,
@@ -67,6 +82,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const payoutMethodId = String(body.payoutMethodId || "");
     const amount = Number(body.amount || 0);
+    const previewOnly = body.previewOnly === true;
 
     if (!payoutMethodId || amount <= 0) {
       return NextResponse.json({ error: "payoutMethodId and a valid amount are required." }, { status: 400 });
@@ -90,7 +106,7 @@ export async function POST(req: Request) {
 
     const sourceCurrency = getDefaultSettlementAsset();
     const targetCurrency = method.currency;
-    const payoutResult = await createBushaPayout({
+    const payoutArgs = {
       amount,
       sourceCurrency,
       targetCurrency,
@@ -98,7 +114,25 @@ export async function POST(req: Request) {
       walletAddress: method.type === "crypto" ? method.walletAddress : null,
       network: method.type === "crypto" ? method.network : null,
       bushaProfileId: user.bushaProfileId,
-    });
+    };
+
+    if (method.type === "bank" && !method.bushaRecipientId) {
+      return NextResponse.json({ error: "This bank payout method has not been created in Busha yet." }, { status: 400 });
+    }
+
+    if (method.type === "crypto" && !method.walletAddress) {
+      return NextResponse.json({ error: "This crypto payout method is missing a wallet address." }, { status: 400 });
+    }
+
+    if (previewOnly) {
+      const quote = await quoteBushaPayout(payoutArgs);
+      return NextResponse.json({
+        success: true,
+        quote: formatBushaQuote(quote),
+      });
+    }
+
+    const payoutResult = await createBushaPayout(payoutArgs);
 
     const payout = await prisma.payout.create({
       data: {

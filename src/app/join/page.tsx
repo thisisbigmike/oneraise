@@ -1,10 +1,38 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import './join.css';
 
 export default function JoinPage() {
+  const { data: session, status, update } = useSession();
+  const [loadingRole, setLoadingRole] = useState<string | null>(null);
+
+  const handleRoleSelect = async (role: 'creator' | 'backer') => {
+    if (status === 'authenticated') {
+      setLoadingRole(role);
+      try {
+        const res = await fetch('/api/auth/oauth-role', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role }),
+        });
+        if (res.ok) {
+          await update({ role });
+          window.location.href = role === 'creator' ? '/dashboard' : '/backer';
+          return;
+        }
+      } catch (e) {
+        console.error("Error setting role", e);
+      }
+      setLoadingRole(null);
+    }
+
+    window.sessionStorage.setItem('oneraiseRoleChoice', role);
+    window.location.href = `/auth?mode=signup&role=${role}`;
+  };
+
   return (
     <div className="join-wrapper">
       {/* Aurora Background */}
@@ -33,7 +61,7 @@ export default function JoinPage() {
         {/* Role Cards */}
         <div className="join-cards">
           {/* Creator Card */}
-          <div className="join-role-card" onClick={() => window.location.href = '/auth?role=creator'}>
+          <div className="join-role-card" onClick={() => handleRoleSelect('creator')}>
             <div className="join-card-icon creator-icon">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#5DCAA5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
@@ -57,13 +85,19 @@ export default function JoinPage() {
               </li>
             </ul>
             <div className="join-card-btn creator-btn">
-              Sign up as Creator
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              {loadingRole === 'creator' ? (
+                <div className="spinner" style={{display:'block'}}></div>
+              ) : (
+                <>
+                  Sign up as Creator
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </>
+              )}
             </div>
           </div>
 
           {/* Donor Card */}
-          <div className="join-role-card" onClick={() => window.location.href = '/auth?role=backer'}>
+          <div className="join-role-card" onClick={() => handleRoleSelect('backer')}>
             <div className="join-card-icon donor-icon">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#EF9F27" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
@@ -87,8 +121,14 @@ export default function JoinPage() {
               </li>
             </ul>
             <div className="join-card-btn donor-btn">
-              Sign up as Donor
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              {loadingRole === 'backer' ? (
+                <div className="spinner" style={{display:'block'}}></div>
+              ) : (
+                <>
+                  Sign up as Donor
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </>
+              )}
             </div>
           </div>
         </div>

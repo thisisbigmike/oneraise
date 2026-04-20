@@ -1,13 +1,59 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useToast, Modal } from '../../components';
+import { CAMPAIGN_SEED_LIST, getCampaignPct } from '@/lib/campaign-seeds';
 
-const INITIAL_CAMPAIGNS = [
-  { id: 1, title: 'SolarPack Mini', status: 'active' as const, raised: 68420, goal: 100000, backers: 412, daysLeft: 18, category: 'Technology' },
-  { id: 2, title: 'Clean Water for Kano', status: 'active' as const, raised: 24800, goal: 50000, backers: 189, daysLeft: 32, category: 'Social Impact' },
-  { id: 3, title: 'Lagos Art Festival 2026', status: 'draft' as const, raised: 0, goal: 25000, backers: 0, daysLeft: 0, category: 'Arts & Culture' },
+type CampaignStatus = 'active' | 'completed' | 'draft';
+
+type CampaignManagerItem = {
+  id: number;
+  slug?: string;
+  title: string;
+  status: CampaignStatus;
+  raised: number;
+  goal: number;
+  pct?: number;
+  backers: number;
+  daysLeft: number;
+  category: string;
+};
+
+const INITIAL_CAMPAIGNS: CampaignManagerItem[] = [
+  ...CAMPAIGN_SEED_LIST.slice(0, 2).map((campaign) => ({
+    id: campaign.id,
+    slug: campaign.slug,
+    title: campaign.title,
+    status: campaign.status,
+    raised: campaign.raised,
+    goal: campaign.goal,
+    pct: getCampaignPct(campaign.raised, campaign.goal),
+    backers: campaign.backers,
+    daysLeft: campaign.daysLeft,
+    category: campaign.category,
+  })),
+  { id: 3, title: 'Lagos Art Festival 2026', status: 'draft', raised: 0, goal: 25000, pct: 0, backers: 0, daysLeft: 0, category: 'Arts & Culture' },
 ];
+
+function normalizeStatus(status?: string): CampaignStatus {
+  if (status === 'completed' || status === 'draft') return status;
+  return 'active';
+}
+
+function mapCampaignManagerItems(campaigns: CampaignManagerItem[]) {
+  return campaigns.map((campaign) => ({
+    id: campaign.id,
+    slug: campaign.slug,
+    title: campaign.title,
+    status: normalizeStatus(campaign.status),
+    raised: campaign.raised,
+    goal: campaign.goal,
+    pct: campaign.pct ?? getCampaignPct(campaign.raised, campaign.goal),
+    backers: campaign.backers,
+    daysLeft: campaign.daysLeft,
+    category: campaign.category,
+  }));
+}
 
 export default function CampaignsPage() {
   const { showToast } = useToast();
@@ -23,6 +69,40 @@ export default function CampaignsPage() {
   const [manageId, setManageId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editGoal, setEditGoal] = useState('');
+
+  const refreshCampaigns = async () => {
+    const res = await fetch('/api/campaigns', { cache: 'no-store' });
+    const data = await res.json();
+
+    if (!res.ok || !Array.isArray(data.campaigns)) {
+      throw new Error(data.error || 'Unable to load campaigns.');
+    }
+
+    setCampaigns(mapCampaignManagerItems(data.campaigns));
+  };
+
+  useEffect(() => {
+    let ignore = false;
+
+    const loadCampaigns = async () => {
+      try {
+        const res = await fetch('/api/campaigns', { cache: 'no-store' });
+        const data = await res.json();
+
+        if (!ignore && res.ok && Array.isArray(data.campaigns)) {
+          setCampaigns(mapCampaignManagerItems(data.campaigns));
+        }
+      } catch {
+        // Keep the seeded campaign rows if live data is temporarily unavailable.
+      }
+    };
+
+    loadCampaigns();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const formatAmount = (val: string) => {
     if (!val) return '';
@@ -52,39 +132,104 @@ export default function CampaignsPage() {
     setShareOpen(false);
   };
 
-  const handlePublish = (id: number) => {
-    setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: 'active' as const, daysLeft: 30 } : c));
-    showToast('Campaign published! It\'s now live for backers.', 'success');
-    setConfirmPublish(null);
+  const handlePublish = async (id: number) => {
+    const campaign = campaigns.find(c => c.id === id);
+    if (!campaign?.slug) {
+      showToast('Campaign could not be published because it is missing a share link.', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/campaigns/${encodeURIComponent(campaign.slug)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'active' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unable to publish campaign.');
+
+      await refreshCampaigns();
+      showToast('Campaign published! It\'s now live for backers.', 'success');
+      setConfirmPublish(null);
+    } catch (error: any) {
+      showToast(error?.message || 'Could not publish campaign.', 'error');
+    }
   };
 
-  const handleNewCampaign = () => {
+  const handleNewCampaign = async () => {
     if (!newTitle.trim() || !newGoal.trim()) { showToast('Please fill in all fields.', 'warning'); return; }
-    const id = Date.now();
-    setCampaigns(prev => [...prev, {
-      id, title: newTitle, status: 'draft' as const, raised: 0,
-      goal: parseInt(newGoal), backers: 0, daysLeft: 0,
-      category: newCategory || 'General'
-    }]);
-    showToast(`"${newTitle}" created as a draft campaign.`, 'success');
-    setNewTitle(''); setNewGoal(''); setNewCategory('');
-    setNewOpen(false);
+
+    try {
+      const res = await fetch('/api/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newTitle,
+          goal: parseInt(newGoal),
+          category: newCategory || 'General',
+          status: 'draft',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unable to create campaign.');
+
+      await refreshCampaigns();
+      showToast(`"${newTitle}" created as a draft campaign.`, 'success');
+      setNewTitle(''); setNewGoal(''); setNewCategory('');
+      setNewOpen(false);
+    } catch (error: any) {
+      showToast(error?.message || 'Could not create campaign.', 'error');
+    }
   };
 
   const openManage = (id: number) => {
     const c = campaigns.find(cm => cm.id === id);
     if (c) { setManageId(id); setEditTitle(c.title); setEditGoal(String(c.goal)); }
   };
-  const handleSaveManage = () => {
+  const handleSaveManage = async () => {
     if (!editTitle.trim()) { showToast('Campaign title cannot be empty.', 'warning'); return; }
-    setCampaigns(prev => prev.map(c => c.id === manageId ? { ...c, title: editTitle, goal: parseInt(editGoal) || c.goal } : c));
-    showToast('Campaign updated!', 'success');
-    setManageId(null);
+    const campaign = campaigns.find(c => c.id === manageId);
+    if (!campaign?.slug) {
+      showToast('Campaign could not be updated because it is missing a share link.', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/campaigns/${encodeURIComponent(campaign.slug)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: editTitle, goal: parseInt(editGoal) || campaign.goal }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unable to update campaign.');
+
+      await refreshCampaigns();
+      showToast('Campaign updated!', 'success');
+      setManageId(null);
+    } catch (error: any) {
+      showToast(error?.message || 'Could not update campaign.', 'error');
+    }
   };
-  const handleDeleteCampaign = () => {
-    setCampaigns(prev => prev.filter(c => c.id !== manageId));
-    showToast('Campaign deleted.', 'info');
-    setManageId(null);
+  const handleDeleteCampaign = async () => {
+    const campaign = campaigns.find(c => c.id === manageId);
+    if (!campaign?.slug) {
+      showToast('Campaign could not be deleted because it is missing a share link.', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/campaigns/${encodeURIComponent(campaign.slug)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unable to delete campaign.');
+
+      await refreshCampaigns();
+      showToast('Campaign deleted.', 'info');
+      setManageId(null);
+    } catch (error: any) {
+      showToast(error?.message || 'Could not delete campaign.', 'error');
+    }
   };
 
   return (
@@ -119,10 +264,10 @@ export default function CampaignsPage() {
             {c.status !== 'draft' && (
               <>
                 <div className="cmp-progress-wrap">
-                  <div className="sc-progress-bar"><div className="sc-progress-fill" style={{ width: `${Math.round((c.raised / c.goal) * 100)}%` }}></div></div>
+                  <div className="sc-progress-bar"><div className="sc-progress-fill" style={{ width: `${c.pct ?? getCampaignPct(c.raised, c.goal)}%` }}></div></div>
                   <div className="cmp-progress-nums">
                     <span>${c.raised.toLocaleString()} raised</span>
-                    <span>{Math.round((c.raised / c.goal) * 100)}%</span>
+                    <span>{c.pct ?? getCampaignPct(c.raised, c.goal)}%</span>
                   </div>
                 </div>
                 <div className="cmp-stats">

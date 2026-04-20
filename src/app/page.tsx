@@ -1,10 +1,41 @@
 // @ts-nocheck
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { CAMPAIGN_SEED_LIST, getCampaignPct } from '@/lib/campaign-seeds';
+
+const INITIAL_LANDING_CAMPAIGNS = CAMPAIGN_SEED_LIST.slice(0, 3).map((campaign) => ({
+  ...campaign,
+  pct: getCampaignPct(campaign.raised, campaign.goal),
+}));
 
 export default function Home() {
+  const [landingCampaigns, setLandingCampaigns] = useState(INITIAL_LANDING_CAMPAIGNS);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const loadCampaigns = async () => {
+      try {
+        const res = await fetch('/api/campaigns', { cache: 'no-store' });
+        const data = await res.json();
+
+        if (!ignore && res.ok && Array.isArray(data.campaigns)) {
+          setLandingCampaigns(data.campaigns.filter((campaign) => campaign.status !== 'draft').slice(0, 3));
+        }
+      } catch {
+        // Keep the seeded campaign cards if live data is temporarily unavailable.
+      }
+    };
+
+    loadCampaigns();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
   useEffect(() => {
     
 // ── PIXEL TRAIL ──
@@ -148,6 +179,10 @@ feedItems.forEach((item, i) => {
 })();
 
   }, []);
+
+  const [featuredCampaign, secondCampaign, thirdCampaign] = landingCampaigns;
+  const campaignPct = (campaign) => campaign?.pct ?? getCampaignPct(campaign?.raised || 0, campaign?.goal || 0);
+  const formatCompactGoal = (value) => (value >= 1000 && value % 1000 === 0 ? `$${value / 1000}k goal` : `$${value.toLocaleString()} goal`);
 
   return (
     <main>
@@ -366,20 +401,20 @@ feedItems.forEach((item, i) => {
       </div>
       <div className="c-card-body">
         <div className="c-card-top">
-          <span className="c-tag">Technology</span>
+          <span className="c-tag">{featuredCampaign.category}</span>
           <span className="c-flag">🌍 Global</span>
         </div>
-        <div className="c-title">SolarPack Mini — Off-grid power for remote communities</div>
-        <div className="c-desc">Portable 80W solar kit with battery storage, built for villages with zero grid access across Sub-Saharan Africa.</div>
-        <div className="c-progress-track"><div className="c-progress-fill" style={{width: '68%'}}></div></div>
+        <div className="c-title">{featuredCampaign.title}</div>
+        <div className="c-desc">{featuredCampaign.desc}</div>
+        <div className="c-progress-track"><div className="c-progress-fill" style={{width: `${campaignPct(featuredCampaign)}%`}}></div></div>
         <div className="c-stats">
           <div>
-            <div className="c-raised">$68,420</div>
-            <div className="c-raised-sub">raised of $100k goal</div>
+            <div className="c-raised">${featuredCampaign.raised.toLocaleString()}</div>
+            <div className="c-raised-sub">raised of {formatCompactGoal(featuredCampaign.goal)}</div>
           </div>
           <div style={{textAlign: 'right'}}>
-            <div className="c-pct">68%</div>
-            <div className="c-days">14 days left</div>
+            <div className="c-pct">{campaignPct(featuredCampaign)}%</div>
+            <div className="c-days">{featuredCampaign.daysLeft} days left</div>
           </div>
         </div>
       </div>
@@ -392,13 +427,13 @@ feedItems.forEach((item, i) => {
         </svg>
       </div>
       <div className="c-card-body">
-        <div className="c-card-top"><span className="c-tag">Education</span><span className="c-flag">🇮🇳 India</span></div>
-        <div className="c-title">CodeBridge — Free coding bootcamps in rural India</div>
-        <div className="c-desc">12-week intensive programs bringing tech skills to underserved youth.</div>
-        <div className="c-progress-track"><div className="c-progress-fill" style={{width: '91%'}}></div></div>
+        <div className="c-card-top"><span className="c-tag">{secondCampaign.category}</span><span className="c-flag">🌍 Global</span></div>
+        <div className="c-title">{secondCampaign.title}</div>
+        <div className="c-desc">{secondCampaign.desc}</div>
+        <div className="c-progress-track"><div className="c-progress-fill" style={{width: `${campaignPct(secondCampaign)}%`}}></div></div>
         <div className="c-stats">
-          <div><div className="c-raised">$45,500</div><div className="c-raised-sub">of $50k goal</div></div>
-          <div style={{textAlign: 'right'}}><div className="c-pct">91%</div><div className="c-days">6 days left</div></div>
+          <div><div className="c-raised">${secondCampaign.raised.toLocaleString()}</div><div className="c-raised-sub">of {formatCompactGoal(secondCampaign.goal)}</div></div>
+          <div style={{textAlign: 'right'}}><div className="c-pct">{campaignPct(secondCampaign)}%</div><div className="c-days">{secondCampaign.daysLeft} days left</div></div>
         </div>
       </div>
     </div>
@@ -410,13 +445,13 @@ feedItems.forEach((item, i) => {
         </svg>
       </div>
       <div className="c-card-body">
-        <div className="c-card-top"><span className="c-tag">Arts</span><span className="c-flag">🇧🇷 Brazil</span></div>
-        <div className="c-title">Amazônia Voices — Indigenous music archive project</div>
-        <div className="c-desc">Recording and preserving endangered musical traditions of the Amazon.</div>
-        <div className="c-progress-track"><div className="c-progress-fill" style={{width: '34%'}}></div></div>
+        <div className="c-card-top"><span className="c-tag">{thirdCampaign.category}</span><span className="c-flag">🌍 Global</span></div>
+        <div className="c-title">{thirdCampaign.title}</div>
+        <div className="c-desc">{thirdCampaign.desc}</div>
+        <div className="c-progress-track"><div className="c-progress-fill" style={{width: `${campaignPct(thirdCampaign)}%`}}></div></div>
         <div className="c-stats">
-          <div><div className="c-raised">$8,250</div><div className="c-raised-sub">of $24k goal</div></div>
-          <div style={{textAlign: 'right'}}><div className="c-pct">34%</div><div className="c-days">22 days left</div></div>
+          <div><div className="c-raised">${thirdCampaign.raised.toLocaleString()}</div><div className="c-raised-sub">of {formatCompactGoal(thirdCampaign.goal)}</div></div>
+          <div style={{textAlign: 'right'}}><div className="c-pct">{campaignPct(thirdCampaign)}%</div><div className="c-days">{thirdCampaign.daysLeft} days left</div></div>
         </div>
       </div>
     </div>

@@ -6,11 +6,13 @@ import { useParams } from 'next/navigation';
 import { useToast } from '../../../components';
 
 /* ── Campaign mock data (matches discover page) ── */
-const CAMPAIGNS: Record<string, {
+type CampaignView = {
   id: number; title: string; creator: string; creatorInitials: string;
   raised: number; goal: number; category: string; desc: string;
   backers: number; daysLeft: number; verified: boolean;
-}> = {
+};
+
+const CAMPAIGNS: Record<string, CampaignView> = {
   '1': { id: 1, title: 'SolarPack Mini — Off-grid power for remote communities', creator: 'Tunde Coker', creatorInitials: 'TC', raised: 68420, goal: 100000, category: 'Technology', desc: 'A portable, affordable solar generator for small businesses in West Africa.', backers: 1240, daysLeft: 14, verified: true },
   '2': { id: 2, title: 'Clean Water for Kano', creator: 'Aisha Malik', creatorInitials: 'AM', raised: 24800, goal: 50000, category: 'Social Impact', desc: 'Building 50 solar-powered boreholes to provide clean drinking water.', backers: 480, daysLeft: 21, verified: true },
   '3': { id: 3, title: 'Tech Start: Lagos', creator: 'Chidi Nweke', creatorInitials: 'CN', raised: 15000, goal: 100000, category: 'Education', desc: 'Funding laptops and coding bootcamps for 500 underserved youths.', backers: 312, daysLeft: 30, verified: false },
@@ -32,7 +34,7 @@ type PaymentStatus = 'idle' | 'processing' | 'pending' | 'confirmed' | 'failed';
 export default function DonatePage() {
   const params = useParams();
   const campaignId = params.campaignId as string;
-  const campaign = CAMPAIGNS[campaignId];
+  const [campaign, setCampaign] = useState<CampaignView | undefined>(CAMPAIGNS[campaignId]);
   const { showToast } = useToast();
 
   // Form state
@@ -74,6 +76,27 @@ export default function DonatePage() {
   const localTotal = totalAmount * localRate;
   const getCurrencySymbol = (code?: string | null) =>
     CURRENCIES.find(c => c.code === code)?.symbol || code || '';
+  const getQrCodeUrl = (value: string) =>
+    `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=12&data=${encodeURIComponent(value)}`;
+
+  const refreshCampaignProgress = useCallback(async () => {
+    if (!campaignId) return;
+
+    try {
+      const res = await fetch(`/api/campaigns/${campaignId}`, { cache: 'no-store' });
+      const data = await res.json();
+
+      if (res.ok && data.campaign) {
+        setCampaign(data.campaign);
+      }
+    } catch {
+      // Keep the seeded campaign view if the live progress endpoint is unavailable.
+    }
+  }, [campaignId]);
+
+  useEffect(() => {
+    refreshCampaignProgress();
+  }, [refreshCampaignProgress]);
 
   const formatAmount = (val: string) => {
     if (!val) return '';
@@ -129,7 +152,9 @@ export default function DonatePage() {
           donorEmail,
           donorMessage: message,
           isAnonymous: anonymous,
-          coverFee: coverFee
+          coverFee: coverFee,
+          creditAmount: Number(numAmount.toFixed(2)),
+          creditCurrency: currency
         };
 
         const apiUrl = paymentMethod === 'card' ? '/api/moonpay/pay' : '/api/busha/pay';
@@ -145,8 +170,8 @@ export default function DonatePage() {
           if (paymentMethod === 'card' && data.url) {
              setPaymentInstructions(null);
              setStatus('pending');
-             showToast('Opening MoonPay Secure Checkout...', 'info');
-             window.open(data.url, '_blank', 'noopener,noreferrer');
+             showToast('Redirecting to MoonPay Secure Checkout...', 'info');
+             window.location.assign(data.url);
           } else {
              setStatus('pending');
              
@@ -198,6 +223,7 @@ export default function DonatePage() {
       if (data.donation?.status === 'completed') {
         setStatus('confirmed');
         setIsVerifying(false);
+        refreshCampaignProgress();
         showToast('Payment confirmed! Thank you for your donation.', 'success');
         return;
       }
@@ -217,7 +243,7 @@ export default function DonatePage() {
       setIsVerifying(false);
       showToast('Unable to verify payment right now.', 'warning');
     }
-  }, [currentDonationId, showToast]);
+  }, [currentDonationId, refreshCampaignProgress, showToast]);
 
   const handleManualVerify = async () => {
     if (!currentDonationId) return;
@@ -260,7 +286,7 @@ export default function DonatePage() {
     );
   }
 
-  const pct = Math.round((campaign.raised / campaign.goal) * 100);
+  const pct = campaign.goal > 0 ? Math.min(Math.round((campaign.raised / campaign.goal) * 100), 100) : 0;
 
   // ── Payment Status Screen ──
   if (status !== 'idle') {
@@ -311,9 +337,14 @@ export default function DonatePage() {
                     <div style={{ marginBottom: 16 }}>Please send exactly <strong style={{ color: 'var(--white)' }}>{Number(paymentInstructions.amount || totalAmount).toLocaleString()} {paymentInstructions.asset}</strong> to the following wallet address:</div>
                     
                     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-                      <div style={{ width: 140, height: 140, background: 'var(--white)', borderRadius: 8, padding: 8 }}>
-                         {/* Mock QR Code representation */}
-                         <svg width="100%" height="100%" viewBox="0 0 100 100"><path fill="#000" d="M10,10h30v30H10V10z M20,20h10v10H20V20z M60,10h30v30H60V10z M70,20h10v10H70V20z M10,60h30v30H10V60z M20,70h10v10H20V70z M10,40h10v10H10V40z M40,10h10v10H40V10z M80,60h10v10H80V60z" /></svg>
+                      <div style={{ width: 156, height: 156, background: 'var(--white)', borderRadius: 12, padding: 8, boxShadow: '0 18px 40px rgba(0,0,0,0.24)' }}>
+                         <img
+                           src={getQrCodeUrl(String(paymentInstructions.address))}
+                           alt={`QR code for ${paymentInstructions.asset || 'crypto'} deposit address`}
+                           width={140}
+                           height={140}
+                           style={{ width: '100%', height: '100%', display: 'block', borderRadius: 6 }}
+                         />
                       </div>
                     </div>
                     
@@ -726,7 +757,7 @@ export default function DonatePage() {
 
 
 /* ── Campaign Sidebar Component ── */
-function CampaignSidebar({ campaign, pct }: { campaign: typeof CAMPAIGNS[string]; pct: number }) {
+function CampaignSidebar({ campaign, pct }: { campaign: CampaignView; pct: number }) {
   return (
     <div className="campaign-sidebar">
       {/* Campaign info card */}

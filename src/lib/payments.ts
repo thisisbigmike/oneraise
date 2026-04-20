@@ -297,6 +297,27 @@ export async function createBushaPayout(args: {
   network?: string | null;
   bushaProfileId?: string | null;
 }) {
+  const quote = await quoteBushaPayout(args);
+
+  const transfer = (await bushaRequest("POST", "/v1/transfers", {
+    bushaProfileId: args.bushaProfileId,
+    body: {
+      quote_id: quote.id,
+    },
+  })) as Record<string, any>;
+
+  return { quote, transfer };
+}
+
+export async function quoteBushaPayout(args: {
+  amount: number;
+  sourceCurrency: string;
+  targetCurrency: string;
+  recipientId?: string | null;
+  walletAddress?: string | null;
+  network?: string | null;
+  bushaProfileId?: string | null;
+}) {
   const payOut = args.recipientId
     ? {
         type: "bank_transfer",
@@ -308,7 +329,7 @@ export async function createBushaPayout(args: {
         network: args.network,
       };
 
-  const quote = (await bushaRequest("POST", "/v1/quotes", {
+  return (await bushaRequest("POST", "/v1/quotes", {
     bushaProfileId: args.bushaProfileId,
     body: {
       type: "withdrawal",
@@ -318,15 +339,23 @@ export async function createBushaPayout(args: {
       pay_out: payOut,
     },
   })) as Record<string, any>;
+}
 
-  const transfer = (await bushaRequest("POST", "/v1/transfers", {
-    bushaProfileId: args.bushaProfileId,
-    body: {
-      quote_id: quote.id,
-    },
-  })) as Record<string, any>;
+export function formatBushaQuote(quote: Record<string, any>) {
+  const sourceAmount = toNumber(quote.source_amount || quote.sourceAmount || quote.amount);
+  const targetAmount = toNumber(quote.target_amount || quote.targetAmount || quote.receive_amount || quote.receiveAmount);
+  const rate = toNumber(quote.rate || quote.exchange_rate || quote.exchangeRate);
 
-  return { quote, transfer };
+  return {
+    id: String(quote.id || ""),
+    sourceAmount,
+    sourceCurrency: String(quote.source_currency || quote.sourceCurrency || ""),
+    targetAmount,
+    targetCurrency: String(quote.target_currency || quote.targetCurrency || ""),
+    rate: rate || (sourceAmount && targetAmount ? targetAmount / sourceAmount : null),
+    expiresAt: quote.expires_at || quote.expiresAt || null,
+    raw: quote,
+  };
 }
 
 export function extractBushaInstructions(transfer: Record<string, any>, fallbackAsset?: string | null) {

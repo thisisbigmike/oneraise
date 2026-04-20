@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { getProviders, signIn, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useToast } from '../components';
 import './auth.css';
@@ -37,9 +37,14 @@ const COUNTRIES = [
 ];
 
 function AuthPageContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session, status } = useSession();
   const { showToast } = useToast();
-  const initialRole = searchParams.get('role') === 'creator' ? 'creator' : 'backer';
+  const roleParam = searchParams.get('role');
+  const oauthError = searchParams.get('error');
+  const selectedSignupRole = roleParam === 'creator' || roleParam === 'backer' ? roleParam : null;
+  const initialRole = selectedSignupRole || 'backer';
   const initialMode = searchParams.get('mode') === 'signin' ? 'signin' : 'signup';
 
   const [mode, setMode] = useState<'signup' | 'signin'>(initialMode);
@@ -63,6 +68,7 @@ function AuthPageContent() {
   const [countrySearch, setCountrySearch] = useState('');
   const [role, setRole] = useState<'backer' | 'creator'>(initialRole);
   const [adminCode, setAdminCode] = useState('');
+  const [availableProviders, setAvailableProviders] = useState<Record<string, boolean>>({});
   
   const isAdminLogin = mode === 'signin' && email.toLowerCase() === 'admin';
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -71,6 +77,7 @@ function AuthPageContent() {
   // Ticker state
   const [tickerItems, setTickerItems] = useState(TICKER_DATA.slice(0, 3));
   const tickerIndexRef = useRef(3);
+  const oauthErrorRef = useRef<string | null>(null);
 
   // Ticker Effect
   useEffect(() => {
@@ -83,6 +90,74 @@ function AuthPageContent() {
     }, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      const userRole = (session.user as any).role;
+      if (userRole === 'creator') router.replace('/dashboard');
+      else if (userRole === 'backer') router.replace('/backer');
+      else if (userRole === 'admin' || (session.user as any).email === 'admin') router.replace('/admin');
+    }
+  }, [status, session, router]);
+
+  useEffect(() => {
+    if (selectedSignupRole) setRole(selectedSignupRole);
+  }, [selectedSignupRole]);
+
+  useEffect(() => {
+    getProviders().then((providers) => {
+      if (!providers) return;
+      setAvailableProviders(
+        Object.keys(providers).reduce<Record<string, boolean>>((acc, providerId) => {
+          acc[providerId] = true;
+          return acc;
+        }, {}),
+      );
+    });
+  }, []);
+
+  useEffect(() => {
+    if (mode !== 'signup') return;
+    if (oauthError) return; // Do not redirect if there's an error to display
+
+    const storedRole = window.sessionStorage.getItem('oneraiseRoleChoice');
+    if (!selectedSignupRole || storedRole !== selectedSignupRole) {
+      router.replace('/join');
+    }
+  }, [mode, router, selectedSignupRole, oauthError]);
+
+  useEffect(() => {
+    if (!oauthError) return;
+    if (oauthErrorRef.current === oauthError) return;
+    oauthErrorRef.current = oauthError;
+
+    const errors: Record<string, { title: string; message: string }> = {
+      AccessDenied: {
+        title: 'Access Denied',
+        message: 'Your social sign-in request was cancelled or denied. Please try again.',
+      },
+      OAuthEmail: {
+        title: 'Email Required',
+        message: 'That social account did not return an email address, so we could not complete sign in.',
+      },
+      OAuthAccountNotLinked: {
+        title: 'Use Your Original Login',
+        message: 'This email is already linked to another sign-in method. Use the same provider you signed up with first.',
+      },
+      Configuration: {
+        title: 'Provider Setup Needed',
+        message: 'That social login is not fully configured yet. Add its OAuth keys and try again.',
+      },
+    };
+
+    const errorConfig = errors[oauthError] || {
+      title: 'Social Sign In Failed',
+      message: `We could not complete that social sign-in attempt (${oauthError}). Please try again.`,
+    };
+
+    showToast(errorConfig.message, 'error', errorConfig.title);
+  }, [oauthError, showToast]);
 
   // Resend Timer Effect
   useEffect(() => {
@@ -106,18 +181,36 @@ function AuthPageContent() {
   const pwClasses = ['weak', 'fair', 'good', 'strong'];
   const pwLabels = ['Weak', 'Fair', 'Good', 'Strong'];
 
+  const getSignedInRole = async () => {
+    try {
+      const res = await fetch('/api/auth/session');
+      const session = await res.json();
+      const sessionRole = session?.user?.role;
+      if (sessionRole === 'creator' || sessionRole === 'backer') return sessionRole;
+    } catch {
+      // Keep the existing UI fallback if the session endpoint is not ready yet.
+    }
+    return role;
+  };
+
   const handleSignup = async () => {
+    if (!selectedSignupRole || role !== selectedSignupRole) {
+      showToast('Choose whether you are signing up as a creator or donor first.', 'warning', 'Choose Account Type');
+      router.replace('/join');
+      return;
+    }
     if (!firstName) { showToast('Please enter your first name', 'warning', 'Missing Details'); return; }
     if (!isValidEmail(email)) { showToast('Please enter a valid email address', 'error', 'Invalid Email'); return; }
     if (password.length < 8) { showToast('Password must be at least 8 characters', 'warning', 'Weak Password'); return; }
     if (!terms) { showToast('You must agree to the Terms of Service', 'error', 'Terms Required'); return; }
     
     setLoading(true);
+    const normalizedEmail = email.trim().toLowerCase();
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, firstName, lastName, role }),
+        body: JSON.stringify({ email: normalizedEmail, password, firstName, lastName, role: selectedSignupRole }),
       });
       const data = await res.json();
 
@@ -129,7 +222,7 @@ function AuthPageContent() {
 
       // Auto sign-in after registration
       const signInRes = await signIn('credentials', {
-        email,
+        email: normalizedEmail,
         password,
         redirect: false,
       });
@@ -145,7 +238,7 @@ function AuthPageContent() {
       setSuccessState(true);
       showToast('Account created successfully!', 'success', 'Welcome to OneRaise');
       setTimeout(() => {
-        window.location.href = role === 'creator' ? '/dashboard' : '/backer';
+        window.location.href = selectedSignupRole === 'creator' ? '/dashboard' : '/backer';
       }, 1500);
     } catch (err) {
       setLoading(false);
@@ -163,8 +256,9 @@ function AuthPageContent() {
     
     setLoading(true);
     try {
+      const normalizedEmail = email.trim().toLowerCase();
       const res = await signIn('credentials', {
-        email: isAdminLogin ? 'admin' : email,
+        email: isAdminLogin ? 'admin' : normalizedEmail,
         password: isAdminLogin ? adminCode : password,
         redirect: false,
       });
@@ -177,10 +271,11 @@ function AuthPageContent() {
       }
 
       setSuccessState(true);
+      const signedInRole = isAdminLogin ? 'admin' : await getSignedInRole();
       showToast('Login successful! Redirecting...', 'success', 'Welcome Back');
       setTimeout(() => {
         if (isAdminLogin) window.location.href = '/admin';
-        else window.location.href = role === 'creator' ? '/dashboard' : '/backer';
+        else window.location.href = signedInRole === 'creator' ? '/dashboard' : '/backer';
       }, 1000);
     } catch (err) {
       setLoading(false);
@@ -189,10 +284,29 @@ function AuthPageContent() {
   };
 
   const handleOAuth = (provider: string) => {
-    showToast(`Connecting to ${provider}...`, 'info', `${provider} Sign In`);
     const providerMap: Record<string, string> = { 'Google': 'google', 'Apple': 'apple', 'X': 'twitter' };
     const providerId = providerMap[provider] || provider.toLowerCase();
-    signIn(providerId, { callbackUrl: role === 'creator' ? '/dashboard' : '/backer' });
+
+    if (!availableProviders[providerId]) {
+      showToast(`${provider} sign-in is not configured yet. Add its OAuth keys in your environment and try again.`, 'warning', `${provider} Not Ready`);
+      return;
+    }
+
+    if (mode === 'signup') {
+      const storedRole = window.sessionStorage.getItem('oneraiseRoleChoice');
+      if (!selectedSignupRole || storedRole !== selectedSignupRole) {
+        showToast('Choose whether you are signing up as a creator or donor first.', 'warning', 'Choose Account Type');
+        router.replace('/join');
+        return;
+      }
+      window.sessionStorage.setItem('oneraiseOAuthMode', 'signup');
+    } else {
+      window.sessionStorage.setItem('oneraiseOAuthMode', 'signin');
+    }
+
+    window.sessionStorage.setItem('oneraiseOAuthProvider', providerId);
+    showToast(`Connecting to ${provider}...`, 'info', `${provider} ${mode === 'signup' ? 'Sign Up' : 'Sign In'}`);
+    signIn(providerId, { callbackUrl: '/auth/oauth-complete' });
   };
 
   const handleSendReset = () => {
@@ -287,6 +401,11 @@ function AuthPageContent() {
               <div className="form-header">
                 <div className="form-title">{mode === 'signup' ? 'Start for free.' : 'Welcome back.'}</div>
                 <div className="form-sub">{mode === 'signup' ? 'Your first campaign has zero platform fees.' : 'Sign in to manage your campaigns and payouts.'}</div>
+                {mode === 'signup' && selectedSignupRole && (
+                  <div className="role-context">
+                    Creating a {selectedSignupRole === 'creator' ? 'Creator' : 'Donor'} account
+                  </div>
+                )}
               </div>
 
               <div className="oauth-row">
@@ -415,7 +534,7 @@ function AuthPageContent() {
 
               <div className="switch-link">
                 {mode === 'signup' ? 'Already have an account? ' : 'New to OneRaise? '}
-                <a href="#" onClick={(e) => { e.preventDefault(); setMode(mode === 'signup' ? 'signin' : 'signup'); }}>
+                <a href={mode === 'signup' ? '#' : '/join'} onClick={(e) => { if (mode === 'signup') { e.preventDefault(); setMode('signin'); } }}>
                   {mode === 'signup' ? 'Sign in' : 'Create a free account'}
                 </a>
               </div>

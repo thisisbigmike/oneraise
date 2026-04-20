@@ -1,12 +1,58 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { CAMPAIGN_SEED_LIST, getCampaignPct } from '@/lib/campaign-seeds';
+
+type SupportedCampaign = {
+  id: number;
+  slug: string;
+  title: string;
+  creator: string;
+  raised: number;
+  goal: number;
+  pct?: number;
+};
+
+const INITIAL_SUPPORTED: SupportedCampaign[] = CAMPAIGN_SEED_LIST.slice(0, 2).map((campaign) => ({
+  ...campaign,
+  pct: getCampaignPct(campaign.raised, campaign.goal),
+}));
 
 export default function BackerOverview() {
   const { data: session } = useSession();
   const firstName = session?.user?.name?.split(' ')[0] || 'Backer';
+  const [supportedCampaigns, setSupportedCampaigns] = useState(INITIAL_SUPPORTED);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const loadCampaigns = async () => {
+      try {
+        const res = await fetch('/api/campaigns', { cache: 'no-store' });
+        const data = await res.json();
+
+        if (!ignore && res.ok && Array.isArray(data.campaigns)) {
+          setSupportedCampaigns(
+            data.campaigns
+              .filter((campaign: SupportedCampaign & { status?: string }) => campaign.status !== 'draft')
+              .slice(0, 2)
+              .map((campaign: SupportedCampaign) => campaign),
+          );
+        }
+      } catch {
+        // Keep the seeded campaign cards if live data is temporarily unavailable.
+      }
+    };
+
+    loadCampaigns();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
   return (
     <div className="overview-page">
       <div className="page-header">
@@ -37,32 +83,33 @@ export default function BackerOverview() {
       <div className="content-grid">
         <div className="content-card">
           <div className="cc-header">
-            <div className="cc-title">Active Campaigns You Support</div>
+            <div className="cc-title">Live Campaigns</div>
           </div>
           <div className="campaign-grid" style={{ gridTemplateColumns: '1fr', gap: 16 }}>
-            {[
-              { title: 'SolarPack Mini', creator: 'Tunde Coker', amount: '$500', progress: 68 },
-              { title: 'CodeBridge: Mexico City', creator: 'Elena Ruiz', amount: '$75', progress: 82 }
-            ].map((c, i) => (
-              <div key={i} className="campaign-card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {supportedCampaigns.map((c) => {
+              const pct = c.pct ?? getCampaignPct(c.raised, c.goal);
+
+              return (
+              <div key={c.slug || c.id} className="campaign-card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <h3 className="cmp-title" style={{ fontSize: 16, marginBottom: 4 }}>{c.title}</h3>
                     <div className="s-hint">by {c.creator}</div>
                   </div>
                   <div style={{ background: 'rgba(29,158,117,0.1)', color: 'var(--teal-200)', padding: '4px 10px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
-                    You gave {c.amount}
+                    ${c.goal.toLocaleString()} goal
                   </div>
                 </div>
                 <div className="cmp-progress-wrap" style={{ marginTop: 8 }}>
-                  <div className="sc-progress-bar"><div className="sc-progress-fill" style={{ width: `${c.progress}%` }}></div></div>
+                  <div className="sc-progress-bar"><div className="sc-progress-fill" style={{ width: `${pct}%` }}></div></div>
                   <div className="cmp-progress-nums">
                     <span>Funding progress</span>
-                    <span>{c.progress}%</span>
+                    <span>{pct}%</span>
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 

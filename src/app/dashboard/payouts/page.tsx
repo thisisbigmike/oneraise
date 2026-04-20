@@ -24,15 +24,28 @@ type PayoutRecord = {
   amount: number;
   sourceCurrency: string;
   targetCurrency: string;
+  receiveAmount?: number | null;
+  receiveCurrency?: string | null;
   status: string;
   createdAt: string;
   completedAt?: string | null;
+  quote?: PayoutQuote | null;
   payoutMethod?: {
     id: string;
     type: string;
     label: string;
     currency: string;
   } | null;
+};
+
+type PayoutQuote = {
+  id: string;
+  sourceAmount: number;
+  sourceCurrency: string;
+  targetAmount: number;
+  targetCurrency: string;
+  rate?: number | null;
+  expiresAt?: string | null;
 };
 
 const BANK_CURRENCY_OPTIONS = [
@@ -68,6 +81,8 @@ export default function PayoutsPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [savingMethod, setSavingMethod] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
+  const [previewingQuote, setPreviewingQuote] = useState(false);
+  const [quotePreview, setQuotePreview] = useState<PayoutQuote | null>(null);
 
   const primaryMethod = methods.find(method => method.isPrimary) || null;
 
@@ -83,6 +98,7 @@ export default function PayoutsPage() {
     const parts = cleanVal.split('.');
     const finalizedVal = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : cleanVal;
     setWithdrawAmount(finalizedVal);
+    setQuotePreview(null);
   };
 
   const formatDisplayAmount = (value: number, currency = 'USD') => {
@@ -212,6 +228,50 @@ export default function PayoutsPage() {
     }
   };
 
+  const handlePreviewPayout = async () => {
+    const parsedAmount = Number(withdrawAmount);
+    if (!parsedAmount || parsedAmount <= 0) {
+      showToast('Enter a valid amount.', 'warning');
+      return;
+    }
+
+    if (!primaryMethod) {
+      showToast('Add a payout method first.', 'warning');
+      return;
+    }
+
+    if (parsedAmount > summary.availableBalance) {
+      showToast('Withdrawal exceeds available balance.', 'warning');
+      return;
+    }
+
+    try {
+      setPreviewingQuote(true);
+      const res = await fetch('/api/payouts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: parsedAmount,
+          payoutMethodId: primaryMethod.id,
+          previewOnly: true,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Unable to preview payout quote.');
+      }
+
+      setQuotePreview(data.quote || null);
+      showToast('Busha payout quote ready.', 'success');
+    } catch (error: any) {
+      setQuotePreview(null);
+      showToast(error.message || 'Unable to preview payout quote.', 'error');
+    } finally {
+      setPreviewingQuote(false);
+    }
+  };
+
   const handleWithdraw = async () => {
     const parsedAmount = Number(withdrawAmount);
     if (!parsedAmount || parsedAmount <= 0) {
@@ -221,6 +281,11 @@ export default function PayoutsPage() {
 
     if (!primaryMethod) {
       showToast('Add a payout method first.', 'warning');
+      return;
+    }
+
+    if (!quotePreview) {
+      showToast('Preview the Busha quote before confirming withdrawal.', 'warning');
       return;
     }
 
@@ -243,6 +308,7 @@ export default function PayoutsPage() {
       await loadData();
       setWithdrawOpen(false);
       setWithdrawAmount('0');
+      setQuotePreview(null);
       showToast('Withdrawal initiated successfully.', 'success');
     } catch (error: any) {
       showToast(error.message || 'Unable to initiate payout.', 'error');
@@ -536,6 +602,11 @@ export default function PayoutsPage() {
                   </td>
                   <td>
                     <span className="txn-amount">{formatDisplayAmount(payout.amount, payout.sourceCurrency)}</span>
+                    {payout.receiveAmount ? (
+                      <div className="s-hint" style={{ marginTop: 4 }}>
+                        Receive {formatDisplayAmount(payout.receiveAmount, payout.receiveCurrency || payout.targetCurrency)}
+                      </div>
+                    ) : null}
                   </td>
                   <td>{payout.payoutMethod?.label || 'Payout method'}</td>
                   <td>
@@ -556,7 +627,10 @@ export default function PayoutsPage() {
         </div>
       </div>
 
-      <Modal open={withdrawOpen} onClose={() => setWithdrawOpen(false)} title="Withdraw Funds">
+      <Modal open={withdrawOpen} onClose={() => {
+        setWithdrawOpen(false);
+        setQuotePreview(null);
+      }} title="Withdraw Funds">
         <p style={{ color: 'var(--w50)', fontSize: 14, marginBottom: 20 }}>
           Funds will be sent to your primary payout method ({primaryMethod?.label || 'None set'}).
         </p>
@@ -564,11 +638,39 @@ export default function PayoutsPage() {
           <label className="s-label">Withdrawal Amount (USD)</label>
           <input className="s-input" type="text" inputMode="decimal" value={formatAmount(withdrawAmount)} onChange={e => handleAmountChange(e.target.value)} />
         </div>
+        <div style={{ background: 'rgba(29,158,117,0.08)', border: '1px solid rgba(93,202,165,0.22)', borderRadius: 16, padding: 16, marginBottom: 20 }}>
+          <div style={{ fontSize: 13, color: 'var(--w50)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+            Busha payout quote
+          </div>
+          {quotePreview ? (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 10 }}>
+                <span style={{ color: 'var(--w50)' }}>You send</span>
+                <strong>{formatDisplayAmount(quotePreview.sourceAmount || Number(withdrawAmount), quotePreview.sourceCurrency || 'USDT')}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 10 }}>
+                <span style={{ color: 'var(--w50)' }}>Creator receives</span>
+                <strong style={{ color: 'var(--teal-200)' }}>{formatDisplayAmount(quotePreview.targetAmount, quotePreview.targetCurrency || primaryMethod?.currency || 'NGN')}</strong>
+              </div>
+              {quotePreview.rate ? (
+                <div className="s-hint">Rate: 1 {quotePreview.sourceCurrency} ≈ {quotePreview.rate.toLocaleString()} {quotePreview.targetCurrency}</div>
+              ) : (
+                <div className="s-hint">Quote generated by Busha at withdrawal time.</div>
+              )}
+            </>
+          ) : (
+            <div className="s-hint">
+              Preview a fresh Busha quote to see what the creator will receive before creating the transfer.
+            </div>
+          )}
+        </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button className="btn-primary" style={{ flex: 1 }} onClick={handleWithdraw} disabled={withdrawing}>
+          <button className="btn-secondary" style={{ flex: 1 }} onClick={handlePreviewPayout} disabled={previewingQuote || withdrawing}>
+            {previewingQuote ? 'Getting quote...' : quotePreview ? 'Refresh quote' : 'Preview quote'}
+          </button>
+          <button className="btn-primary" style={{ flex: 1 }} onClick={handleWithdraw} disabled={withdrawing || !quotePreview}>
             {withdrawing ? 'Processing...' : 'Confirm Withdrawal'}
           </button>
-          <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setWithdrawOpen(false)}>Cancel</button>
         </div>
       </Modal>
     </div>

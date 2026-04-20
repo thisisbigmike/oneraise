@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { getStoredDonationCreditUsd } from "@/lib/currency";
 import { safeJsonParse } from "@/lib/payments";
 
 export function stringifyJson(value: unknown) {
@@ -42,11 +43,13 @@ export async function markDonationStatus(args: {
     });
 
     if (args.status === "completed" && !existing.creditedAt) {
+      const creditedUsdAmount = getStoredDonationCreditUsd(existing);
+
       await tx.campaign.update({
         where: { id: existing.campaignId },
         data: {
           raised: {
-            increment: existing.amount,
+            increment: creditedUsdAmount,
           },
         },
       });
@@ -113,8 +116,14 @@ export async function getCreatorPayoutSummary(userId: string) {
   const reservedPayouts = payouts.filter((payout) => payout.status !== "failed");
   const completedPayouts = payouts.filter((payout) => payout.status === "completed");
 
-  const grossRaised = completedDonations.reduce((sum, donation) => sum + donation.amount, 0);
-  const pendingRaised = pendingDonations.reduce((sum, donation) => sum + donation.amount, 0);
+  const grossRaised = completedDonations.reduce(
+    (sum, donation) => sum + getStoredDonationCreditUsd(donation),
+    0,
+  );
+  const pendingRaised = pendingDonations.reduce(
+    (sum, donation) => sum + getStoredDonationCreditUsd(donation),
+    0,
+  );
   const reservedAmount = reservedPayouts.reduce((sum, payout) => sum + payout.amount, 0);
   const totalWithdrawn = completedPayouts.reduce((sum, payout) => sum + payout.amount, 0);
   const availableBalance = Math.max(grossRaised - reservedAmount, 0);

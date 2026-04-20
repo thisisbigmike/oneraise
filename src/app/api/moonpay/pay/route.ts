@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { getDonationCreditUsd } from "@/lib/currency";
 import {
   buildMoonPayCheckoutUrl,
   createBushaCryptoDeposit,
@@ -87,10 +88,22 @@ export async function POST(req: Request) {
       donorMessage,
       isAnonymous,
       coverFee,
+      creditAmount,
+      creditCurrency,
     } = await req.json();
 
     const parsedAmount = toNumber(amount);
     const parsedCurrency = String(currency || "USD").toUpperCase();
+    const parsedCreditAmount = toNumber(creditAmount, parsedAmount);
+    const parsedCreditCurrency = String(creditCurrency || parsedCurrency).toUpperCase();
+    const credit = {
+      amount: parsedCreditAmount,
+      currency: parsedCreditCurrency,
+      amountUsd: getDonationCreditUsd({
+        amount: parsedCreditAmount,
+        currency: parsedCreditCurrency,
+      }),
+    };
     const parsedCampaignId = String(campaignId || "");
 
     if (!parsedCampaignId) {
@@ -114,6 +127,7 @@ export async function POST(req: Request) {
         donorMessage: donorMessage || null,
         isAnonymous: isAnonymous === true,
         coverFee: coverFee === true,
+        providerDataJson: JSON.stringify({ credit }),
         campaign: {
           connect: {
             id: campaign.id,
@@ -177,7 +191,7 @@ export async function POST(req: Request) {
         network: settlementNetwork,
         providerStatus: String(resolvedTransfer.status || quote.status || "pending"),
         instructionsJson: JSON.stringify(instructions),
-        providerDataJson: JSON.stringify({ quote, transfer: resolvedTransfer }),
+        providerDataJson: JSON.stringify({ quote, transfer: resolvedTransfer, credit }),
         expiresAt: parseExpiresAt(instructions?.expiresAt),
       },
     });
