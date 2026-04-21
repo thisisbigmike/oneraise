@@ -1,0 +1,288 @@
+.campaign-detail-page {
+  min-height: 100vh;
+  background-color: #0a0a0a;
+  color: #fff;
+}
+
+.campaign-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 60px 20px;
+}
+
+/* Hero Section */
+.campaign-hero {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 60px;
+  margin-bottom: 60px;
+}
+
+@media (max-width: 900px) {
+  .campaign-hero {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+.campaign-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  background: rgba(29, 158, 117, 0.15);
+  color: #5DCAA5;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
+.campaign-title {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 20px;
+  letter-spacing: -0.02em;
+}
+
+.campaign-subtitle {
+  font-size: 1.25rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+  margin-bottom: 30px;
+}
+
+.campaign-creator {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.creator-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1D9E75, #115e46);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.creator-name {
+  font-weight: 500;
+  font-size: 1.1rem;
+}
+
+.creator-verified {
+  font-size: 0.875rem;
+  margin-top: 4px;
+}
+
+.campaign-image-placeholder {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Funding Card */
+.funding-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 32px;
+  position: sticky;
+  top: 100px;
+}
+
+.funding-raised {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.funding-goal {
+  font-size: 1rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.funding-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.stat-box {
+  text-align: left;
+}
+
+.stat-val {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.stat-lbl {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn-donate {
+  width: 100%;
+  text-align: center;
+  justify-content: center;
+  padding: 18px !important;
+  font-size: 1.1rem !important;
+  margin-bottom: 16px;
+}
+
+.trust-note {
+  text-align: center;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Tabs */
+.campaign-tabs-wrapper {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 40px;
+}
+
+.campaign-tabs {
+  display: flex;
+  gap: 32px;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.1rem;
+  font-weight: 500;
+  padding: 16px 0;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s;
+}
+
+.tab-btn:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.tab-btn.active {
+  color: #fff;
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #1D9E75;
+}
+
+.tab-badge {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  margin-left: 8px;
+}
+
+/* Content Sections */
+.campaign-content {
+  max-width: 700px;
+}
+
+.content-section {
+  animation: fadeIn 0.3s ease;
+}
+
+.content-section h2 {
+  font-size: 1.75rem;
+  margin-bottom: 24px;
+}
+
+.content-section h3 {
+  font-size: 1.25rem;
+  margin: 32px 0 16px;
+}
+
+.content-section p {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 24px;
+}
+
+/* Updates */
+.update-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.update-meta {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 8px;
+}
+
+.update-title {
+  font-size: 1.25rem;
+  margin-bottom: 16px;
+}
+
+/* Donors */
+.donor-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.donor-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+}
+
+.donor-name {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.donor-amount {
+  font-weight: 600;
+  color: #1D9E75;
+}
+
+.donor-time {
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

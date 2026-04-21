@@ -1,0 +1,130 @@
+.explore-page {
+  min-height: 100vh;
+  background-color: #0a0a0a;
+  color: #fff;
+}
+
+.explore-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 80px 20px;
+}
+
+.explore-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.explore-title {
+  font-size: 3.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin-bottom: 16px;
+  background: linear-gradient(to right, #fff, #a0a0a0);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.explore-subtitle {
+  font-size: 1.25rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.explore-filters {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.filter-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-group {
+  flex: 1;
+  min-width: 300px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: border-color 0.2s;
+}
+
+.search-group:focus-within {
+  border-color: #1D9E75;
+}
+
+.search-group svg {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.explore-search-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 14px 12px;
+  color: #fff;
+  font-size: 1rem;
+  outline: none;
+}
+
+.explore-select {
+  appearance: none;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 14px 40px 14px 20px;
+  color: #fff;
+  border-radius: 12px;
+  font-size: 1rem;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.explore-select:focus, .explore-select:hover {
+  border-color: #1D9E75;
+  background: rgba(29, 158, 117, 0.1);
+}
+
+/* Custom select arrow */
+.filter-group::after {
+  content: '';
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 6px;
+  background-color: rgba(255, 255, 255, 0.6);
+  clip-path: polygon(100% 0%, 0 0%, 50% 100%);
+  pointer-events: none;
+}
+
+.search-group::after {
+  display: none;
+}
+
+.no-results {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 20px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.no-results h3 {
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+}
+
+.no-results p {
+  color: rgba(255, 255, 255, 0.5);
+}

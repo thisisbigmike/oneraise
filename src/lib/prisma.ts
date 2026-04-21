@@ -1,37 +1,24 @@
-import fs from 'fs';
-import path from 'path';
 import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-function ensureWritableSqliteUrl() {
-  const currentUrl = process.env.DATABASE_URL || '';
-  const needsFallback =
-    currentUrl === 'file:./dev.db' ||
-    currentUrl === 'file:dev.db' ||
-    currentUrl === 'file:./prisma/dev.db';
+function assertSupabaseDatabaseUrl() {
+  const currentUrl = process.env.DATABASE_URL;
 
-  if (!needsFallback) {
-    return;
+  if (!currentUrl) {
+    throw new Error(
+      'DATABASE_URL is missing. Add your Supabase pooled Postgres connection string to .env.local.',
+    );
   }
 
-  const fallbackPath = '/tmp/oneraise-dev.db';
-  const sourceCandidates = [
-    path.join(process.cwd(), 'prisma', 'dev.db'),
-    path.join(process.cwd(), 'dev.db'),
-  ];
-
-  if (!fs.existsSync(fallbackPath)) {
-    const existingSource = sourceCandidates.find((candidate) => fs.existsSync(candidate));
-    if (existingSource) {
-      fs.copyFileSync(existingSource, fallbackPath);
-    }
+  if (currentUrl.startsWith('file:')) {
+    throw new Error(
+      'SQLite DATABASE_URL detected. Replace DATABASE_URL and DIRECT_URL with your Supabase Postgres connection strings.',
+    );
   }
-
-  process.env.DATABASE_URL = `file:${fallbackPath}`;
 }
 
-ensureWritableSqliteUrl();
+assertSupabaseDatabaseUrl();
 
 export const prisma =
   globalForPrisma.prisma ||

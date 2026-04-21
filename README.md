@@ -1,37 +1,43 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## OneRaise
 
-## Getting Started
+This app now expects a Supabase Postgres database through Prisma.
 
-First, run the development server:
+## Supabase Setup
+
+1. In Supabase, open your project and copy two database connection strings:
+   - `DATABASE_URL`: the pooled Supavisor transaction string on port `6543`, with `?pgbouncer=true`
+   - `DIRECT_URL`: the direct database connection on port `5432`
+2. Paste both values into `.env` and `.env.local`.
+3. Push the Prisma schema into Supabase:
+
+```bash
+npm run db:push
+```
+
+4. Start the app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app still uses Prisma and the existing NextAuth Prisma adapter. Only the database backend changed from local SQLite to Supabase Postgres.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Helpful Commands
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run db:generate
+npm run db:push
+npm run db:pull
+npm run db:studio
+```
 
-## Learn More
+## Notes
 
-To learn more about Next.js, take a look at the following resources:
+- `prisma/dev.db` is no longer used by the app.
+- If Prisma reports a `file:` database URL, update `.env` and `.env.local` with your Supabase values.
+- For local or serverless deploys, keep the pooled connection in `DATABASE_URL` and the direct connection in `DIRECT_URL`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## References
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# oneraise
+- Next.js App Router docs: [node_modules/next/dist/docs/01-app/index.md](node_modules/next/dist/docs/01-app/index.md)
+- Prisma + Supabase guide: https://www.prisma.io/docs/orm/overview/databases/supabase

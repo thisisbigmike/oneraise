@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { CAMPAIGN_SEED_LIST, getCampaignPct } from '@/lib/campaign-seeds';
 
 const INITIAL_LANDING_CAMPAIGNS = CAMPAIGN_SEED_LIST.slice(0, 3).map((campaign) => ({
@@ -11,6 +12,7 @@ const INITIAL_LANDING_CAMPAIGNS = CAMPAIGN_SEED_LIST.slice(0, 3).map((campaign) 
 }));
 
 export default function Home() {
+  const router = useRouter();
   const [landingCampaigns, setLandingCampaigns] = useState(INITIAL_LANDING_CAMPAIGNS);
 
   useEffect(() => {
@@ -192,7 +194,7 @@ feedItems.forEach((item, i) => {
 <nav id="main-nav">
   <a href="#" className="nav-logo">One<span>Raise</span></a>
   <ul className="nav-links">
-    <li><a href="#campaigns">Explore</a></li>
+    <li><Link href="/explore">Explore</Link></li>
     <li><a href="#how">How it works</a></li>
     <li><a href="#features">Features</a></li>
     <li><a href="#community">Community</a></li>
@@ -242,15 +244,27 @@ feedItems.forEach((item, i) => {
       </span>
     </h1>
     <p className="hero-sub">OneRaise connects creators, entrepreneurs, and changemakers with a global community of 2.1 million backers — across every border, currency, and timezone.</p>
+    
+    <form className="hero-search-form" onSubmit={(e) => {
+      e.preventDefault();
+      const q = (e.target as any).search.value;
+      if(q) router.push(`/explore?q=${encodeURIComponent(q)}`);
+    }}>
+      <div style={{display: 'flex', gap: '10px', maxWidth: '500px', margin: '0 auto 30px auto'}}>
+        <input type="text" name="search" placeholder="Search campaigns, categories, or locations..." style={{flex: 1, padding: '14px 20px', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: '16px', outline: 'none'}} />
+        <button type="submit" className="btn-hero-primary" style={{padding: '0 24px', borderRadius: '30px', height: 'auto'}}>Search</button>
+      </div>
+    </form>
+
     <div className="hero-actions">
       <Link href="/join" className="btn-hero-primary">
         Start a campaign
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
       </Link>
-      <a href="#campaigns" className="btn-hero-secondary">
+      <Link href="/explore" className="btn-hero-secondary">
         Explore campaigns
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-      </a>
+      </Link>
     </div>
     <div className="hero-trust">
       <div className="trust-item">
@@ -642,9 +656,9 @@ feedItems.forEach((item, i) => {
     <div>
       <div className="footer-col-title">Platform</div>
       <ul className="footer-links">
-        <li><a href="#">Explore campaigns</a></li>
+        <li><Link href="/explore">Explore campaigns</Link></li>
         <li><Link href="/join">Start a campaign</Link></li>
-        <li><a href="#">How it works</a></li>
+        <li><Link href="/about">How it works</Link></li>
         <li><a href="#">Pricing</a></li>
         <li><a href="#">Success stories</a></li>
       </ul>
@@ -652,7 +666,7 @@ feedItems.forEach((item, i) => {
     <div>
       <div className="footer-col-title">Company</div>
       <ul className="footer-links">
-        <li><a href="#">About us</a></li>
+        <li><Link href="/about">About us</Link></li>
         <li><a href="#">Blog</a></li>
         <li><a href="#">Careers</a></li>
         <li><a href="#">Press kit</a></li>
