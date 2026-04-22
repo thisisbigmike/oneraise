@@ -110,6 +110,35 @@ export default function PayoutsPage() {
   const [withdrawing, setWithdrawing] = useState(false);
   const [previewingQuote, setPreviewingQuote] = useState(false);
   const [quotePreview, setQuotePreview] = useState<PayoutQuote | null>(null);
+  const [resolvingName, setResolvingName] = useState(false);
+
+  useEffect(() => {
+    const verifyAccount = async () => {
+      if (countryCode !== 'NG' || !bankCode || accountNumber.length !== 10) {
+        if (countryCode === 'NG' && accountNumber.length !== 10) {
+          setAccountName('');
+        }
+        return;
+      }
+
+      setResolvingName(true);
+      try {
+        const res = await fetch(`/api/verify-account?account_number=${accountNumber}&bank_code=${bankCode}`);
+        const data = await res.json();
+        if (res.ok && data.account_name) {
+          setAccountName(data.account_name);
+        } else {
+          setAccountName('Account not found');
+        }
+      } catch (err) {
+        setAccountName('Verification failed');
+      } finally {
+        setResolvingName(false);
+      }
+    };
+
+    verifyAccount();
+  }, [accountNumber, bankCode, countryCode]);
 
   const primaryMethod = methods.find(method => method.isPrimary) || null;
 
@@ -561,13 +590,23 @@ export default function PayoutsPage() {
                       </div>
                     </>
                   )}
-                  <div className="s-field">
-                    <label className="s-label">Account Name</label>
-                    <input className="s-input" value={accountName} onChange={e => setAccountName(e.target.value)} placeholder="Tunde Coker" />
-                  </div>
                   <div className="s-field s-field-full">
                     <label className="s-label">Account Number</label>
-                    <input className="s-input" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} placeholder="0123456789" />
+                    <input className="s-input" value={accountNumber} onChange={e => setAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="0123456789" />
+                  </div>
+                  <div className="s-field">
+                    <label className="s-label">Account Name</label>
+                    {countryCode === 'NG' ? (
+                      <input 
+                        className="s-input" 
+                        value={resolvingName ? 'Verifying account...' : accountName} 
+                        readOnly 
+                        style={{ backgroundColor: 'var(--w5)', color: resolvingName ? 'var(--w50)' : 'var(--white)' }}
+                        placeholder="Auto-resolved account name"
+                      />
+                    ) : (
+                      <input className="s-input" value={accountName} onChange={e => setAccountName(e.target.value)} placeholder="Tunde Coker" />
+                    )}
                   </div>
                 </>
               )}
