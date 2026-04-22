@@ -55,6 +55,33 @@ const BANK_CURRENCY_OPTIONS = [
 
 const CRYPTO_ASSET_OPTIONS = ['USDT', 'USDC', 'BTC', 'ETH', 'SOL'];
 
+const NIGERIAN_BANKS = [
+  { name: 'Access Bank', code: '044' },
+  { name: 'Citibank Nigeria', code: '023' },
+  { name: 'Ecobank Nigeria', code: '050' },
+  { name: 'Fidelity Bank', code: '070' },
+  { name: 'First Bank of Nigeria', code: '011' },
+  { name: 'First City Monument Bank (FCMB)', code: '214' },
+  { name: 'Guaranty Trust Bank (GTB)', code: '058' },
+  { name: 'Heritage Bank', code: '030' },
+  { name: 'Keystone Bank', code: '082' },
+  { name: 'Kuda Bank', code: '50211' },
+  { name: 'Moniepoint', code: '50515' },
+  { name: 'OPay', code: '100004' },
+  { name: 'Palmpay', code: '100033' },
+  { name: 'Polaris Bank', code: '076' },
+  { name: 'Providus Bank', code: '101' },
+  { name: 'Stanbic IBTC Bank', code: '221' },
+  { name: 'Standard Chartered Bank', code: '068' },
+  { name: 'Sterling Bank', code: '232' },
+  { name: 'SunTrust Bank', code: '100' },
+  { name: 'Union Bank of Nigeria', code: '032' },
+  { name: 'United Bank for Africa (UBA)', code: '033' },
+  { name: 'Unity Bank', code: '215' },
+  { name: 'Wema Bank', code: '035' },
+  { name: 'Zenith Bank', code: '057' },
+];
+
 export default function PayoutsPage() {
   const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -502,18 +529,38 @@ export default function PayoutsPage() {
                       ))}
                     </select>
                   </div>
-                  <div className="s-field">
-                    <label className="s-label">Country Code</label>
-                    <input className="s-input" value={countryCode} onChange={e => setCountryCode(e.target.value.toUpperCase())} placeholder="NG" />
-                  </div>
-                  <div className="s-field">
-                    <label className="s-label">Bank Name</label>
-                    <input className="s-input" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="GTBank" />
-                  </div>
-                  <div className="s-field">
-                    <label className="s-label">Bank Code</label>
-                    <input className="s-input" value={bankCode} onChange={e => setBankCode(e.target.value)} placeholder="058" />
-                  </div>
+                  {countryCode === 'NG' ? (
+                    <div className="s-field">
+                      <label className="s-label">Bank Name</label>
+                      <select 
+                        className="s-input" 
+                        value={bankCode} 
+                        onChange={e => {
+                          const selectedBank = NIGERIAN_BANKS.find(b => b.code === e.target.value);
+                          if (selectedBank) {
+                            setBankName(selectedBank.name);
+                            setBankCode(selectedBank.code);
+                          }
+                        }}
+                      >
+                        <option value="" disabled>Select your bank</option>
+                        {NIGERIAN_BANKS.map(bank => (
+                          <option key={bank.code} value={bank.code}>{bank.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="s-field">
+                        <label className="s-label">Bank Name</label>
+                        <input className="s-input" value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g. Equity Bank" />
+                      </div>
+                      <div className="s-field">
+                        <label className="s-label">Bank Code</label>
+                        <input className="s-input" value={bankCode} onChange={e => setBankCode(e.target.value)} placeholder="Bank Code" />
+                      </div>
+                    </>
+                  )}
                   <div className="s-field">
                     <label className="s-label">Account Name</label>
                     <input className="s-input" value={accountName} onChange={e => setAccountName(e.target.value)} placeholder="Tunde Coker" />
