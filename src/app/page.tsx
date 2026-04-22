@@ -1,193 +1,18 @@
-// @ts-nocheck
-'use client';
-
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { CAMPAIGN_SEED_LIST, getCampaignPct } from '@/lib/campaign-seeds';
+import { getCachedCampaignsList } from '@/lib/campaigns-data';
+import HomeScripts from './HomeScripts';
 
-const INITIAL_LANDING_CAMPAIGNS = CAMPAIGN_SEED_LIST.slice(0, 3).map((campaign) => ({
-  ...campaign,
-  pct: getCampaignPct(campaign.raised, campaign.goal),
-}));
-
-export default function Home() {
-  const router = useRouter();
-  const [landingCampaigns, setLandingCampaigns] = useState(INITIAL_LANDING_CAMPAIGNS);
-
-  useEffect(() => {
-    let ignore = false;
-
-    const loadCampaigns = async () => {
-      try {
-        const res = await fetch('/api/campaigns', { cache: 'no-store' });
-        const data = await res.json();
-
-        if (!ignore && res.ok && Array.isArray(data.campaigns)) {
-          setLandingCampaigns(data.campaigns.filter((campaign) => campaign.status !== 'draft').slice(0, 3));
-        }
-      } catch {
-        // Keep the seeded campaign cards if live data is temporarily unavailable.
-      }
-    };
-
-    loadCampaigns();
-
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    
-// ── PIXEL TRAIL ──
-const dots = [];
-const MAX_DOTS = 18;
-for(let i = 0; i < MAX_DOTS; i++){
-  const d = document.createElement('div');
-  d.className = 'trail-dot';
-  document.body.appendChild(d);
-  dots.push({el:d, x:0, y:0});
-}
-let mouseX = 0, mouseY = 0;
-document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
-let trailIdx = 0;
-setInterval(() => {
-  const d = dots[trailIdx % MAX_DOTS];
-  d.x = mouseX; d.y = mouseY;
-  d.el.style.left = mouseX + 'px';
-  d.el.style.top = mouseY + 'px';
-  d.el.style.opacity = '0.6';
-  setTimeout(() => { d.el.style.opacity = '0'; }, 300);
-  trailIdx++;
-}, 40);
-
-// ── MOBILE MENU ──
-const hamburger = document.getElementById('hamburger');
-const mobileMenu = document.getElementById('mobile-menu');
-hamburger.addEventListener('click', () => {
-  mobileMenu.classList.toggle('open');
-});
-
-// ── SCROLL REVEAL ──
-const revealEls = document.querySelectorAll('.reveal');
-const revealObs = new IntersectionObserver((entries) => {
-  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
-}, { threshold: 0.12 });
-revealEls.forEach(el => revealObs.observe(el));
-
-// ── COUNT UP ──
-function animateCount(el){
-  const target = parseFloat(el.dataset.count);
-  const suffix = el.dataset.suffix || '';
-  const prefix = el.dataset.prefix || '';
-  const isDecimal = target % 1 !== 0;
-  const duration = 1800;
-  const start = performance.now();
-  function step(now){
-    const progress = Math.min((now - start) / duration, 1);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    const value = eased * target;
-    el.innerHTML = prefix + (isDecimal ? value.toFixed(1) : Math.floor(value)) + '<span class="accent">' + suffix + '</span>';
-    if(progress < 1) requestAnimationFrame(step);
-    else el.innerHTML = prefix + target + '<span class="accent">' + suffix + '</span>';
-  }
-  requestAnimationFrame(step);
-}
-const countEls = document.querySelectorAll('[data-count]');
-const countObs = new IntersectionObserver((entries) => {
-  entries.forEach(e => {
-    if(e.isIntersecting){ animateCount(e.target); countObs.unobserve(e.target); }
-  });
-}, { threshold: 0.5 });
-countEls.forEach(el => countObs.observe(el));
-
-// ── BACKER FEED ANIMATION ──
-const feedItems = document.querySelectorAll('.feed-item');
-feedItems.forEach((item, i) => {
-  setTimeout(() => {
-    const obs = new IntersectionObserver((entries) => {
-      entries.forEach(e => { if(e.isIntersecting){ setTimeout(()=>item.classList.add('in'), i*150); obs.disconnect(); }});
-    }, {threshold:0.1});
-    obs.observe(item);
-  }, 0);
-});
-
-// ── GLOBE (canvas dot-globe) ──
-(function(){
-  const canvas = document.getElementById('globe');
-  if(!canvas) return;
-  const ctx = canvas.getContext('2d');
-  let W, H, R, angle = 0;
-  const points = [];
-  function resize(){
-    const rect = canvas.parentElement.getBoundingClientRect();
-    W = rect.width; H = rect.height;
-    canvas.width = W * devicePixelRatio;
-    canvas.height = H * devicePixelRatio;
-    ctx.scale(devicePixelRatio, devicePixelRatio);
-    R = Math.min(W,H) * 0.44;
-    generatePoints();
-  }
-  function generatePoints(){
-    points.length = 0;
-    const count = 220;
-    const phi = Math.PI * (3 - Math.sqrt(5));
-    for(let i=0;i<count;i++){
-      const y = 1 - (i / (count-1)) * 2;
-      const r = Math.sqrt(1 - y*y);
-      const theta = phi * i;
-      points.push({ x: Math.cos(theta)*r, y: y, z: Math.sin(theta)*r });
-    }
-  }
-  // a few "connection" arcs
-  const connections = [[0,12],[5,22],[10,30],[15,40],[3,55],[20,60],[8,70]];
-  function draw(){
-    ctx.clearRect(0,0,W,H);
-    const cx = W/2, cy = H/2;
-    const cosA = Math.cos(angle), sinA = Math.sin(angle);
-    const sorted = points.map(p => {
-      const rx = p.x*cosA - p.z*sinA;
-      const rz = p.x*sinA + p.z*cosA;
-      return { sx: cx + rx*R, sy: cy + p.y*R, depth: rz };
-    });
-    sorted.sort((a,b)=>a.depth-b.depth);
-    sorted.forEach(p => {
-      const alpha = (p.depth + 1) / 2;
-      const size = 1.2 + alpha * 1.4;
-      ctx.beginPath();
-      ctx.arc(p.sx, p.sy, size, 0, Math.PI*2);
-      ctx.fillStyle = `rgba(29,158,117,${0.15 + alpha*0.5})`;
-      ctx.fill();
-    });
-    // lines between a few nearby points
-    connections.forEach(([a,b]) => {
-      if(a >= sorted.length || b >= sorted.length) return;
-      const pa = sorted[a], pb = sorted[b];
-      if(pa.depth < 0 || pb.depth < 0) return;
-      ctx.beginPath();
-      ctx.moveTo(pa.sx, pa.sy);
-      ctx.lineTo(pb.sx, pb.sy);
-      ctx.strokeStyle = `rgba(29,158,117,${(pa.depth+1)/2 * 0.2})`;
-      ctx.lineWidth = 0.8;
-      ctx.stroke();
-    });
-    angle += 0.003;
-    requestAnimationFrame(draw);
-  }
-  resize();
-  window.addEventListener('resize', resize);
-  draw();
-})();
-
-  }, []);
+export default async function Home() {
+  const allCampaigns = await getCachedCampaignsList();
+  const landingCampaigns = allCampaigns.filter((campaign) => campaign.status !== 'draft').slice(0, 3);
 
   const [featuredCampaign, secondCampaign, thirdCampaign] = landingCampaigns;
-  const campaignPct = (campaign) => campaign?.pct ?? getCampaignPct(campaign?.raised || 0, campaign?.goal || 0);
-  const formatCompactGoal = (value) => (value >= 1000 && value % 1000 === 0 ? `$${value / 1000}k goal` : `$${value.toLocaleString()} goal`);
+  const campaignPct = (campaign: any) => campaign?.pct ?? 0;
+  const formatCompactGoal = (value: number) => (value >= 1000 && value % 1000 === 0 ? `$${value / 1000}k goal` : `$${value.toLocaleString()} goal`);
 
   return (
     <main>
+      <HomeScripts />
 
 
 {/*  NAV  */}
@@ -245,13 +70,9 @@ feedItems.forEach((item, i) => {
     </h1>
     <p className="hero-sub">OneRaise connects creators, entrepreneurs, and changemakers with a global community of 2.1 million backers — across every border, currency, and timezone.</p>
     
-    <form className="hero-search-form" onSubmit={(e) => {
-      e.preventDefault();
-      const q = (e.target as any).search.value;
-      if(q) router.push(`/explore?q=${encodeURIComponent(q)}`);
-    }}>
+    <form className="hero-search-form" action="/explore" method="GET">
       <div style={{display: 'flex', gap: '10px', maxWidth: '500px', margin: '0 auto 30px auto'}}>
-        <input type="text" name="search" placeholder="Search campaigns, categories, or locations..." style={{flex: 1, padding: '14px 20px', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: '16px', outline: 'none'}} />
+        <input type="text" name="q" placeholder="Search campaigns, categories, or locations..." style={{flex: 1, padding: '14px 20px', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: '16px', outline: 'none'}} />
         <button type="submit" className="btn-hero-primary" style={{padding: '0 24px', borderRadius: '30px', height: 'auto'}}>Search</button>
       </div>
     </form>

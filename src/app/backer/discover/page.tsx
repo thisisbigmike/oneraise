@@ -1,8 +1,7 @@
-'use client';
-
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { CAMPAIGN_SEED_LIST, getCampaignPct } from '@/lib/campaign-seeds';
+import { getCampaignPct } from '@/lib/campaign-seeds';
+import { getCachedCampaignsList } from '@/lib/campaigns-data';
 
 type CampaignCard = {
   id: number;
@@ -17,36 +16,9 @@ type CampaignCard = {
   status?: string;
 };
 
-const INITIAL_CAMPAIGNS: CampaignCard[] = CAMPAIGN_SEED_LIST.map((campaign) => ({
-  ...campaign,
-  pct: getCampaignPct(campaign.raised, campaign.goal),
-}));
-
-export default function DiscoverPage() {
-  const [campaigns, setCampaigns] = useState<CampaignCard[]>(INITIAL_CAMPAIGNS);
-
-  useEffect(() => {
-    let ignore = false;
-
-    const loadCampaigns = async () => {
-      try {
-        const res = await fetch('/api/campaigns', { cache: 'no-store' });
-        const data = await res.json();
-
-        if (!ignore && res.ok && Array.isArray(data.campaigns)) {
-          setCampaigns(data.campaigns.filter((campaign: CampaignCard) => campaign.status !== 'draft'));
-        }
-      } catch {
-        // Keep the seeded campaign list if live data is temporarily unavailable.
-      }
-    };
-
-    loadCampaigns();
-
-    return () => {
-      ignore = true;
-    };
-  }, []);
+export default async function DiscoverPage() {
+  const allCampaigns = await getCachedCampaignsList();
+  const campaigns = allCampaigns.filter((campaign) => campaign.status !== 'draft');
 
   return (
     <div className="overview-page">
