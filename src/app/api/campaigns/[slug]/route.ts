@@ -211,7 +211,11 @@ export async function DELETE(
       return NextResponse.json({ error: "You can only delete your own campaigns." }, { status: 403 });
     }
 
-    await prisma.campaign.delete({ where: { slug } });
+    await prisma.$transaction([
+      prisma.payout.deleteMany({ where: { campaignId: campaign.id } }),
+      prisma.donation.deleteMany({ where: { campaignId: campaign.id } }),
+      prisma.campaign.delete({ where: { id: campaign.id } }),
+    ]);
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Delete campaign error:", error);

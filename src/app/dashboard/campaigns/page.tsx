@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { useToast, Modal } from '../../components';
-import { CAMPAIGN_SEED_LIST, getCampaignPct } from '@/lib/campaign-seeds';
 
 type CampaignStatus = 'active' | 'completed' | 'draft';
 
@@ -19,21 +18,7 @@ type CampaignManagerItem = {
   category: string;
 };
 
-const INITIAL_CAMPAIGNS: CampaignManagerItem[] = [
-  ...CAMPAIGN_SEED_LIST.slice(0, 2).map((campaign) => ({
-    id: campaign.id,
-    slug: campaign.slug,
-    title: campaign.title,
-    status: campaign.status,
-    raised: campaign.raised,
-    goal: campaign.goal,
-    pct: getCampaignPct(campaign.raised, campaign.goal),
-    backers: campaign.backers,
-    daysLeft: campaign.daysLeft,
-    category: campaign.category,
-  })),
-  { id: 3, title: 'Lagos Art Festival 2026', status: 'draft', raised: 0, goal: 25000, pct: 0, backers: 0, daysLeft: 0, category: 'Arts & Culture' },
-];
+const INITIAL_CAMPAIGNS: CampaignManagerItem[] = [];
 
 function normalizeStatus(status?: string): CampaignStatus {
   if (status === 'completed' || status === 'draft') return status;

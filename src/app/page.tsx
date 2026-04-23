@@ -1,14 +1,53 @@
 import Link from 'next/link';
 import { getCachedCampaignsList } from '@/lib/campaigns-data';
 import HomeScripts from './HomeScripts';
+import prisma from "@/lib/prisma";
+import { getStoredDonationCreditUsd } from "@/lib/currency";
 
 export default async function Home() {
   const allCampaigns = await getCachedCampaignsList();
   const landingCampaigns = allCampaigns.filter((campaign) => campaign.status !== 'draft').slice(0, 3);
 
-  const [featuredCampaign, secondCampaign, thirdCampaign] = landingCampaigns;
+  // Stats
+  const activeCampaignsCount = await prisma.campaign.count({ where: { status: 'active' } });
+  
+  const allCompletedDonations = await prisma.donation.findMany({
+    where: { status: 'completed' },
+    select: { amount: true, currency: true, coverFee: true, provider: true, providerDataJson: true, donorEmail: true, id: true, createdAt: true, donorName: true, isAnonymous: true, campaign: { select: { title: true } } },
+    orderBy: { createdAt: 'desc' }
+  });
+  
+  const totalRaisedUsd = allCompletedDonations.reduce((sum, d) => sum + getStoredDonationCreditUsd(d as any), 0);
+  const uniqueBackers = new Set(allCompletedDonations.map(d => d.donorEmail || d.id)).size;
+
+  const formatStat = (num: number) => {
+    if (num >= 1000000000) return { count: (num / 1000000000).toFixed(1), suffix: 'B' };
+    if (num >= 1000000) return { count: (num / 1000000).toFixed(1), suffix: 'M' };
+    if (num >= 1000) return { count: (num / 1000).toFixed(1), suffix: 'K' };
+    return { count: num.toString(), suffix: '' };
+  };
+
+  const raisedStat = formatStat(totalRaisedUsd);
+  const campaignsStat = formatStat(activeCampaignsCount);
+  const backersStat = formatStat(uniqueBackers);
+  const successRate = totalRaisedUsd > 0 ? 100 : 0; 
+
+  const recentDonations = allCompletedDonations.slice(0, 5);
+
+  const formatTimeAgo = (date: Date) => {
+    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    if (seconds < 60) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hr ago`;
+    return `${Math.floor(hours / 24)} days ago`;
+  };
+
+  const getInitials = (name: string) => name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'OR';
+
   const campaignPct = (campaign: any) => campaign?.pct ?? 0;
-  const formatCompactGoal = (value: number) => (value >= 1000 && value % 1000 === 0 ? `$${value / 1000}k goal` : `$${value.toLocaleString()} goal`);
+  const formatCompactGoal = (value: number) => (value >= 1000 && value % 1000 === 0 ? `$${value / 1000}k goal` : `$${value?.toLocaleString()} goal`);
 
   return (
     <main>
@@ -110,22 +149,22 @@ export default async function Home() {
 <div className="stats-section">
   <div className="stats-strip">
     <div className="stat-cell reveal">
-      <div className="stat-num" data-count="4.2" data-suffix="B" data-prefix="$"><span className="accent">$</span>0</div>
+      <div className="stat-num" data-count={raisedStat.count} data-suffix={raisedStat.suffix} data-prefix="$"><span className="accent">$</span>0</div>
       <div className="stat-lbl">Total raised</div>
-      <div className="stat-delta">↑ 18% this month</div>
+      <div className="stat-delta">↑ True database metrics</div>
     </div>
     <div className="stat-cell reveal reveal-delay-1">
-      <div className="stat-num" data-count="148" data-suffix="K">0K</div>
+      <div className="stat-num" data-count={campaignsStat.count} data-suffix={campaignsStat.suffix}>0</div>
       <div className="stat-lbl">Active campaigns</div>
-      <div className="stat-delta">↑ 2,400 new this week</div>
+      <div className="stat-delta">↑ True database metrics</div>
     </div>
     <div className="stat-cell reveal reveal-delay-2">
-      <div className="stat-num" data-count="2.1" data-suffix="M">0M</div>
+      <div className="stat-num" data-count={backersStat.count} data-suffix={backersStat.suffix}>0</div>
       <div className="stat-lbl">Global backers</div>
-      <div className="stat-delta">78 countries represented</div>
+      <div className="stat-delta">↑ True database metrics</div>
     </div>
     <div className="stat-cell reveal reveal-delay-3">
-      <div className="stat-num" data-count="78" data-suffix="%">0%</div>
+      <div className="stat-num" data-count={successRate.toString()} data-suffix="%">0%</div>
       <div className="stat-lbl">Success rate</div>
       <div className="stat-delta">Industry avg is 42%</div>
     </div>
@@ -222,75 +261,62 @@ export default async function Home() {
       <span className="section-eyebrow reveal">Live now</span>
       <h2 className="section-title reveal reveal-delay-1">Ideas finding<br/>their backers.</h2>
     </div>
-    <a href="#" className="see-all reveal reveal-delay-2">View all campaigns →</a>
+    <a href="/explore" className="see-all reveal reveal-delay-2">View all campaigns →</a>
   </div>
-  <div className="campaigns-grid">
-    <div className="c-card featured reveal">
-      <div className="c-card-img c1">
-        <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-          <circle cx="40" cy="40" r="32" stroke="#1D9E75" strokeWidth="1.5" strokeOpacity="0.4"/>
-          <circle cx="40" cy="40" r="20" stroke="#5DCAA5" strokeWidth="1" strokeOpacity="0.3"/>
-          <path d="M40 20v28M40 20l-8 8M40 20l8 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <circle cx="40" cy="52" r="4" fill="#1D9E75" opacity="0.8"/>
-        </svg>
-      </div>
-      <div className="c-card-body">
-        <div className="c-card-top">
-          <span className="c-tag">{featuredCampaign.category}</span>
-          <span className="c-flag">🌍 Global</span>
-        </div>
-        <div className="c-title">{featuredCampaign.title}</div>
-        <div className="c-desc">{featuredCampaign.desc}</div>
-        <div className="c-progress-track"><div className="c-progress-fill" style={{width: `${campaignPct(featuredCampaign)}%`}}></div></div>
-        <div className="c-stats">
-          <div>
-            <div className="c-raised">${featuredCampaign.raised.toLocaleString()}</div>
-            <div className="c-raised-sub">raised of {formatCompactGoal(featuredCampaign.goal)}</div>
+  {landingCampaigns.length > 0 ? (
+    <div className="campaigns-grid">
+      {landingCampaigns.map((campaign, index) => (
+        <div key={campaign.id} className={`c-card ${index === 0 ? 'featured reveal' : `reveal reveal-delay-${index}`}`}>
+          <div className={`c-card-img c${index + 1}`}>
+            {index === 0 && (
+              <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                <circle cx="40" cy="40" r="32" stroke="#1D9E75" strokeWidth="1.5" strokeOpacity="0.4"/>
+                <circle cx="40" cy="40" r="20" stroke="#5DCAA5" strokeWidth="1" strokeOpacity="0.3"/>
+                <path d="M40 20v28M40 20l-8 8M40 20l8 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="40" cy="52" r="4" fill="#1D9E75" opacity="0.8"/>
+              </svg>
+            )}
+            {index === 1 && (
+              <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+                <path d="M10 50L30 10l20 40H10z" stroke="#5DCAA5" strokeWidth="1.5" strokeOpacity="0.5"/>
+                <path d="M20 50L30 30l10 20H20z" fill="#1D9E75" opacity="0.4"/>
+              </svg>
+            )}
+            {index === 2 && (
+              <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+                <circle cx="30" cy="24" r="12" stroke="#EF9F27" strokeWidth="1.5" strokeOpacity="0.5"/>
+                <path d="M18 50c0-6.627 5.373-12 12-12s12 5.373 12 12" stroke="#EF9F27" strokeWidth="1.5" strokeOpacity="0.4" strokeLinecap="round"/>
+              </svg>
+            )}
           </div>
-          <div style={{textAlign: 'right'}}>
-            <div className="c-pct">{campaignPct(featuredCampaign)}%</div>
-            <div className="c-days">{featuredCampaign.daysLeft} days left</div>
+          <div className="c-card-body">
+            <div className="c-card-top">
+              <span className="c-tag">{campaign.category}</span>
+              <span className="c-flag">🌍 Global</span>
+            </div>
+            <div className="c-title">{campaign.title}</div>
+            <div className="c-desc">{campaign.desc}</div>
+            <div className="c-progress-track"><div className="c-progress-fill" style={{width: `${campaignPct(campaign)}%`}}></div></div>
+            <div className="c-stats">
+              <div>
+                <div className="c-raised">${campaign.raised.toLocaleString()}</div>
+                <div className="c-raised-sub">raised of {formatCompactGoal(campaign.goal)}</div>
+              </div>
+              <div style={{textAlign: 'right'}}>
+                <div className="c-pct">{campaignPct(campaign)}%</div>
+                <div className="c-days">{campaign.daysLeft} days left</div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      ))}
     </div>
-    <div className="c-card reveal reveal-delay-1">
-      <div className="c-card-img c2">
-        <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
-          <path d="M10 50L30 10l20 40H10z" stroke="#5DCAA5" strokeWidth="1.5" strokeOpacity="0.5"/>
-          <path d="M20 50L30 30l10 20H20z" fill="#1D9E75" opacity="0.4"/>
-        </svg>
-      </div>
-      <div className="c-card-body">
-        <div className="c-card-top"><span className="c-tag">{secondCampaign.category}</span><span className="c-flag">🌍 Global</span></div>
-        <div className="c-title">{secondCampaign.title}</div>
-        <div className="c-desc">{secondCampaign.desc}</div>
-        <div className="c-progress-track"><div className="c-progress-fill" style={{width: `${campaignPct(secondCampaign)}%`}}></div></div>
-        <div className="c-stats">
-          <div><div className="c-raised">${secondCampaign.raised.toLocaleString()}</div><div className="c-raised-sub">of {formatCompactGoal(secondCampaign.goal)}</div></div>
-          <div style={{textAlign: 'right'}}><div className="c-pct">{campaignPct(secondCampaign)}%</div><div className="c-days">{secondCampaign.daysLeft} days left</div></div>
-        </div>
-      </div>
+  ) : (
+    <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--w50)' }}>
+      <p>No active campaigns found in the database yet.</p>
+      <Link href="/join" className="btn-hero-primary" style={{ marginTop: '20px', display: 'inline-flex' }}>Start the first campaign</Link>
     </div>
-    <div className="c-card reveal reveal-delay-2">
-      <div className="c-card-img c3">
-        <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
-          <circle cx="30" cy="24" r="12" stroke="#EF9F27" strokeWidth="1.5" strokeOpacity="0.5"/>
-          <path d="M18 50c0-6.627 5.373-12 12-12s12 5.373 12 12" stroke="#EF9F27" strokeWidth="1.5" strokeOpacity="0.4" strokeLinecap="round"/>
-        </svg>
-      </div>
-      <div className="c-card-body">
-        <div className="c-card-top"><span className="c-tag">{thirdCampaign.category}</span><span className="c-flag">🌍 Global</span></div>
-        <div className="c-title">{thirdCampaign.title}</div>
-        <div className="c-desc">{thirdCampaign.desc}</div>
-        <div className="c-progress-track"><div className="c-progress-fill" style={{width: `${campaignPct(thirdCampaign)}%`}}></div></div>
-        <div className="c-stats">
-          <div><div className="c-raised">${thirdCampaign.raised.toLocaleString()}</div><div className="c-raised-sub">of {formatCompactGoal(thirdCampaign.goal)}</div></div>
-          <div style={{textAlign: 'right'}}><div className="c-pct">{campaignPct(thirdCampaign)}%</div><div className="c-days">{thirdCampaign.daysLeft} days left</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
+  )}
 </section>
 
 {/*  BACKER FEED + TESTIMONIALS  */}
@@ -302,61 +328,28 @@ export default async function Home() {
   <div className="feed-layout">
     <div>
       <div className="feed-list" id="feed-list">
-        <div className="feed-item">
-          <div className="feed-avatar av-a">AK</div>
-          <div className="feed-text">
-            <div className="feed-name">Amara Kone</div>
-            <div className="feed-action">backed SolarPack Mini · Lagos, Nigeria</div>
+        {recentDonations.length > 0 ? (
+          recentDonations.map((d, i) => {
+            const name = d.isAnonymous ? 'Anonymous' : (d.donorName || 'Backer');
+            return (
+              <div className="feed-item" key={d.id}>
+                <div className={`feed-avatar av-${['a', 'b', 'c', 'd'][i % 4]}`}>{getInitials(name)}</div>
+                <div className="feed-text">
+                  <div className="feed-name">{name}</div>
+                  <div className="feed-action">backed {d.campaign.title}</div>
+                </div>
+                <div>
+                  <div className="feed-amount">${getStoredDonationCreditUsd(d as any).toLocaleString()}</div>
+                  <div className="feed-time">{formatTimeAgo(d.createdAt)}</div>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div style={{ color: 'var(--w50)', fontSize: '14px', fontStyle: 'italic', padding: '20px' }}>
+            No recent activity yet. Be the first to back a campaign!
           </div>
-          <div>
-            <div className="feed-amount">$50</div>
-            <div className="feed-time">just now</div>
-          </div>
-        </div>
-        <div className="feed-item">
-          <div className="feed-avatar av-b">JD</div>
-          <div className="feed-text">
-            <div className="feed-name">Jana Dvořák</div>
-            <div className="feed-action">backed CodeBridge · Prague, Czech Republic</div>
-          </div>
-          <div>
-            <div className="feed-amount">$120</div>
-            <div className="feed-time">2 min ago</div>
-          </div>
-        </div>
-        <div className="feed-item">
-          <div className="feed-avatar av-c">MR</div>
-          <div className="feed-text">
-            <div className="feed-name">Marco Reyes</div>
-            <div className="feed-action">backed Amazônia Voices · Mexico City</div>
-          </div>
-          <div>
-            <div className="feed-amount">$75</div>
-            <div className="feed-time">5 min ago</div>
-          </div>
-        </div>
-        <div className="feed-item">
-          <div className="feed-avatar av-d">PL</div>
-          <div className="feed-text">
-            <div className="feed-name">Priya Lal</div>
-            <div className="feed-action">launched a new campaign · Mumbai, India</div>
-          </div>
-          <div>
-            <div className="feed-amount">New</div>
-            <div className="feed-time">8 min ago</div>
-          </div>
-        </div>
-        <div className="feed-item">
-          <div className="feed-avatar av-a">EO</div>
-          <div className="feed-text">
-            <div className="feed-name">Emeka Obi</div>
-            <div className="feed-action">backed SolarPack Mini · Abuja, Nigeria</div>
-          </div>
-          <div>
-            <div className="feed-amount">$200</div>
-            <div className="feed-time">11 min ago</div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
     <div className="testimonials">
