@@ -42,8 +42,29 @@ async function createUniqueSlug(title: string) {
 
 
 
-export async function GET() {
-  const campaigns = await getCachedCampaignsList();
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const mine = searchParams.get("mine") === "true";
+
+  let campaigns = await getCachedCampaignsList();
+
+  if (mine) {
+    const session = await getServerSession(authOptions);
+    const userId = session?.user ? ((session.user as any).id as string) : null;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Please sign in to view your campaigns." }, { status: 401 });
+    }
+
+    // Filter to only campaigns owned by this user
+    const userCampaignIds = await prisma.campaign.findMany({
+      where: { userId },
+      select: { id: true },
+    });
+    const userDbIds = new Set(userCampaignIds.map((c) => c.id));
+    campaigns = campaigns.filter((c: any) => userDbIds.has(c.dbId));
+  }
+
   return NextResponse.json({
     success: true,
     campaigns,

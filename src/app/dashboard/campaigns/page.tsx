@@ -74,7 +74,7 @@ export default function CampaignsPage() {
   const [editVisibility, setEditVisibility] = useState('public');
 
   const refreshCampaigns = async () => {
-    const res = await fetch('/api/campaigns', { cache: 'no-store' });
+    const res = await fetch('/api/campaigns?mine=true', { cache: 'no-store' });
     const data = await res.json();
 
     if (!res.ok || !Array.isArray(data.campaigns)) {
@@ -89,7 +89,7 @@ export default function CampaignsPage() {
 
     const loadCampaigns = async () => {
       try {
-        const res = await fetch('/api/campaigns', { cache: 'no-store' });
+        const res = await fetch('/api/campaigns?mine=true', { cache: 'no-store' });
         const data = await res.json();
 
         if (!ignore && res.ok && Array.isArray(data.campaigns)) {
