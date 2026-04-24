@@ -315,16 +315,16 @@ export default function DonatePage() {
                     <div style={{ marginBottom: 16 }}>Please send exactly <strong style={{ color: 'var(--white)' }}>{getCurrencySymbol(paymentInstructions.currency)}{Number(paymentInstructions.amount || localTotal).toLocaleString()}</strong> to the following virtual account:</div>
                     
                     <div style={{ display: 'grid', gap: 12 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Bank Name</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bank Name</span>
                         <span style={{ color: 'var(--white)', fontWeight: 500 }}>{paymentInstructions.bankName}</span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Account Number</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Account Number</span>
                         <span style={{ color: 'var(--white)', fontWeight: 600, fontSize: 18 }}>{paymentInstructions.accountNumber}</span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Account Name</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Account Name</span>
                         <span style={{ color: 'var(--white)', fontWeight: 500 }}>{paymentInstructions.accountName}</span>
                       </div>
                     </div>

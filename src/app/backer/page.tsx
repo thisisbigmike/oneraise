@@ -90,7 +90,7 @@ export default function BackerOverview() {
               const pct = c.pct ?? getCampaignPct(c.raised, c.goal);
 
               return (
-              <div key={c.slug || c.id} className="campaign-card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div key={c.slug || c.id} className="campaign-card" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <h3 className="cmp-title" style={{ fontSize: 16, marginBottom: 4 }}>{c.title}</h3>
@@ -102,9 +102,9 @@ export default function BackerOverview() {
                 </div>
                 <div className="cmp-progress-wrap" style={{ marginTop: 8 }}>
                   <div className="sc-progress-bar"><div className="sc-progress-fill" style={{ width: `${pct}%` }}></div></div>
-                  <div className="cmp-progress-nums">
+                  <div className="cmp-progress-nums" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'var(--white)', marginTop: 8 }}>
                     <span>Funding progress</span>
-                    <span>{pct}%</span>
+                    <span style={{ fontWeight: 600, color: 'var(--teal-200)' }}>{pct}%</span>
                   </div>
                 </div>
               </div>
