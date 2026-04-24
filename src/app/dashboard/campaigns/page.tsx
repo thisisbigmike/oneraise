@@ -25,6 +25,11 @@ function normalizeStatus(status?: string): CampaignStatus {
   return 'active';
 }
 
+function getCampaignPct(raised: number, goal: number): number {
+  if (goal <= 0) return 0;
+  return Math.min(Math.round((raised / goal) * 100), 100);
+}
+
 function mapCampaignManagerItems(campaigns: CampaignManagerItem[]) {
   return campaigns.map((campaign) => ({
     id: campaign.id,
