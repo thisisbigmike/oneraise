@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
@@ -12,6 +12,12 @@ export default function BackerLayout({ children }: { children: React.ReactNode }
   const { data: session } = useSession();
   const userName = session?.user?.name || 'Backer';
   const userInitials = userName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   type NavItem = { name: string; path: string; icon: React.ReactNode; badge?: string; dot?: boolean };
   const navItems: { section: string; items: NavItem[] }[] = [
@@ -31,7 +37,26 @@ export default function BackerLayout({ children }: { children: React.ReactNode }
     <ThemeProvider>
     <ToastProvider>
       <div className="dash-wrapper">
-        <aside className="sidebar">
+        {/* MOBILE TOP BAR */}
+        <div className="mobile-topbar">
+          <Link href="/" className="logo">One<span>Raise</span></Link>
+          <button
+            className={`hamburger-btn ${mobileMenuOpen ? 'open' : ''}`}
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle navigation menu"
+          >
+            <span className="hamburger-line" />
+            <span className="hamburger-line" />
+            <span className="hamburger-line" />
+          </button>
+        </div>
+
+        {/* MOBILE OVERLAY */}
+        {mobileMenuOpen && (
+          <div className="mobile-overlay" onClick={() => setMobileMenuOpen(false)} />
+        )}
+
+        <aside className={`sidebar ${mobileMenuOpen ? 'sidebar-mobile-open' : ''}`}>
           <div className="sidebar-header">
             <Link href="/" className="logo">One<span>Raise</span></Link>
             <div className="logo-sub">BACKER DASHBOARD</div>
@@ -44,7 +69,7 @@ export default function BackerLayout({ children }: { children: React.ReactNode }
                   const isActive = pathname === item.path || (pathname.startsWith(item.path) && item.path !== '/backer' && item.path !== '#');
                   if (item.name === 'Sign Out') {
                     return (
-                      <button key={item.name} onClick={() => signOut({ callbackUrl: '/' })} className="nav-link" style={{ background: 'transparent', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      <button key={item.name} onClick={() => { setMobileMenuOpen(false); signOut({ callbackUrl: '/' }); }} className="nav-link" style={{ background: 'transparent', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
                         <div className="nl-left">
                           <span className="nl-icon" style={{ color: '#F09595' }}>{item.icon}</span>
                           <span className="nl-text" style={{ color: '#F09595' }}>{item.name}</span>
@@ -53,7 +78,7 @@ export default function BackerLayout({ children }: { children: React.ReactNode }
                     );
                   }
                   return (
-                    <Link key={item.name} href={item.path} className={`nav-link ${isActive ? 'active' : ''}`}>
+                    <Link key={item.name} href={item.path} className={`nav-link ${isActive ? 'active' : ''}`} onClick={() => setMobileMenuOpen(false)}>
                       <div className="nl-left"><span className="nl-icon">{item.icon}</span><span className="nl-text">{item.name}</span></div>
                       {item.badge && <span className="nl-badge">{item.badge}</span>}
                     </Link>
@@ -66,7 +91,7 @@ export default function BackerLayout({ children }: { children: React.ReactNode }
           <ThemeToggle />
 
           <div className="sidebar-footer">
-            <Link href="/backer/settings" className="user-profile">
+            <Link href="/backer/settings" className="user-profile" onClick={() => setMobileMenuOpen(false)}>
               <div className="up-avatar" style={{background: 'rgba(55,138,221,0.2)', color: '#85B7EB'}}>{userInitials}</div>
               <div className="up-info">
                 <div className="up-name">{userName}</div>

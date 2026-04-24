@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
@@ -12,6 +12,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { data: session } = useSession();
   const userName = session?.user?.name || 'Creator';
   const userInitials = userName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   type NavItem = { name: string; path: string; icon: React.ReactNode; badge?: string; dot?: boolean };
   const navItems: { section: string; items: NavItem[] }[] = [
@@ -35,8 +41,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <ThemeProvider>
     <ToastProvider>
     <div className="dash-wrapper">
+      {/* MOBILE TOP BAR */}
+      <div className="mobile-topbar">
+        <Link href="/" className="logo">One<span>Raise</span></Link>
+        <button
+          className={`hamburger-btn ${mobileMenuOpen ? 'open' : ''}`}
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle navigation menu"
+        >
+          <span className="hamburger-line" />
+          <span className="hamburger-line" />
+          <span className="hamburger-line" />
+        </button>
+      </div>
+
+      {/* MOBILE OVERLAY */}
+      {mobileMenuOpen && (
+        <div className="mobile-overlay" onClick={() => setMobileMenuOpen(false)} />
+      )}
+
       {/* SIDEBAR */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${mobileMenuOpen ? 'sidebar-mobile-open' : ''}`}>
         <div className="sidebar-header">
           <Link href="/" className="logo">One<span>Raise</span></Link>
           <div className="logo-sub">CREATOR DASHBOARD</div>
@@ -50,7 +75,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 const isActive = pathname === item.path || (pathname.startsWith(item.path) && item.path !== '/dashboard' && item.path !== '#');
                 if (item.name === 'Sign Out') {
                   return (
-                    <button key={item.name} onClick={() => signOut({ callbackUrl: '/' })} className="nav-link" style={{ background: 'transparent', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    <button key={item.name} onClick={() => { setMobileMenuOpen(false); signOut({ callbackUrl: '/' }); }} className="nav-link" style={{ background: 'transparent', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
                       <div className="nl-left">
                         <span className="nl-icon">{item.icon}</span>
                         <span className="nl-text" style={{ color: '#F09595' }}>{item.name}</span>
@@ -59,7 +84,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   );
                 }
                 return (
-                  <Link key={item.name} href={item.path} className={`nav-link ${isActive ? 'active' : ''}`}>
+                  <Link key={item.name} href={item.path} className={`nav-link ${isActive ? 'active' : ''}`} onClick={() => setMobileMenuOpen(false)}>
                     <div className="nl-left">
                       <span className="nl-icon">{item.icon}</span>
                       <span className="nl-text">{item.name}</span>
@@ -76,7 +101,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <ThemeToggle />
 
         <div className="sidebar-footer">
-          <Link href="/dashboard/settings" className="user-profile">
+          <Link href="/dashboard/settings" className="user-profile" onClick={() => setMobileMenuOpen(false)}>
             <div className="up-avatar">{userInitials}</div>
             <div className="up-info">
               <div className="up-name">{userName} <svg className="verified-badge" width="16" height="16" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="11" fill="#1D9BF0"/><path d="M9.5 14.25L6.25 11l-1.02 1.02L9.5 16.29l10-10-1.02-1.02L9.5 14.25z" fill="#fff"/></svg></div>
