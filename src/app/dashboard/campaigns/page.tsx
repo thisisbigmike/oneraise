@@ -45,6 +45,79 @@ function mapCampaignManagerItems(campaigns: CampaignManagerItem[]) {
   }));
 }
 
+function ImageUploadArea({ file, setFile }: { file: File | null, setFile: (f: File | null) => void }) {
+  const [dragActive, setDragActive] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (file) {
+      const objectUrl = URL.createObjectURL(file);
+      setPreview(objectUrl);
+      return () => URL.revokeObjectURL(objectUrl);
+    } else {
+      setPreview(null);
+    }
+  }, [file]);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  return (
+    <div 
+      className="s-upload-area"
+      onDragEnter={handleDrag}
+      onDragLeave={handleDrag}
+      onDragOver={handleDrag}
+      onDrop={handleDrop}
+      style={{
+        borderColor: dragActive ? 'var(--teal-400)' : '',
+        backgroundColor: dragActive ? 'rgba(29,158,117,0.05)' : '',
+      }}
+    >
+      {preview ? (
+        <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+          <img src={preview} alt="Preview" style={{ maxHeight: '160px', maxWidth: '100%', borderRadius: '8px', objectFit: 'contain' }} />
+          <button type="button" className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px', zIndex: 10, position: 'relative' }} onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setFile(null);
+          }}>Remove Image</button>
+        </div>
+      ) : (
+        <>
+          <div className="s-upload-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <p className="s-upload-title">Click to upload or drag and drop</p>
+          <p className="s-upload-sub">SVG, PNG, JPG or GIF (max. 5MB)</p>
+          <input className="s-upload-input" type="file" accept="image/*" onChange={e => {
+            if (e.target.files && e.target.files.length > 0) {
+              setFile(e.target.files[0]);
+              e.target.value = '';
+            }
+          }} />
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function CampaignsPage() {
   const { showToast } = useToast();
   const [filter, setFilter] = useState('all');
@@ -479,18 +552,7 @@ export default function CampaignsPage() {
             </div>
             <div className="s-field">
               <label className="s-label">Cover Image</label>
-              <div className="s-upload-area">
-                <div className="s-upload-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                </div>
-                <p className="s-upload-title">Click to upload or drag and drop</p>
-                <p className="s-upload-sub">SVG, PNG, JPG or GIF (max. 5MB)</p>
-                <input className="s-upload-input" type="file" accept="image/*" onChange={e => {
-                  if (e.target.files && e.target.files.length > 0) {
-                    setNewCoverImage(e.target.files[0]);
-                  }
-                }} />
-              </div>
+              <ImageUploadArea file={newCoverImage} setFile={setNewCoverImage} />
             </div>
           </section>
 
@@ -612,11 +674,7 @@ export default function CampaignsPage() {
           </div>
           <div className="s-field s-field-full">
             <label className="s-label">Cover Image</label>
-            <input className="s-input" type="file" accept="image/*" onChange={e => {
-              if (e.target.files && e.target.files.length > 0) {
-                setEditCoverImage(e.target.files[0]);
-              }
-            }} style={{ padding: '8px', background: 'var(--w5)' }} />
+            <ImageUploadArea file={editCoverImage} setFile={setEditCoverImage} />
           </div>
 
           <div className="s-field s-field-full">
