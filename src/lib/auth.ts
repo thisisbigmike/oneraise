@@ -61,7 +61,7 @@ providers.push(
       const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
       if (!isPasswordValid) return null;
 
-      return { id: user.id, email: user.email, name: user.name, role: user.role };
+      return { id: user.id, email: user.email, name: user.name, image: user.image, role: user.role };
     }
   }),
 );
@@ -90,6 +90,9 @@ export const authOptions: AuthOptions = {
       if (token && session.user) {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
+        session.user.name = token.name || session.user.name;
+        session.user.email = token.email || session.user.email;
+        session.user.image = token.picture || session.user.image;
       }
       return session;
     },
@@ -97,10 +100,16 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as any).role || null;
+        if (user.image) token.picture = user.image;
       }
       // Provide way to update role dynamically 
       if (trigger === "update" && session?.role) {
         token.role = session.role;
+      }
+      if (trigger === "update") {
+        if (typeof session?.name === "string") token.name = session.name;
+        if (typeof session?.email === "string") token.email = session.email;
+        if (typeof session?.image === "string" || session?.image === null) token.picture = session.image;
       }
       return token;
     }

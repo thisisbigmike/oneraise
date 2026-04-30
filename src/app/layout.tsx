@@ -13,7 +13,7 @@ const instrument = Instrument_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "OneRaise — Fund Anything, Everywhere",
+  title: "OneRaise",
   description: "OneRaise connects creators, entrepreneurs, and changemakers with a global community.",
 };
 

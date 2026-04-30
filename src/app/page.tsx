@@ -1,24 +1,63 @@
 import Link from 'next/link';
-import { getCachedCampaignsList } from '@/lib/campaigns-data';
+import { getCachedCampaignsList, type CampaignListItem } from '@/lib/campaigns-data';
 import HomeScripts from './HomeScripts';
 import prisma from "@/lib/prisma";
+import { CAMPAIGN_SEED_LIST } from "@/lib/campaign-seeds";
 import { getStoredDonationCreditUsd } from "@/lib/currency";
 
-export default async function Home() {
-  const allCampaigns = await getCachedCampaignsList();
-  const landingCampaigns = allCampaigns.filter((campaign) => campaign.status !== 'draft').slice(0, 3);
+type HomeDonation = {
+  id: string;
+  amount: number;
+  currency: string | null;
+  coverFee: boolean | null;
+  provider: string | null;
+  providerDataJson: string | null;
+  donorEmail: string | null;
+  createdAt: Date;
+  donorName: string | null;
+  isAnonymous: boolean;
+  campaign: {
+    title: string;
+  };
+};
 
-  // Stats
-  const activeCampaignsCount = await prisma.campaign.count({ where: { status: 'active' } });
-  
-  const allCompletedDonations = await prisma.donation.findMany({
-    where: { status: 'completed' },
-    select: { amount: true, currency: true, coverFee: true, provider: true, providerDataJson: true, donorEmail: true, id: true, createdAt: true, donorName: true, isAnonymous: true, campaign: { select: { title: true } } },
-    orderBy: { createdAt: 'desc' }
-  });
-  
-  const totalRaisedUsd = allCompletedDonations.reduce((sum, d) => sum + getStoredDonationCreditUsd(d as any), 0);
-  const uniqueBackers = new Set(allCompletedDonations.map(d => d.donorEmail || d.id)).size;
+async function getHomeStats() {
+  try {
+    const [activeCampaignsCount, allCompletedDonations] = await Promise.all([
+      prisma.campaign.count({ where: { status: 'active' } }),
+      prisma.donation.findMany({
+        where: { status: 'completed' },
+        select: { amount: true, currency: true, coverFee: true, provider: true, providerDataJson: true, donorEmail: true, id: true, createdAt: true, donorName: true, isAnonymous: true, campaign: { select: { title: true } } },
+        orderBy: { createdAt: 'desc' }
+      }),
+    ]);
+
+    const totalRaisedUsd = allCompletedDonations.reduce((sum, d) => sum + getStoredDonationCreditUsd(d), 0);
+    const uniqueBackers = new Set(allCompletedDonations.map(d => d.donorEmail || d.id)).size;
+
+    return {
+      activeCampaignsCount,
+      totalRaisedUsd,
+      uniqueBackers,
+      recentDonations: allCompletedDonations.slice(0, 5),
+    };
+  } catch (error) {
+    console.warn("Unable to load live home stats; using seed campaign totals.", error);
+    return {
+      activeCampaignsCount: CAMPAIGN_SEED_LIST.filter((campaign) => campaign.status === 'active').length,
+      totalRaisedUsd: CAMPAIGN_SEED_LIST.reduce((sum, campaign) => sum + campaign.raised, 0),
+      uniqueBackers: CAMPAIGN_SEED_LIST.reduce((sum, campaign) => sum + campaign.backers, 0),
+      recentDonations: [] as HomeDonation[],
+    };
+  }
+}
+
+export default async function Home() {
+  const [allCampaigns, homeStats] = await Promise.all([
+    getCachedCampaignsList(),
+    getHomeStats(),
+  ]);
+  const landingCampaigns = allCampaigns.filter((campaign) => campaign.status !== 'draft').slice(0, 3);
 
   const formatStat = (num: number) => {
     if (num >= 1000000000) return { count: (num / 1000000000).toFixed(1), suffix: 'B' };
@@ -27,12 +66,12 @@ export default async function Home() {
     return { count: num.toString(), suffix: '' };
   };
 
-  const raisedStat = formatStat(totalRaisedUsd);
-  const campaignsStat = formatStat(activeCampaignsCount);
-  const backersStat = formatStat(uniqueBackers);
-  const successRate = totalRaisedUsd > 0 ? 100 : 0; 
+  const raisedStat = formatStat(homeStats.totalRaisedUsd);
+  const campaignsStat = formatStat(homeStats.activeCampaignsCount);
+  const backersStat = formatStat(homeStats.uniqueBackers);
+  const successRate = homeStats.totalRaisedUsd > 0 ? 100 : 0; 
 
-  const recentDonations = allCompletedDonations.slice(0, 5);
+  const recentDonations = homeStats.recentDonations;
 
   const formatTimeAgo = (date: Date) => {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
@@ -46,7 +85,7 @@ export default async function Home() {
 
   const getInitials = (name: string) => name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'OR';
 
-  const campaignPct = (campaign: any) => campaign?.pct ?? 0;
+  const campaignPct = (campaign: CampaignListItem) => campaign.pct;
   const formatCompactGoal = (value: number) => (value >= 1000 && value % 1000 === 0 ? `$${value / 1000}k goal` : `$${value?.toLocaleString()} goal`);
 
   return (
@@ -268,7 +307,10 @@ export default async function Home() {
       {landingCampaigns.map((campaign, index) => (
         <div key={campaign.id} className={`c-card ${index === 0 ? 'featured reveal' : `reveal reveal-delay-${index}`}`}>
           <div className={`c-card-img c${index + 1}`}>
-            {index === 0 && (
+            {campaign.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={campaign.image} alt={`${campaign.title} cover`} />
+            ) : index === 0 && (
               <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
                 <circle cx="40" cy="40" r="32" stroke="#1D9E75" strokeWidth="1.5" strokeOpacity="0.4"/>
                 <circle cx="40" cy="40" r="20" stroke="#5DCAA5" strokeWidth="1" strokeOpacity="0.3"/>
@@ -276,13 +318,13 @@ export default async function Home() {
                 <circle cx="40" cy="52" r="4" fill="#1D9E75" opacity="0.8"/>
               </svg>
             )}
-            {index === 1 && (
+            {!campaign.image && index === 1 && (
               <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
                 <path d="M10 50L30 10l20 40H10z" stroke="#5DCAA5" strokeWidth="1.5" strokeOpacity="0.5"/>
                 <path d="M20 50L30 30l10 20H20z" fill="#1D9E75" opacity="0.4"/>
               </svg>
             )}
-            {index === 2 && (
+            {!campaign.image && index === 2 && (
               <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
                 <circle cx="30" cy="24" r="12" stroke="#EF9F27" strokeWidth="1.5" strokeOpacity="0.5"/>
                 <path d="M18 50c0-6.627 5.373-12 12-12s12 5.373 12 12" stroke="#EF9F27" strokeWidth="1.5" strokeOpacity="0.4" strokeLinecap="round"/>
@@ -339,7 +381,7 @@ export default async function Home() {
                   <div className="feed-action">backed {d.campaign.title}</div>
                 </div>
                 <div>
-                  <div className="feed-amount">${getStoredDonationCreditUsd(d as any).toLocaleString()}</div>
+                  <div className="feed-amount">${getStoredDonationCreditUsd(d).toLocaleString()}</div>
                   <div className="feed-time">{formatTimeAgo(d.createdAt)}</div>
                 </div>
               </div>

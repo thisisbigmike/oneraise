@@ -1,14 +1,44 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
+import { useSession } from 'next-auth/react';
 import { useToast, Modal } from '../../components';
 
-export default function SettingsClient({ initialName, initialEmail, role }: any) {
+type SettingsClientProps = {
+  initialName: string;
+  initialEmail: string;
+  initialImage?: string | null;
+  role: string;
+};
+
+const MAX_PROFILE_PHOTO_SIZE = 2 * 1024 * 1024;
+
+function readProfilePhoto(file: File): Promise<string> {
+  if (!file.type.startsWith('image/')) {
+    return Promise.reject(new Error('Please upload an image file.'));
+  }
+
+  if (file.size > MAX_PROFILE_PHOTO_SIZE) {
+    return Promise.reject(new Error('Please upload an image under 2MB.'));
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('Unable to read the selected photo.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+export default function SettingsClient({ initialName, initialEmail, initialImage, role }: SettingsClientProps) {
   const { showToast } = useToast();
+  const { update: updateSession } = useSession();
   const fileRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState('profile');
   const [fullName, setFullName] = useState(initialName || '');
   const [email, setEmail] = useState(initialEmail || '');
+  const [profileImage, setProfileImage] = useState(initialImage || '');
+  const [savingProfile, setSavingProfile] = useState(false);
   const [phone, setPhone] = useState('');
   const [bio, setBio] = useState('');
   const [website, setWebsite] = useState('');
@@ -33,17 +63,51 @@ export default function SettingsClient({ initialName, initialEmail, role }: any)
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
 
-  const handleSave = () => {
-    // Ideally this would make an API call to update the profile
-    showToast('Profile settings saved successfully!', 'success');
+  const handleSave = async () => {
+    setSavingProfile(true);
+
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: fullName,
+          email,
+          image: profileImage || null,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Unable to update profile.');
+
+      await updateSession({
+        name: data.user.name,
+        email: data.user.email,
+        image: data.user.image,
+      });
+      showToast('Profile settings saved successfully!', 'success');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not save profile settings.', 'error');
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   const handleUploadPhoto = () => {
     fileRef.current?.click();
   };
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      showToast(`Photo "${e.target.files[0].name}" uploaded!`, 'success');
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+
+    if (file) {
+      try {
+        const image = await readProfilePhoto(file);
+        setProfileImage(image);
+        showToast(`Photo "${file.name}" ready. Save changes to keep it.`, 'success');
+      } catch (error) {
+        showToast(error instanceof Error ? error.message : 'Could not upload photo.', 'error');
+      }
     }
   };
 
@@ -121,7 +185,10 @@ export default function SettingsClient({ initialName, initialEmail, role }: any)
           <div className="content-card">
             <div className="cc-title" style={{ marginBottom: 24 }}>Personal Information</div>
             <div className="s-avatar-row">
-              <div className="s-avatar">{userInitials}</div>
+              <div className="s-avatar">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {profileImage ? <img src={profileImage} alt={`${fullName || 'User'} profile`} /> : userInitials}
+              </div>
               <div>
                 <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleFileChange} />
                 <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={handleUploadPhoto}>Upload photo</button>
@@ -149,7 +216,11 @@ export default function SettingsClient({ initialName, initialEmail, role }: any)
               </div>
             </div>
           )}
-          <div className="s-action-bar"><button className="btn-primary" onClick={handleSave}>Save changes</button></div>
+          <div className="s-action-bar">
+            <button className="btn-primary" onClick={handleSave} disabled={savingProfile}>
+              {savingProfile ? 'Saving...' : 'Save changes'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -177,7 +248,7 @@ export default function SettingsClient({ initialName, initialEmail, role }: any)
 
           <div className="content-card" style={{ marginTop: 24 }}>
             <div className="cc-title" style={{ marginBottom: 8 }}>Active Sessions</div>
-            <div className="s-hint" style={{ marginBottom: 20 }}>Devices where you're currently signed in.</div>
+            <div className="s-hint" style={{ marginBottom: 20 }}>Devices where you&apos;re currently signed in.</div>
             {sessions.map(s => (
               <div key={s.id} className="s-session">
                 <div className="s-session-icon">
@@ -239,7 +310,7 @@ export default function SettingsClient({ initialName, initialEmail, role }: any)
             ) : (
               <>
                 <div className="s-toggle-row">
-                  <div><div style={{ fontWeight: 600, marginBottom: 4 }}>Campaign Updates</div><div className="s-hint">Updates from campaigns you've backed.</div></div>
+                  <div><div style={{ fontWeight: 600, marginBottom: 4 }}>Campaign Updates</div><div className="s-hint">Updates from campaigns you&apos;ve backed.</div></div>
                   <button className={`s-toggle ${donationNotif ? 'on' : ''}`} onClick={() => setDonationNotif(!donationNotif)}><span className="s-toggle-dot" /></button>
                 </div>
               </>

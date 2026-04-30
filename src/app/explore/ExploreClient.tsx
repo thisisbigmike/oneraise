@@ -8,6 +8,7 @@ type ExploreCampaign = {
   id: number;
   slug?: string;
   title: string;
+  image?: string | null;
   creator: string;
   raised: number;
   goal: number;
@@ -94,7 +95,10 @@ export default function ExploreClient({ initialQuery, campaigns }: { initialQuer
           filteredCampaigns.map((campaign, i) => (
             <Link href={`/backer/donate/${campaign.slug || campaign.id}`} key={campaign.id} className={`c-card reveal visible`} style={{ animationDelay: `${i * 0.1}s` }}>
               <div className={`c-card-img c${(i % 3) + 1}`}>
-                {/* Generic placeholder for campaign image */}
+                {campaign.image && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={campaign.image} alt={`${campaign.title} cover`} />
+                )}
               </div>
               <div className="c-card-body">
                 <div className="c-card-top">

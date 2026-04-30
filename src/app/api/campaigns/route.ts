@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
-import { getCachedCampaignsList, getNumericCampaignId } from "@/lib/campaigns-data";
+import { getCachedCampaignsList, getNumericCampaignId, getUserCampaignsList } from "@/lib/campaigns-data";
+
+const MAX_IMAGE_DATA_URL_LENGTH = 7 * 1024 * 1024;
 
 function getInitials(name: string) {
   return (
@@ -23,6 +25,25 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "");
 
   return slug || `campaign-${Date.now()}`;
+}
+
+function parseCampaignImage(value: unknown) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value !== "string") {
+    throw new Error("Campaign image must be a valid image URL.");
+  }
+
+  const image = value.trim();
+  if (!image) return null;
+  if (image.length > MAX_IMAGE_DATA_URL_LENGTH) {
+    throw new Error("Campaign image is too large. Please upload an image under 5MB.");
+  }
+  if (!image.startsWith("data:image/") && !image.startsWith("/") && !image.startsWith("https://")) {
+    throw new Error("Campaign image must be a valid image URL.");
+  }
+
+  return image;
 }
 
 
@@ -46,8 +67,6 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const mine = searchParams.get("mine") === "true";
 
-  let campaigns = await getCachedCampaignsList();
-
   if (mine) {
     const session = await getServerSession(authOptions);
     const userId = session?.user ? ((session.user as any).id as string) : null;
@@ -56,14 +75,14 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Please sign in to view your campaigns." }, { status: 401 });
     }
 
-    // Filter to only campaigns owned by this user
-    const userCampaignIds = await prisma.campaign.findMany({
-      where: { userId },
-      select: { id: true },
+    const campaigns = await getUserCampaignsList(userId);
+    return NextResponse.json({
+      success: true,
+      campaigns,
     });
-    const userDbIds = new Set(userCampaignIds.map((c) => c.id));
-    campaigns = campaigns.filter((c: any) => userDbIds.has(c.dbId));
   }
+
+  const campaigns = await getCachedCampaignsList();
 
   return NextResponse.json({
     success: true,
@@ -85,9 +104,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Only creator accounts can create campaigns." }, { status: 403 });
     }
 
-    const { title, goal, category, description, status } = await req.json();
+    const { title, goal, category, description, status, image } = await req.json();
     const parsedTitle = String(title || "").trim();
     const parsedGoal = Number(goal);
+    const parsedImage = parseCampaignImage(image);
 
     if (!parsedTitle || !Number.isFinite(parsedGoal) || parsedGoal <= 0) {
       return NextResponse.json({ error: "Campaign title and a valid goal amount are required." }, { status: 400 });
@@ -99,6 +119,7 @@ export async function POST(req: Request) {
         title: parsedTitle,
         slug,
         description: String(description || "").trim() || null,
+        image: parsedImage ?? null,
         goal: parsedGoal,
         category: String(category || "General").trim() || "General",
         status: status === "active" ? "active" : "draft",
@@ -117,6 +138,7 @@ export async function POST(req: Request) {
         dbId: campaign.id,
         slug: campaign.slug,
         title: campaign.title,
+        image: campaign.image,
         status: campaign.status,
         raised: 0,
         goal: campaign.goal,

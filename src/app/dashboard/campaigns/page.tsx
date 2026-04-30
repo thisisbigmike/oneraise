@@ -9,6 +9,7 @@ type CampaignManagerItem = {
   id: number;
   slug?: string;
   title: string;
+  image?: string | null;
   status: CampaignStatus;
   raised: number;
   goal: number;
@@ -19,6 +20,7 @@ type CampaignManagerItem = {
 };
 
 const INITIAL_CAMPAIGNS: CampaignManagerItem[] = [];
+const MAX_COVER_IMAGE_SIZE = 5 * 1024 * 1024;
 
 function normalizeStatus(status?: string): CampaignStatus {
   if (status === 'completed' || status === 'draft') return status;
@@ -35,6 +37,7 @@ function mapCampaignManagerItems(campaigns: CampaignManagerItem[]) {
     id: campaign.id,
     slug: campaign.slug,
     title: campaign.title,
+    image: campaign.image,
     status: normalizeStatus(campaign.status),
     raised: campaign.raised,
     goal: campaign.goal,
@@ -45,7 +48,32 @@ function mapCampaignManagerItems(campaigns: CampaignManagerItem[]) {
   }));
 }
 
-function ImageUploadArea({ file, setFile }: { file: File | null, setFile: (f: File | null) => void }) {
+function readImageFileAsDataUrl(file: File | null): Promise<string | undefined> {
+  if (!file) return Promise.resolve(undefined);
+  if (!file.type.startsWith('image/')) {
+    return Promise.reject(new Error('Please upload an image file.'));
+  }
+  if (file.size > MAX_COVER_IMAGE_SIZE) {
+    return Promise.reject(new Error('Please upload an image under 5MB.'));
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('Unable to read the selected image.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function ImageUploadArea({
+  file,
+  setFile,
+  existingImage,
+}: {
+  file: File | null;
+  setFile: (f: File | null) => void;
+  existingImage?: string | null;
+}) {
   const [dragActive, setDragActive] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
 
@@ -58,6 +86,16 @@ function ImageUploadArea({ file, setFile }: { file: File | null, setFile: (f: Fi
       setPreview(null);
     }
   }, [file]);
+
+  const displayImage = preview || existingImage || null;
+
+  const handleSelectedFile = (selectedFile?: File) => {
+    if (!selectedFile) return;
+    if (!selectedFile.type.startsWith('image/')) {
+      return;
+    }
+    setFile(selectedFile);
+  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -74,7 +112,7 @@ function ImageUploadArea({ file, setFile }: { file: File | null, setFile: (f: Fi
     e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setFile(e.dataTransfer.files[0]);
+      handleSelectedFile(e.dataTransfer.files[0]);
     }
   };
 
@@ -90,14 +128,25 @@ function ImageUploadArea({ file, setFile }: { file: File | null, setFile: (f: Fi
         backgroundColor: dragActive ? 'rgba(29,158,117,0.05)' : '',
       }}
     >
-      {preview ? (
+      {displayImage ? (
         <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-          <img src={preview} alt="Preview" style={{ maxHeight: '160px', maxWidth: '100%', borderRadius: '8px', objectFit: 'contain' }} />
-          <button type="button" className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px', zIndex: 10, position: 'relative' }} onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setFile(null);
-          }}>Remove Image</button>
+          <img src={displayImage} alt="Campaign cover preview" style={{ maxHeight: '160px', maxWidth: '100%', borderRadius: '8px', objectFit: 'contain' }} />
+          <div style={{ display: 'flex', gap: 8, zIndex: 10, position: 'relative' }}>
+            <label className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px', cursor: 'pointer' }}>
+              Choose Image
+              <input hidden type="file" accept="image/*" onChange={e => {
+                handleSelectedFile(e.target.files?.[0]);
+                e.target.value = '';
+              }} />
+            </label>
+            {file && (
+              <button type="button" className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setFile(null);
+              }}>Remove Image</button>
+            )}
+          </div>
         </div>
       ) : (
         <>
@@ -107,10 +156,8 @@ function ImageUploadArea({ file, setFile }: { file: File | null, setFile: (f: Fi
           <p className="s-upload-title">Click to upload or drag and drop</p>
           <p className="s-upload-sub">SVG, PNG, JPG or GIF (max. 5MB)</p>
           <input className="s-upload-input" type="file" accept="image/*" onChange={e => {
-            if (e.target.files && e.target.files.length > 0) {
-              setFile(e.target.files[0]);
-              e.target.value = '';
-            }
+            handleSelectedFile(e.target.files?.[0]);
+            e.target.value = '';
           }} />
         </>
       )}
@@ -236,6 +283,7 @@ export default function CampaignsPage() {
     if (!newTitle.trim() || !newGoal.trim()) { showToast('Please fill in all fields.', 'warning'); return; }
 
     try {
+      const image = await readImageFileAsDataUrl(newCoverImage);
       const res = await fetch('/api/campaigns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -245,6 +293,7 @@ export default function CampaignsPage() {
           category: newCategory || 'General',
           status: 'draft',
           description: newDescription,
+          image,
           endDate: newEndDate,
           slug: newSlug,
           visibility: newVisibility,
@@ -290,6 +339,7 @@ export default function CampaignsPage() {
     }
 
     try {
+      const image = await readImageFileAsDataUrl(editCoverImage);
       const res = await fetch(`/api/campaigns/${encodeURIComponent(campaign.slug)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -299,6 +349,7 @@ export default function CampaignsPage() {
           category: editCategory,
           slug: editSlug,
           description: editDescription,
+          image,
           endDate: editEndDate,
           visibility: editVisibility,
           rewardTiers: editRewardTiers
@@ -365,9 +416,13 @@ export default function CampaignsPage() {
           <div key={c.id} className="campaign-card">
             {/* Image Hero */}
             <div className="cmp-image">
-              <div className="cmp-image-placeholder">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-              </div>
+              {c.image ? (
+                <img src={c.image} alt={`${c.title} cover`} />
+              ) : (
+                <div className="cmp-image-placeholder">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                </div>
+              )}
               {/* Overlay Badges */}
               <div className="cmp-badges">
                 <div className="cmp-badge-status">
@@ -674,7 +729,7 @@ export default function CampaignsPage() {
           </div>
           <div className="s-field s-field-full">
             <label className="s-label">Cover Image</label>
-            <ImageUploadArea file={editCoverImage} setFile={setEditCoverImage} />
+            <ImageUploadArea file={editCoverImage} setFile={setEditCoverImage} existingImage={campaigns.find(c => c.id === manageId)?.image} />
           </div>
 
           <div className="s-field s-field-full">

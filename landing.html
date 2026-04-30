@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OneRaise — Fund Anything, Everywhere</title>
+  <title>OneRaise</title>
   <link
     href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,700;12..96,800&family=Instrument+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap"
     rel="stylesheet">
@@ -1435,7 +1435,33 @@
         align-items: center;
       }
     }
-  </style>
+  [data-theme="light"] nav {
+  background: var(--ink-mid);
+}
+
+/* Light mode overrides for hero section */
+[data-theme="light"] .hero {
+  background: var(--ink-mid);
+}
+
+/* Light mode overrides for stats */
+[data-theme="light"] .stats-section {
+  background: var(--ink);
+}
+
+/* Light mode overrides for CTA */
+[data-theme="light"] .cta-section {
+  background: var(--ink);
+}
+
+/* Initialize theme based on system preference */
+<script>
+(function(){
+  const prefers = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', prefers);
+})();
+</script>
+</style>
 </head>
 
 <body>

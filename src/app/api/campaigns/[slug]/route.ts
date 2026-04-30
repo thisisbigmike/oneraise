@@ -5,8 +5,29 @@ import { authOptions } from "@/lib/auth";
 import { CAMPAIGN_SEEDS, getCampaignPct } from "@/lib/campaign-seeds";
 import { getStoredDonationCreditUsd } from "@/lib/currency";
 
+const MAX_IMAGE_DATA_URL_LENGTH = 7 * 1024 * 1024;
+
 function getNumericCampaignId(slug: string) {
   return slug.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
+}
+
+function parseCampaignImage(value: unknown) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value !== "string") {
+    throw new Error("Campaign image must be a valid image URL.");
+  }
+
+  const image = value.trim();
+  if (!image) return null;
+  if (image.length > MAX_IMAGE_DATA_URL_LENGTH) {
+    throw new Error("Campaign image is too large. Please upload an image under 5MB.");
+  }
+  if (!image.startsWith("data:image/") && !image.startsWith("/") && !image.startsWith("https://")) {
+    throw new Error("Campaign image must be a valid image URL.");
+  }
+
+  return image;
 }
 
 export async function GET(
@@ -20,6 +41,7 @@ export async function GET(
     select: {
       id: true,
       title: true,
+      image: true,
       slug: true,
       description: true,
       goal: true,
@@ -78,6 +100,7 @@ export async function GET(
       dbId: campaign?.id,
       slug: campaign?.slug || slug,
       title: seed?.title || campaign?.title || `Campaign ${slug}`,
+      image: campaign?.image || null,
       creator: creatorName,
       creatorInitials:
         seed?.creatorInitials ||
@@ -132,9 +155,10 @@ export async function PATCH(
       return NextResponse.json({ error: "You can only update your own campaigns." }, { status: 403 });
     }
 
-    const { title, goal, category, description, status } = await req.json();
+    const { title, goal, category, description, status, image } = await req.json();
     const data: {
       title?: string;
+      image?: string | null;
       goal?: number;
       category?: string;
       description?: string | null;
@@ -152,6 +176,7 @@ export async function PATCH(
     if (typeof category === "string") data.category = category.trim() || "General";
     if (typeof description === "string") data.description = description.trim() || null;
     if (status === "active" || status === "draft" || status === "completed") data.status = status;
+    if (image !== undefined) data.image = parseCampaignImage(image) ?? null;
 
     const updated = await prisma.campaign.update({
       where: { slug },
@@ -165,6 +190,7 @@ export async function PATCH(
         dbId: updated.id,
         slug: updated.slug,
         title: updated.title,
+        image: updated.image,
         status: updated.status,
         raised: updated.raised,
         goal: updated.goal,

@@ -17,7 +17,7 @@ export default async function ExplorePage(props: { searchParams?: Promise<{ q?: 
 
   return (
     <div className="explore-page">
-      <nav id="main-nav" style={{ position: 'sticky', top: 0, background: '#0a0a0a', borderBottom: '1px solid rgba(255,255,255,0.05)', zIndex: 100 }}>
+      <nav id="main-nav" style={{ position: 'sticky', top: 0, background: 'var(--ink)', borderBottom: '1px solid var(--white-10)', zIndex: 100 }}>
         <Link href="/" className="nav-logo">One<span>Raise</span></Link>
         <ul className="nav-links">
           <li><Link href="/explore" className="active">Explore</Link></li>

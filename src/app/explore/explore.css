@@ -1,7 +1,7 @@
 .explore-page {
   min-height: 100vh;
-  background-color: #0a0a0a;
-  color: #fff;
+  background-color: var(--ink);
+  color: var(--white);
 }
 
 .explore-container {
@@ -20,14 +20,14 @@
   font-weight: 700;
   letter-spacing: -0.03em;
   margin-bottom: 16px;
-  background: linear-gradient(to right, #fff, #a0a0a0);
+  background: linear-gradient(to right, var(--white), #a0a0a0);
   -webkit-background-clip: text;
   color: transparent;
 }
 
 .explore-subtitle {
   font-size: 1.25rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--white-60);
 }
 
 .explore-filters {
@@ -58,7 +58,7 @@
 }
 
 .search-group:focus-within {
-  border-color: #1D9E75;
+  border-color: var(--teal-400);
 }
 
 .search-group svg {
@@ -70,7 +70,7 @@
   background: transparent;
   border: none;
   padding: 14px 12px;
-  color: #fff;
+  color: var(--white);
   font-size: 1rem;
   outline: none;
 }
@@ -80,7 +80,7 @@
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 14px 40px 14px 20px;
-  color: #fff;
+  color: var(--white);
   border-radius: 12px;
   font-size: 1rem;
   cursor: pointer;
@@ -89,7 +89,7 @@
 }
 
 .explore-select:focus, .explore-select:hover {
-  border-color: #1D9E75;
+  border-color: var(--teal-400);
   background: rgba(29, 158, 117, 0.1);
 }
 
@@ -127,4 +127,42 @@
 
 .no-results p {
   color: rgba(255, 255, 255, 0.5);
+}
+
+/* Light Theme Overrides */
+[data-theme="light"] .explore-title {
+  background: linear-gradient(to right, #0A1812, #5A6D64);
+  -webkit-background-clip: text;
+}
+[data-theme="light"] .explore-subtitle {
+  color: #5A6D64;
+}
+[data-theme="light"] .explore-filters {
+  background: #F0F2F1;
+  border-color: #E0E5E2;
+}
+[data-theme="light"] .search-group,
+[data-theme="light"] .explore-select {
+  background: #FFFFFF;
+  border-color: #D0D8D4;
+}
+[data-theme="light"] .search-group svg {
+  color: #8A9B93;
+}
+[data-theme="light"] .explore-search-input,
+[data-theme="light"] .explore-select {
+  color: #0A1812;
+}
+[data-theme="light"] .explore-search-input::placeholder {
+  color: #A8B5AE;
+}
+[data-theme="light"] .filter-group::after {
+  background-color: #5A6D64;
+}
+[data-theme="light"] .no-results {
+  background: #FFFFFF;
+  border-color: #D0D8D4;
+}
+[data-theme="light"] .no-results p {
+  color: #5A6D64;
 }

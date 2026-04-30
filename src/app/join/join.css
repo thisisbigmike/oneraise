@@ -304,3 +304,21 @@
   .join-card-title { font-size: 20px; }
   .join-trust { gap: 16px; }
 }
+
+/* Light Theme Overrides */
+[data-theme="light"] .join-role-card {
+  background: #FFFFFF;
+  border-color: #E0E5E2;
+}
+[data-theme="light"] .join-card-title {
+  color: #0A1812;
+}
+[data-theme="light"] .join-title {
+  color: #0A1812;
+}
+[data-theme="light"] .join-logo {
+  color: #0A1812;
+}
+[data-theme="light"] .join-wrapper {
+  background: #F8FCF9;
+}

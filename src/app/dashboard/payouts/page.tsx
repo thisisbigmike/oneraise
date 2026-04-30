@@ -445,8 +445,14 @@ export default function PayoutsPage() {
           <button
             className="btn-primary"
             style={{ marginTop: 16, width: '100%' }}
-            onClick={() => setWithdrawOpen(true)}
-            disabled={!primaryMethod || summary.availableBalance <= 0}
+            onClick={() => {
+              if (primaryMethod) {
+                setWithdrawOpen(true);
+              } else {
+                setShowAddModal(true);
+              }
+            }}
+            disabled={summary.availableBalance <= 0}
           >
             Withdraw funds
           </button>

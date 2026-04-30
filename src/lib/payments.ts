@@ -84,7 +84,7 @@ export function safeJsonParse<T = unknown>(value?: string | null): T | null {
 export function ensureAbsoluteUrl(url?: string | null, fallbackPath?: string) {
   if (url) return url;
   if (fallbackPath) {
-    const host = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const host = process.env.NEXTAUTH_URL || "http://oneraise.vercel.app";
     return `${trimTrailingSlash(host)}${fallbackPath}`;
   }
   return null;

@@ -11,6 +11,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const { data: session } = useSession();
   const userName = session?.user?.name || 'Creator';
+  const userImage = session?.user?.image || '';
   const userInitials = userName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [campaignCount, setCampaignCount] = useState<number | null>(null);
@@ -122,7 +123,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <div className="sidebar-footer">
           <Link href="/dashboard/settings" className="user-profile" onClick={() => setMobileMenuOpen(false)}>
-            <div className="up-avatar">{userInitials}</div>
+            <div className="up-avatar">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {userImage ? <img src={userImage} alt={`${userName} profile`} /> : userInitials}
+            </div>
             <div className="up-info">
               <div className="up-name">{userName} <svg className="verified-badge" width="16" height="16" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="11" fill="#1D9BF0"/><path d="M9.5 14.25L6.25 11l-1.02 1.02L9.5 16.29l10-10-1.02-1.02L9.5 14.25z" fill="#fff"/></svg></div>
               <div className="up-role">Creator</div>
