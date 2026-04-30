@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { getCachedCampaignsList, getNumericCampaignId, getUserCampaignsList } from "@/lib/campaigns-data";
@@ -44,6 +45,12 @@ function parseCampaignImage(value: unknown) {
   }
 
   return image;
+}
+
+function revalidateCampaignViews() {
+  revalidatePath("/");
+  revalidatePath("/explore");
+  revalidatePath("/backer/discover");
 }
 
 
@@ -130,6 +137,8 @@ export async function POST(req: Request) {
         },
       },
     });
+
+    revalidateCampaignViews();
 
     return NextResponse.json({
       success: true,

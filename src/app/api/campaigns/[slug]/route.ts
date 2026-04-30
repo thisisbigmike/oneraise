@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { CAMPAIGN_SEEDS, getCampaignPct } from "@/lib/campaign-seeds";
@@ -28,6 +29,16 @@ function parseCampaignImage(value: unknown) {
   }
 
   return image;
+}
+
+function revalidateCampaignViews(slug?: string) {
+  revalidatePath("/");
+  revalidatePath("/explore");
+  revalidatePath("/backer/discover");
+  if (slug) {
+    revalidatePath(`/backer/donate/${slug}`);
+    revalidatePath(`/campaign/${slug}`);
+  }
 }
 
 export async function GET(
@@ -183,6 +194,8 @@ export async function PATCH(
       data,
     });
 
+    revalidateCampaignViews(updated.slug);
+
     return NextResponse.json({
       success: true,
       campaign: {
@@ -242,6 +255,7 @@ export async function DELETE(
       prisma.donation.deleteMany({ where: { campaignId: campaign.id } }),
       prisma.campaign.delete({ where: { id: campaign.id } }),
     ]);
+    revalidateCampaignViews(slug);
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Delete campaign error:", error);

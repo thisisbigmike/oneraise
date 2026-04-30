@@ -7,7 +7,7 @@ import { useToast } from '../../../components';
 
 /* ── Campaign mock data (matches discover page) ── */
 type CampaignView = {
-  id: number; title: string; creator: string; creatorInitials: string;
+  id: number; title: string; image?: string | null; creator: string; creatorInitials: string;
   raised: number; goal: number; category: string; desc: string;
   backers: number; daysLeft: number; verified: boolean;
 };
@@ -766,6 +766,12 @@ function CampaignSidebar({ campaign, pct }: { campaign: CampaignView; pct: numbe
           {campaign.category}
         </div>
         <div className="cs-campaign-title">{campaign.title}</div>
+        {campaign.image && (
+          <div className="cs-campaign-cover">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={campaign.image} alt={`${campaign.title} cover`} />
+          </div>
+        )}
 
         <div className="cs-organizer">
           <div className="cs-organizer-avatar">{campaign.creatorInitials}</div>
