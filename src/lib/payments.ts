@@ -55,6 +55,16 @@ export function getDefaultNetworkForAsset(asset: string) {
   return getDefaultSettlementNetwork();
 }
 
+function getBushaBankRecipientType(currency: string, countryCode: string) {
+  const normalizedCurrency = currency.toUpperCase();
+  const normalizedCountry = countryCode.toUpperCase();
+
+  if (normalizedCurrency === "NGN" || normalizedCountry === "NG") return "ngn_bank";
+  if (normalizedCurrency === "KES" || normalizedCountry === "KE") return "kes_bank";
+
+  throw new Error(`Bank payouts are not configured for ${normalizedCurrency}/${normalizedCountry}.`);
+}
+
 export function getMoonPayCurrencyCode(asset: string, network: string) {
   return `${asset.toLowerCase()}_${network.toLowerCase()}`;
 }
@@ -274,16 +284,23 @@ export async function createBushaRecipient(args: {
   countryCode: string;
   bushaProfileId?: string | null;
 }) {
+  const currency = args.currency.toUpperCase();
+  const countryCode = args.countryCode.toUpperCase();
+  const recipientType = getBushaBankRecipientType(currency, countryCode);
+
   return (await bushaRequest("POST", "/v1/recipients", {
     bushaProfileId: args.bushaProfileId,
     body: {
-      type: "bank_transfer",
-      country_id: args.countryCode.toUpperCase(),
-      currency_id: args.currency.toUpperCase(),
-      account_name: args.accountName,
-      account_number: args.accountNumber,
-      bank_code: args.bankCode,
-      bank_name: args.bankName || undefined,
+      currency_id: currency,
+      country_id: countryCode,
+      type: recipientType,
+      legal_entity_type: "personal",
+      fields: [
+        { name: "bank_name", value: args.bankName || "Bank" },
+        { name: "account_name", value: args.accountName },
+        { name: "account_number", value: args.accountNumber },
+        { name: "bank_code", value: args.bankCode },
+      ],
     },
   })) as Record<string, any>;
 }

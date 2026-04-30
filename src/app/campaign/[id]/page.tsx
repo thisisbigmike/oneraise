@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState, use, type FormEvent } from 'react';
 import Link from 'next/link';
 import { CAMPAIGN_SEEDS, getCampaignPct } from '@/lib/campaign-seeds';
 import './campaign.css';
@@ -9,6 +9,11 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
   const resolvedParams = use(params);
   const campaign = CAMPAIGN_SEEDS[resolvedParams.id];
   const [activeTab, setActiveTab] = useState<'story' | 'updates' | 'donors'>('story');
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState('fake');
+  const [reportDetails, setReportDetails] = useState('');
+  const [reportStatus, setReportStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [reportError, setReportError] = useState('');
 
   if (!campaign) {
     return (
@@ -20,6 +25,44 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
   }
 
   const pct = getCampaignPct(campaign.raised, campaign.goal);
+  const reportReasons = [
+    { value: 'fake', label: 'Fake campaign' },
+    { value: 'misleading', label: 'Misleading information' },
+    { value: 'prohibited', label: 'Prohibited content' },
+    { value: 'suspicious-payment', label: 'Suspicious payment activity' },
+    { value: 'other', label: 'Other' },
+  ];
+
+  async function submitReport(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setReportStatus('submitting');
+    setReportError('');
+
+    try {
+      const response = await fetch(`/api/campaigns/${campaign.slug}/reports`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reason: reportReason,
+          details: reportDetails,
+          campaignTitle: campaign.title,
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.error || 'Unable to report this campaign.');
+      }
+
+      setReportStatus('success');
+      setReportDetails('');
+    } catch (error: unknown) {
+      setReportStatus('error');
+      setReportError(error instanceof Error ? error.message : 'Unable to report this campaign.');
+    }
+  }
 
   // Mock data for updates
   const updates = [
@@ -114,6 +157,18 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
                 </svg>
                 Secure payments by Stripe & Moonpay
               </p>
+
+              <button
+                type="button"
+                className="report-campaign-btn"
+                onClick={() => {
+                  setIsReportOpen(true);
+                  setReportStatus('idle');
+                  setReportError('');
+                }}
+              >
+                Report this campaign
+              </button>
             </div>
           </div>
         </div>
@@ -177,6 +232,80 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
           )}
         </div>
       </main>
+
+      {isReportOpen && (
+        <div className="report-modal-backdrop" role="presentation">
+          <div className="report-modal" role="dialog" aria-modal="true" aria-labelledby="report-campaign-title">
+            <div className="report-modal-header">
+              <div>
+                <h2 id="report-campaign-title">Report this campaign</h2>
+                <p>Tell us what looks wrong. Your report will be sent to the admin dashboard.</p>
+              </div>
+              <button
+                type="button"
+                className="report-modal-close"
+                aria-label="Close report dialog"
+                onClick={() => setIsReportOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            {reportStatus === 'success' ? (
+              <div className="report-success">
+                <div className="report-success-icon">✓</div>
+                <h3>Report submitted</h3>
+                <p>Thanks. The admin team can now review this campaign flag.</p>
+                <button type="button" className="btn-primary-nav report-submit-btn" onClick={() => setIsReportOpen(false)}>
+                  Done
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={submitReport} className="report-form">
+                <fieldset className="report-reason-group">
+                  <legend>Why are you reporting it?</legend>
+                  {reportReasons.map((reason) => (
+                    <label key={reason.value} className="report-reason-option">
+                      <input
+                        type="radio"
+                        name="report-reason"
+                        value={reason.value}
+                        checked={reportReason === reason.value}
+                        onChange={(event) => setReportReason(event.target.value)}
+                      />
+                      <span>{reason.label}</span>
+                    </label>
+                  ))}
+                </fieldset>
+
+                <label className="report-details-label" htmlFor="report-details">
+                  Details
+                </label>
+                <textarea
+                  id="report-details"
+                  className="report-details-input"
+                  value={reportDetails}
+                  onChange={(event) => setReportDetails(event.target.value)}
+                  rows={4}
+                  maxLength={800}
+                  placeholder="Add context for the admin team"
+                />
+
+                {reportError && <div className="report-error">{reportError}</div>}
+
+                <div className="report-modal-actions">
+                  <button type="button" className="report-cancel-btn" onClick={() => setIsReportOpen(false)}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn-primary-nav report-submit-btn" disabled={reportStatus === 'submitting'}>
+                    {reportStatus === 'submitting' ? 'Submitting...' : 'Submit report'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

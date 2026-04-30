@@ -151,6 +151,225 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
+.report-campaign-btn {
+  width: 100%;
+  margin-top: 14px;
+  padding: 13px 16px;
+  border: 1px solid rgba(239, 159, 39, 0.35);
+  border-radius: 12px;
+  background: rgba(239, 159, 39, 0.08);
+  color: #F2C273;
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.report-campaign-btn:hover {
+  background: rgba(239, 159, 39, 0.14);
+  border-color: rgba(239, 159, 39, 0.55);
+  color: #FFD58C;
+}
+
+.report-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.report-modal {
+  width: min(100%, 520px);
+  max-height: min(720px, calc(100vh - 40px));
+  overflow-y: auto;
+  background: #101814;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+  padding: 24px;
+}
+
+.report-modal-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.report-modal-header h2 {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+}
+
+.report-modal-header p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.5;
+}
+
+.report-modal-close {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.report-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.report-reason-group {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.report-reason-group legend,
+.report-details-label {
+  margin-bottom: 4px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.report-reason-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(255, 255, 255, 0.82);
+  cursor: pointer;
+}
+
+.report-reason-option:has(input:checked) {
+  border-color: rgba(29, 158, 117, 0.65);
+  background: rgba(29, 158, 117, 0.12);
+  color: #fff;
+}
+
+.report-reason-option input {
+  accent-color: #1D9E75;
+}
+
+.report-details-input {
+  width: 100%;
+  min-height: 108px;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+  color: #fff;
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.report-details-input:focus {
+  outline: none;
+  border-color: rgba(29, 158, 117, 0.75);
+  box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.15);
+}
+
+.report-error {
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 107, 107, 0.35);
+  border-radius: 10px;
+  background: rgba(255, 107, 107, 0.1);
+  color: #FFB0B0;
+  font-size: 0.9rem;
+}
+
+.report-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.report-cancel-btn {
+  padding: 11px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.78);
+  font-family: 'Instrument Sans', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.report-submit-btn {
+  justify-content: center;
+}
+
+.report-submit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.report-success {
+  text-align: center;
+  padding: 10px 8px 4px;
+}
+
+.report-success-icon {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  border-radius: 50%;
+  background: rgba(29, 158, 117, 0.15);
+  color: #5DCAA5;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.report-success h3 {
+  margin: 0 0 8px;
+}
+
+.report-success p {
+  margin: 0 0 20px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+@media (max-width: 560px) {
+  .report-modal {
+    padding: 20px;
+    border-radius: 14px;
+  }
+
+  .report-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .report-cancel-btn,
+  .report-submit-btn {
+    width: 100%;
+  }
+}
+
 /* Tabs */
 .campaign-tabs-wrapper {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);

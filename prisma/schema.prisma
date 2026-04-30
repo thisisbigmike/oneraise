@@ -52,6 +52,7 @@ model User {
   donations     Donation[]
   payoutMethods PayoutMethod[]
   payouts       Payout[]
+  campaignReports CampaignReport[]
 }
 
 model VerificationToken {
@@ -80,6 +81,29 @@ model Campaign {
   
   donations   Donation[]
   payouts     Payout[]
+  reports     CampaignReport[]
+}
+
+model CampaignReport {
+  id             String   @id @default(cuid())
+  campaignSlug   String
+  campaignTitle  String
+  reason         String
+  details        String?
+  status         String   @default("open") // open, reviewing, resolved
+  reporterEmail  String?
+  reporterUserId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  reporter User? @relation(fields: [reporterUserId], references: [id], onDelete: SetNull)
+
+  @@index([campaignSlug])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Donation {
