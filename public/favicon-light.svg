@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="OneRaise">
+  <rect width="512" height="512" fill="#f7f8f6"/>
+  <path d="M111 318a164 164 0 0 1 224-205" fill="none" stroke="#0f4935" stroke-width="48" stroke-linecap="butt"/>
+  <path d="M389 214a164 164 0 0 1-245 188" fill="none" stroke="#86d9ad" stroke-width="48" stroke-linecap="butt"/>
+  <path d="M118 350 218 250l47 47 111-128" fill="none" stroke="#0f4935" stroke-width="48" stroke-linecap="butt" stroke-linejoin="miter"/>
+  <polygon points="357 145 425 128 410 197" fill="#0f4935"/>
+  <polygon points="218 250 265 297 265 357 218 310" fill="#0f4935"/>
+  <polygon points="265 297 312 250 312 310 265 357" fill="#86d9ad"/>
+</svg>

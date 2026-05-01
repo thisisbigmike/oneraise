@@ -15,6 +15,20 @@ const instrument = Instrument_Sans({
 export const metadata: Metadata = {
   title: "OneRaise",
   description: "OneRaise connects creators, entrepreneurs, and changemakers with a global community.",
+  icons: {
+    icon: [
+      {
+        url: "/favicon-light.svg",
+        type: "image/svg+xml",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        url: "/favicon-dark.svg",
+        type: "image/svg+xml",
+        media: "(prefers-color-scheme: dark)",
+      },
+    ],
+  },
 };
 
 import { ToastProvider, ThemeProvider } from "./components";
