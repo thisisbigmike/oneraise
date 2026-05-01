@@ -111,6 +111,9 @@ nav {
   transition: all 0.2s;
   text-decoration: none;
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
 .btn-ghost-nav:hover { border-color: var(--white-60); color: var(--white); }
 
@@ -119,7 +122,7 @@ nav {
   font-size: 13px;
   font-weight: 600;
   background: var(--teal-400);
-  border: none;
+  border: 1px solid transparent;
   color: #fff;
   border-radius: 9px;
   padding: 9px 20px;
@@ -127,6 +130,9 @@ nav {
   transition: all 0.2s;
   text-decoration: none;
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
 .btn-primary-nav:hover { background: var(--teal-600); }
 
@@ -147,19 +153,41 @@ nav {
   border-radius: 2px;
   transition: all 0.3s;
 }
+.hamburger.open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.hamburger.open span:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
 
 .mobile-menu {
-  display: none;
   position: fixed;
-  top: 68px; left: 0; right: 0;
+  top: 68px;
+  right: 0;
+  bottom: 0;
+  width: min(82vw, 340px);
   background: var(--ink-mid);
-  border-bottom: 1px solid rgba(29,158,117,0.12);
+  border-left: 1px solid rgba(29,158,117,0.16);
+  box-shadow: -24px 0 48px rgba(0,0,0,0.28);
   padding: 20px 5% 28px;
   z-index: 99;
+  display: flex;
   flex-direction: column;
   gap: 16px;
+  transform: translateX(100%);
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 0.28s ease, visibility 0s linear 0.28s;
 }
-.mobile-menu.open { display: flex; }
+.mobile-menu.open {
+  transform: translateX(0);
+  visibility: visible;
+  pointer-events: auto;
+  transition: transform 0.28s ease;
+}
 .mobile-menu a {
   font-size: 16px;
   color: var(--white-60);
@@ -168,8 +196,40 @@ nav {
   border-bottom: 1px solid var(--white-10);
 }
 .mobile-menu a:last-child { border-bottom: none; }
-.mobile-menu .mob-btns { display: flex; gap: 10px; margin-top: 8px; }
-.mobile-menu .mob-btns a { border: none; padding: 0; flex: 1; text-align: center; }
+.mobile-menu .mob-btns {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+.mobile-menu .mob-btns a {
+  min-height: 42px;
+  border-radius: 12px;
+  padding: 0 14px;
+  flex: 1;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  border-bottom: none;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.18);
+}
+.mobile-menu .mob-btns .btn-ghost-nav {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.78);
+}
+.mobile-menu .mob-btns .btn-ghost-nav:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.32);
+  color: var(--white);
+}
+.mobile-menu .mob-btns .btn-primary-nav {
+  background: linear-gradient(135deg, var(--teal-400), var(--teal-600));
+  border: 1px solid rgba(94,234,212,0.24);
+  color: #fff;
+}
+.mobile-menu .mob-btns .btn-primary-nav:hover {
+  filter: brightness(1.06);
+}
 
 /* ── HERO ── */
 .hero {

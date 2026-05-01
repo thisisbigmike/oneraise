@@ -38,9 +38,27 @@ export default function HomeScripts() {
     const hamburger = document.getElementById('hamburger');
     const mobileMenu = document.getElementById('mobile-menu');
     const handleMenuClick = () => {
+      hamburger?.classList.toggle('open');
       mobileMenu?.classList.toggle('open');
+      hamburger?.setAttribute(
+        'aria-expanded',
+        mobileMenu?.classList.contains('open') ? 'true' : 'false'
+      );
+    };
+    const closeMobileMenu = () => {
+      hamburger?.classList.remove('open');
+      mobileMenu?.classList.remove('open');
+      hamburger?.setAttribute('aria-expanded', 'false');
+    };
+    const handleMenuLinkClick = (event: Event) => {
+      if ((event.target as HTMLElement).closest('a')) closeMobileMenu();
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') closeMobileMenu();
     };
     hamburger?.addEventListener('click', handleMenuClick);
+    mobileMenu?.addEventListener('click', handleMenuLinkClick);
+    document.addEventListener('keydown', handleEscape);
 
     // ── SCROLL REVEAL ──
     const revealEls = document.querySelectorAll('.reveal');
@@ -203,6 +221,8 @@ export default function HomeScripts() {
       document.removeEventListener('mousemove', handleMouseMove);
       clearInterval(trailInterval);
       hamburger?.removeEventListener('click', handleMenuClick);
+      mobileMenu?.removeEventListener('click', handleMenuLinkClick);
+      document.removeEventListener('keydown', handleEscape);
       revealObs.disconnect();
       countObs.disconnect();
       dots.forEach((d) => d.el.remove());

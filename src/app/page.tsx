@@ -106,7 +106,7 @@ export default async function Home() {
     <Link href="/auth?mode=signin" className="btn-ghost-nav">Sign in</Link>
     <Link href="/join" className="btn-primary-nav">Start a campaign</Link>
   </div>
-  <button className="hamburger" id="hamburger" aria-label="Menu">
+  <button className="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false" aria-controls="mobile-menu">
     <span></span><span></span><span></span>
   </button>
 </nav>
