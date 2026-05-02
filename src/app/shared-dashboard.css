@@ -109,6 +109,30 @@
   border-radius: 99px;
   line-height: 1;
 }
+
+.st-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.st-ok {
+  background: rgba(29,158,117,0.14);
+  color: var(--teal-200);
+}
+.st-pend {
+  background: rgba(239,159,39,0.14);
+  color: var(--amber);
+}
+.st-bad {
+  background: rgba(240,149,149,0.14);
+  color: #F09595;
+}
 .nl-dot {
   width: 6px;
   height: 6px;
@@ -1067,6 +1091,7 @@
   font-family: 'Bricolage Grotesque', sans-serif;
   font-weight: 700; color: var(--teal-200);
 }
+.txn-amount-out { color: var(--amber); }
 .txn-status {
   display: inline-block;
   font-size: 12px; font-weight: 600;

@@ -4,19 +4,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useToast } from '../../../components';
+import { CAMPAIGN_SEEDS } from '@/lib/campaign-seeds';
 
-/* ── Campaign mock data (matches discover page) ── */
 type CampaignView = {
-  id: number; title: string; image?: string | null; creator: string; creatorInitials: string;
+  id: number; slug: string; title: string; image?: string | null; creator: string; creatorInitials: string;
   raised: number; goal: number; category: string; desc: string;
   backers: number; daysLeft: number; verified: boolean;
-};
-
-const CAMPAIGNS: Record<string, CampaignView> = {
-  '1': { id: 1, title: 'SolarPack Mini — Off-grid power for remote communities', creator: 'Tunde Coker', creatorInitials: 'TC', raised: 68420, goal: 100000, category: 'Technology', desc: 'A portable, affordable solar generator for small businesses in West Africa.', backers: 1240, daysLeft: 14, verified: true },
-  '2': { id: 2, title: 'Clean Water for Kano', creator: 'Aisha Malik', creatorInitials: 'AM', raised: 24800, goal: 50000, category: 'Social Impact', desc: 'Building 50 solar-powered boreholes to provide clean drinking water.', backers: 480, daysLeft: 21, verified: true },
-  '3': { id: 3, title: 'Tech Start: Lagos', creator: 'Chidi Nweke', creatorInitials: 'CN', raised: 15000, goal: 100000, category: 'Education', desc: 'Funding laptops and coding bootcamps for 500 underserved youths.', backers: 312, daysLeft: 30, verified: false },
-  '4': { id: 4, title: 'Rural Clinic Solar', creator: 'Dr. Santos', creatorInitials: 'DS', raised: 8200, goal: 15000, category: 'Health', desc: 'Installing solar panels to keep vaccines refrigerated at our rural clinic.', backers: 195, daysLeft: 18, verified: true },
 };
 
 const PRESETS = [25, 50, 100, 250];
@@ -30,11 +23,24 @@ const CURRENCIES = [
 
 type PaymentMethod = 'card' | 'crypto' | 'local';
 type PaymentStatus = 'idle' | 'processing' | 'pending' | 'confirmed' | 'failed';
+type PaymentInstructions = {
+  type?: 'local' | 'crypto' | string;
+  currency?: string;
+  amount?: number | string;
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+  asset?: string;
+  address?: string;
+  network?: string;
+};
 
 export default function DonatePage() {
   const params = useParams();
   const campaignId = params.campaignId as string;
-  const [campaign, setCampaign] = useState<CampaignView | undefined>(CAMPAIGNS[campaignId]);
+  const initialCampaign = CAMPAIGN_SEEDS[campaignId] as CampaignView | undefined;
+  const [campaign, setCampaign] = useState<CampaignView | undefined>(initialCampaign);
+  const [isLoadingCampaign, setIsLoadingCampaign] = useState(!initialCampaign);
   const { showToast } = useToast();
 
   // Form state
@@ -50,7 +56,7 @@ export default function DonatePage() {
 
   // Payment status
   const [status, setStatus] = useState<PaymentStatus>('idle');
-  const [paymentInstructions, setPaymentInstructions] = useState<any>(null);
+  const [paymentInstructions, setPaymentInstructions] = useState<PaymentInstructions | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [currentDonationId, setCurrentDonationId] = useState<string | null>(null);
 
@@ -83,6 +89,7 @@ export default function DonatePage() {
     if (!campaignId) return;
 
     try {
+      setIsLoadingCampaign(true);
       const res = await fetch(`/api/campaigns/${campaignId}`, { cache: 'no-store' });
       const data = await res.json();
 
@@ -91,6 +98,8 @@ export default function DonatePage() {
       }
     } catch {
       // Keep the seeded campaign view if the live progress endpoint is unavailable.
+    } finally {
+      setIsLoadingCampaign(false);
     }
   }, [campaignId]);
 
@@ -239,7 +248,7 @@ export default function DonatePage() {
       if (showPendingToast) {
         showToast('Payment is still pending. We will keep checking for confirmation.', 'info');
       }
-    } catch (error) {
+    } catch {
       setIsVerifying(false);
       showToast('Unable to verify payment right now.', 'warning');
     }
@@ -269,6 +278,17 @@ export default function DonatePage() {
     local: 'Continue with Local Transfer',
   }[paymentMethod];
 
+  if (!campaign && isLoadingCampaign) {
+    return (
+      <div className="donate-page">
+        <div className="donate-form-card" style={{ textAlign: 'center', padding: '64px 32px' }}>
+          <h2 className="ps-title">Loading campaign...</h2>
+          <p className="ps-desc">Fetching the latest campaign details.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!campaign) {
     return (
       <div className="donate-page">
@@ -279,7 +299,7 @@ export default function DonatePage() {
         <div className="donate-form-card" style={{ textAlign: 'center', padding: '64px 32px' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
           <h2 className="ps-title">Campaign not found</h2>
-          <p className="ps-desc">The campaign you're looking for doesn't exist or has been removed.</p>
+          <p className="ps-desc">The campaign you&apos;re looking for doesn&apos;t exist or has been removed.</p>
           <Link href="/backer/discover" className="btn-primary" style={{ display: 'inline-flex' }}>Browse campaigns</Link>
         </div>
       </div>
@@ -338,6 +358,7 @@ export default function DonatePage() {
                     
                     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
                       <div style={{ width: 156, height: 156, background: 'var(--white)', borderRadius: 12, padding: 8, boxShadow: '0 18px 40px rgba(0,0,0,0.24)' }}>
+                         {/* eslint-disable-next-line @next/next/no-img-element */}
                          <img
                            src={getQrCodeUrl(String(paymentInstructions.address))}
                            alt={`QR code for ${paymentInstructions.asset || 'crypto'} deposit address`}
@@ -443,7 +464,7 @@ export default function DonatePage() {
       <div className="page-header" style={{ marginBottom: 28 }}>
         <div>
           <h1 className="page-title">Make a Donation</h1>
-          <div className="page-sub">Choose how you'd like to support this campaign.</div>
+          <div className="page-sub">Choose how you&apos;d like to support this campaign.</div>
         </div>
       </div>
 
@@ -527,7 +548,7 @@ export default function DonatePage() {
               </div>
               <div className="donate-check-info">
                 <div className="donate-check-label">Donate anonymously</div>
-                <div className="donate-check-hint">Your name won't be displayed publicly</div>
+                <div className="donate-check-hint">Your name won&apos;t be displayed publicly</div>
               </div>
             </div>
 
@@ -647,7 +668,7 @@ export default function DonatePage() {
                   ))}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--w50)', lineHeight: 1.5 }}>
-                  You'll be shown a wallet address or QR code to complete payment via Busha.
+                  You&apos;ll be shown a wallet address or QR code to complete payment via Busha.
                 </div>
               </div>
             )}
@@ -677,7 +698,7 @@ export default function DonatePage() {
                 ) : (
                   <div style={{ fontSize: 13, color: 'var(--w50)', lineHeight: 1.6 }}>
                     <strong style={{ color: 'var(--w80)' }}>M-Pesa Instructions</strong><br/>
-                    You'll receive an M-Pesa payment request or be given a unique paybill number. Send the exact KES amount and your donation will be confirmed automatically.
+                    You&apos;ll receive an M-Pesa payment request or be given a unique paybill number. Send the exact KES amount and your donation will be confirmed automatically.
                   </div>
                 )}
               </div>

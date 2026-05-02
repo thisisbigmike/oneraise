@@ -8,6 +8,20 @@ import { getStoredDonationCreditUsd } from "@/lib/currency";
 
 const MAX_IMAGE_DATA_URL_LENGTH = 7 * 1024 * 1024;
 
+type SessionUser = {
+  id?: string;
+  role?: string;
+};
+
+function getSessionUser(session: unknown): SessionUser {
+  if (!session || typeof session !== "object" || !("user" in session)) return {};
+  return ((session as { user?: unknown }).user as SessionUser | undefined) ?? {};
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 function getNumericCampaignId(slug: string) {
   return slug.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
 }
@@ -77,12 +91,19 @@ export async function GET(
         where: {
           status: "completed",
         },
+        orderBy: {
+          createdAt: "desc",
+        },
         select: {
           amount: true,
           currency: true,
           coverFee: true,
           provider: true,
           providerDataJson: true,
+          donorName: true,
+          donorEmail: true,
+          isAnonymous: true,
+          createdAt: true,
         },
       },
     },
@@ -92,17 +113,30 @@ export async function GET(
     return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
   }
 
-  const baseRaised = seed ? seed.raised : 0;
+  const baseRaised = campaign ? 0 : seed ? seed.raised : 0;
   const liveRaised = campaign?.donations.reduce(
     (sum, donation) => sum + getStoredDonationCreditUsd(donation),
     0,
   ) ?? 0;
-  const baseBackers = seed ? seed.backers : 0;
+  const baseBackers = campaign ? 0 : seed ? seed.backers : 0;
   const liveBackers = campaign?._count.donations ?? 0;
   const goal = campaign?.goal || seed?.goal || 0;
   const raised = baseRaised + liveRaised;
   const pct = getCampaignPct(raised, goal);
   const creatorName = campaign?.user?.name || seed?.creator || "OneRaise Creator";
+  const recentDonors = campaign?.donations.slice(0, 8).map((donation, index) => {
+    const donorName = donation.isAnonymous
+      ? "Anonymous"
+      : donation.donorName?.trim() || donation.donorEmail?.split("@")[0] || "Supporter";
+
+    return {
+      id: `${campaign.id}-${donation.createdAt.toISOString()}-${index}`,
+      name: donorName,
+      amount: getStoredDonationCreditUsd(donation),
+      time: donation.createdAt.toISOString(),
+      initial: donorName.slice(0, 1).toUpperCase() || "S",
+    };
+  }) ?? [];
 
   return NextResponse.json({
     success: true,
@@ -110,7 +144,7 @@ export async function GET(
       id: seed?.id ?? (campaign?.slug ? Number(campaign.slug) || getNumericCampaignId(campaign.slug) : 0),
       dbId: campaign?.id,
       slug: campaign?.slug || slug,
-      title: seed?.title || campaign?.title || `Campaign ${slug}`,
+      title: campaign?.title || seed?.title || `Campaign ${slug}`,
       image: campaign?.image || null,
       creator: creatorName,
       creatorInitials:
@@ -125,12 +159,13 @@ export async function GET(
       raised,
       goal,
       pct,
-      category: seed?.category || campaign?.category || "Community",
-      desc: seed?.desc || campaign?.description || "",
+      category: campaign?.category || seed?.category || "Community",
+      desc: campaign?.description || seed?.desc || "",
       backers: baseBackers + liveBackers,
       daysLeft: seed?.daysLeft ?? 0,
       verified: seed?.verified ?? true,
       status: campaign?.status || seed?.status || "active",
+      recentDonors,
     },
   });
 }
@@ -142,8 +177,9 @@ export async function PATCH(
   try {
     const { slug } = await context.params;
     const session = await getServerSession(authOptions);
-    const userId = session?.user ? ((session.user as any).id as string) : null;
-    const role = session?.user ? ((session.user as any).role as string | undefined) : null;
+    const sessionUser = getSessionUser(session);
+    const userId = sessionUser.id ?? null;
+    const role = sessionUser.role ?? null;
 
     if (!userId) {
       return NextResponse.json({ error: "Please sign in to update this campaign." }, { status: 401 });
@@ -213,9 +249,9 @@ export async function PATCH(
         category: updated.category,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Update campaign error:", error);
-    return NextResponse.json({ error: error?.message || "Unable to update campaign." }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error, "Unable to update campaign.") }, { status: 500 });
   }
 }
 
@@ -226,8 +262,9 @@ export async function DELETE(
   try {
     const { slug } = await context.params;
     const session = await getServerSession(authOptions);
-    const userId = session?.user ? ((session.user as any).id as string) : null;
-    const role = session?.user ? ((session.user as any).role as string | undefined) : null;
+    const sessionUser = getSessionUser(session);
+    const userId = sessionUser.id ?? null;
+    const role = sessionUser.role ?? null;
 
     if (!userId) {
       return NextResponse.json({ error: "Please sign in to delete this campaign." }, { status: 401 });
@@ -257,8 +294,8 @@ export async function DELETE(
     ]);
     revalidateCampaignViews(slug);
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Delete campaign error:", error);
-    return NextResponse.json({ error: error?.message || "Unable to delete campaign." }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error, "Unable to delete campaign.") }, { status: 500 });
   }
 }
