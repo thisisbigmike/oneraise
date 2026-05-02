@@ -36,6 +36,7 @@ export default function AboutPage() {
         <Link href="/" className="nav-logo">One<span>Raise</span></Link>
         <ul className="nav-links">
           <li><Link href="/explore">Explore</Link></li>
+          <li><Link href="/protect">Protect</Link></li>
           <li><Link href="/about" className="active">How it works</Link></li>
           <li><Link href="/#features">Features</Link></li>
           <li><Link href="/#community">Community</Link></li>
@@ -64,7 +65,7 @@ export default function AboutPage() {
           <div className="step-card">
             <div className="step-number">2</div>
             <h3>Share with the world</h3>
-            <p>Launch your campaign and share it with your network. We'll also promote it to our global community.</p>
+            <p>Launch your campaign and share it with your network. We&apos;ll also promote it to our global community.</p>
           </div>
           <div className="step-card">
             <div className="step-number">3</div>

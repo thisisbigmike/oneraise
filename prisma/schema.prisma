@@ -75,6 +75,10 @@ model Campaign {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   status      String     @default("active") // active, completed, draft
+  type        String     @default("standard") // standard, protected_crowdfunding, emergency_aid, grant_distribution
+  protectStatus String   @default("funding") // funding, locked, pending_verification, unlocked, refunded
+  verifierId  String?
+  vendorPayoutMethodId String?
 
   userId      String?
   user        User?      @relation(fields: [userId], references: [id])
@@ -82,6 +86,7 @@ model Campaign {
   donations   Donation[]
   payouts     Payout[]
   reports     CampaignReport[]
+  milestones  Milestone[]
 }
 
 model CampaignReport {
@@ -111,8 +116,9 @@ model Donation {
   amount        Float
   currency      String   @default("USD")
   status        String   @default("pending") // pending, completed, failed
-  provider      String   // moonpay, busha_crypto, busha_ng, busha_ke
+  provider      String   // moonpay, busha_crypto, busha_ng, busha_ke, solana_usdt, raenest
   paymentId     String?  @unique // Busha Event ID / Payment ID
+  solanaTxSignature String? @unique
   quoteId       String?
   checkoutUrl   String?
   providerRef   String?
@@ -185,4 +191,17 @@ model Payout {
 
   payoutMethodId  String?
   payoutMethod    PayoutMethod? @relation(fields: [payoutMethodId], references: [id], onDelete: SetNull)
+}
+
+model Milestone {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  status      String   @default("pending") // pending, submitted, approved, rejected
+  proofUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 }

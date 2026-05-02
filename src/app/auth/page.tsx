@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getProviders, signIn, useSession } from 'next-auth/react';
+import { getProviders, signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { useToast } from '../components';
 import './auth.css';
@@ -39,7 +39,6 @@ const COUNTRIES = [
 function AuthPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session, status } = useSession();
   const { showToast } = useToast();
   const roleParam = searchParams.get('role');
   const oauthError = searchParams.get('error');
@@ -66,7 +65,7 @@ function AuthPageContent() {
   const [showPwConf, setShowPwConf] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [countrySearch, setCountrySearch] = useState('');
-  const [role, setRole] = useState<'backer' | 'creator'>(initialRole);
+  const role: 'backer' | 'creator' = initialRole;
   const [adminCode, setAdminCode] = useState('');
   const [availableProviders, setAvailableProviders] = useState<Record<string, boolean>>({});
   
@@ -78,6 +77,7 @@ function AuthPageContent() {
   const [tickerItems, setTickerItems] = useState(TICKER_DATA.slice(0, 3));
   const tickerIndexRef = useRef(3);
   const oauthErrorRef = useRef<string | null>(null);
+  const countrySelectRef = useRef<HTMLDivElement | null>(null);
 
   // Ticker Effect
   useEffect(() => {
@@ -96,8 +96,25 @@ function AuthPageContent() {
   // when they visit the auth page directly.
 
   useEffect(() => {
-    if (selectedSignupRole) setRole(selectedSignupRole);
-  }, [selectedSignupRole]);
+    if (!dropdownOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!countrySelectRef.current?.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setDropdownOpen(false);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [dropdownOpen]);
 
   useEffect(() => {
     getProviders().then((providers) => {
@@ -221,7 +238,7 @@ function AuthPageContent() {
         setSuccessState(false);
         setMode('signin');
       }, 2000);
-    } catch (err) {
+    } catch {
       setLoading(false);
       showToast('Something went wrong. Please try again.', 'error', 'Error');
     }
@@ -258,7 +275,7 @@ function AuthPageContent() {
         if (isAdminLogin) window.location.href = '/admin';
         else window.location.href = signedInRole === 'creator' ? '/dashboard' : '/backer';
       }, 1000);
-    } catch (err) {
+    } catch {
       setLoading(false);
       showToast('Something went wrong. Please try again.', 'error', 'Error');
     }
@@ -337,7 +354,7 @@ function AuthPageContent() {
           <h1 className="left-headline">
             Where ideas<br/>find their<br/><em>global backing.</em>
           </h1>
-          <p className="left-sub">Join 148,000 creators who've raised over $4.2B from 2.1 million backers worldwide.</p>
+          <p className="left-sub">Join 148,000 creators who&apos;ve raised over $4.2B from 2.1 million backers worldwide.</p>
           <div className="ticker">
             {tickerItems.map((item, i) => (
               <div key={i + item.name} className="tick-item" style={{ animationDelay: `0.${4 + i * 2}s` }}>
@@ -360,7 +377,7 @@ function AuthPageContent() {
       </div>
 
       {/* RIGHT PANEL */}
-      <div className="right" onClick={() => setDropdownOpen(false)}>
+      <div className="right">
         <div className="form-wrap">
           <Link href="/" className="back-link">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg> Back to website
@@ -433,21 +450,40 @@ function AuthPageContent() {
                   <div className="field-group fg3" style={{ position: 'relative', zIndex: 100 }}>
                     <div className="field-label">Country</div>
                     <div className="field-input-wrap">
-                      <div className={`custom-select ${dropdownOpen ? 'open' : ''}`} onClick={(e) => { e.stopPropagation(); setDropdownOpen(!dropdownOpen); }}>
-                        <div className="cs-display">
+                      <div className={`custom-select ${dropdownOpen ? 'open' : ''}`} ref={countrySelectRef}>
+                        <button
+                          type="button"
+                          className="cs-display"
+                          aria-haspopup="listbox"
+                          aria-expanded={dropdownOpen}
+                          onClick={() => setDropdownOpen(open => !open)}
+                        >
                           {country ? <span className="cs-value">{country}</span> : <span className="cs-placeholder">Select your country</span>}
                           <svg className="cs-arrow" width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        </div>
-                        <div className="cs-dropdown" onClick={e => e.stopPropagation()}>
+                        </button>
+                        <div className="cs-dropdown">
                           <div className="cs-search-wrap">
+                            <svg className="cs-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                              <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8" />
+                              <path d="M16.2 16.2L21 21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                            </svg>
                             <input className="cs-search" type="text" placeholder="Search country..." value={countrySearch} onChange={e => setCountrySearch(e.target.value)} />
                           </div>
-                          <div className="cs-list">
-                            {filteredCountries.map(c => (
-                              <div key={c.name} className="cs-item" onClick={() => { setCountry(`${c.flag} ${c.name}`); setDropdownOpen(false); setCountrySearch(''); }}>
+                          <div className="cs-list" role="listbox" aria-label="Countries">
+                            {filteredCountries.length > 0 ? filteredCountries.map(c => (
+                              <button
+                                key={c.name}
+                                type="button"
+                                className={`cs-item ${country === `${c.flag} ${c.name}` ? 'selected' : ''}`}
+                                role="option"
+                                aria-selected={country === `${c.flag} ${c.name}`}
+                                onClick={() => { setCountry(`${c.flag} ${c.name}`); setDropdownOpen(false); setCountrySearch(''); }}
+                              >
                                 {c.flag} {c.name}
-                              </div>
-                            ))}
+                              </button>
+                            )) : (
+                              <div className="cs-empty">No countries found</div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -557,7 +593,7 @@ function AuthPageContent() {
                 </div>
                 <div className="fp-icon-wrap fp-icon-email"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="2" y="5" width="22" height="16" rx="3" stroke="#1D9E75" strokeWidth="1.5"/><path d="M2 8l11 8 11-8" stroke="#1D9E75" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
                 <div className="fp-title">Forgot your password?</div>
-                <div className="fp-sub">No worries. Enter the email address linked to your OneRaise account and we'll send you a 6-digit reset code.</div>
+                <div className="fp-sub">No worries. Enter the email address linked to your OneRaise account and we&apos;ll send you a 6-digit reset code.</div>
                 
                 <div className="fp-fields">
                   <div className="field-group" style={{opacity:1, animation:'none'}}>
@@ -615,7 +651,7 @@ function AuthPageContent() {
                 </div>
 
                 <div className="resend-row">
-                  Didn't get it? {resendTimer === 0 ? <span className="resend-link" onClick={() => { setOtp(['','','','','','']); setResendTimer(60); }}>Resend code</span> : <span className="resend-timer">Resend in <strong>{resendTimer}</strong>s</span>}
+                  Didn&apos;t get it? {resendTimer === 0 ? <span className="resend-link" onClick={() => { setOtp(['','','','','','']); setResendTimer(60); }}>Resend code</span> : <span className="resend-timer">Resend in <strong>{resendTimer}</strong>s</span>}
                 </div>
 
                 <button className={`submit-btn ${loading ? 'loading' : ''}`} style={{marginTop:0, opacity:1, animation:'none'}} onClick={handleVerifyOtp}>
@@ -644,7 +680,7 @@ function AuthPageContent() {
                 </div>
                 <div className="fp-icon-wrap fp-icon-lock"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><rect x="4" y="11" width="18" height="13" rx="3" stroke="#EF9F27" strokeWidth="1.5"/><path d="M8 11V8a5 5 0 0110 0v3" stroke="#EF9F27" strokeWidth="1.5" strokeLinecap="round"/><circle cx="13" cy="17" r="2" fill="#EF9F27" opacity="0.6"/></svg></div>
                 <div className="fp-title">Set new password</div>
-                <div className="fp-sub">Choose a strong password you haven't used before. At least 8 characters.</div>
+                <div className="fp-sub">Choose a strong password you haven&apos;t used before. At least 8 characters.</div>
                 
                 <div className="fp-fields">
                   <div className="field-group" style={{opacity:1, animation:'none'}}>
@@ -678,7 +714,7 @@ function AuthPageContent() {
                       <div className={`pw-confirm-hint ${password === passwordConfirm ? 'pch-match' : 'pch-nomatch'}`}>
                         {password === passwordConfirm ? 
                           <><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#5DCAA5" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg> Passwords match</> :
-                          <><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="#F09595" strokeWidth="1.4" strokeLinecap="round"/></svg> Passwords don't match</>
+                          <><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="#F09595" strokeWidth="1.4" strokeLinecap="round"/></svg> Passwords don&apos;t match</>
                         }
                       </div>
                     )}

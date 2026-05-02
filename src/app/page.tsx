@@ -95,9 +95,10 @@ export default async function Home() {
 
 {/*  NAV  */}
 <nav id="main-nav">
-  <a href="#" className="nav-logo">One<span>Raise</span></a>
+  <Link href="/" className="nav-logo">One<span>Raise</span></Link>
   <ul className="nav-links">
     <li><Link href="/explore">Explore</Link></li>
+    <li><Link href="/protect">Protect</Link></li>
     <li><a href="#how">How it works</a></li>
     <li><a href="#features">Features</a></li>
     <li><a href="#community">Community</a></li>
@@ -113,7 +114,8 @@ export default async function Home() {
 
 {/*  MOBILE MENU  */}
 <div className="mobile-menu" id="mobile-menu">
-  <a href="#campaigns">Explore</a>
+  <Link href="/explore">Explore</Link>
+  <Link href="/protect">Protect</Link>
   <a href="#how">How it works</a>
   <a href="#features">Features</a>
   <a href="#community">Community</a>
@@ -365,7 +367,7 @@ export default async function Home() {
 <section className="feed-section" id="community">
   <div>
     <span className="section-eyebrow reveal">Live activity</span>
-    <h2 className="section-title reveal reveal-delay-1">A community backing<br/>the world's ideas.</h2>
+    <h2 className="section-title reveal reveal-delay-1">A community backing<br/>the world&apos;s ideas.</h2>
   </div>
   <div className="feed-layout">
     <div>
@@ -397,7 +399,7 @@ export default async function Home() {
     <div className="testimonials">
       <div className="testi-card reveal">
         <div className="testi-stars">★★★★★</div>
-        <div className="testi-quote">"OneRaise made it effortless to support ideas from across Africa. My money reached the creator in minutes — not weeks."</div>
+        <div className="testi-quote">&quot;OneRaise made it effortless to support ideas from across Africa. My money reached the creator in minutes — not weeks.&quot;</div>
         <div className="testi-person">
           <div className="feed-avatar av-a" style={{width: '38px', height: '38px'}}>AK</div>
           <div>
@@ -408,7 +410,7 @@ export default async function Home() {
       </div>
       <div className="testi-card reveal reveal-delay-1">
         <div className="testi-stars">★★★★★</div>
-        <div className="testi-quote">"I backed a solar project in Kenya from my living room in Prague. This is what global community actually looks like."</div>
+        <div className="testi-quote">&quot;I backed a solar project in Kenya from my living room in Prague. This is what global community actually looks like.&quot;</div>
         <div className="testi-person">
           <div className="feed-avatar av-b" style={{width: '38px', height: '38px'}}>JD</div>
           <div>
@@ -419,7 +421,7 @@ export default async function Home() {
       </div>
       <div className="testi-card reveal reveal-delay-2">
         <div className="testi-stars">★★★★★</div>
-        <div className="testi-quote">"We raised $68k in 16 days. The campaign tools are intuitive and the backer community is genuinely engaged."</div>
+        <div className="testi-quote">&quot;We raised $68k in 16 days. The campaign tools are intuitive and the backer community is genuinely engaged.&quot;</div>
         <div className="testi-person">
           <div className="feed-avatar av-c" style={{width: '38px', height: '38px'}}>TC</div>
           <div>
@@ -487,8 +489,8 @@ export default async function Home() {
 {/*  CTA  */}
 <section className="cta-section">
   <div className="cta-inner">
-    <h2 className="cta-title reveal">Your idea deserves<br/><em>the world's</em> backing.</h2>
-    <p className="cta-sub reveal reveal-delay-1">Join 148,000 creators who've already launched on OneRaise. Your first campaign is free.</p>
+    <h2 className="cta-title reveal">Your idea deserves<br/><em>the world&apos;s</em> backing.</h2>
+    <p className="cta-sub reveal reveal-delay-1">Join 148,000 creators who&apos;ve already launched on OneRaise. Your first campaign is free.</p>
     <div className="cta-actions reveal reveal-delay-2">
       <Link href="/join" className="btn-hero-primary" style={{fontSize: '15px', padding: '14px 28px'}}>Start your campaign →</Link>
       <a href="#" className="btn-hero-secondary" style={{fontSize: '15px', padding: '14px 28px'}}>Talk to our team</a>
@@ -513,6 +515,7 @@ export default async function Home() {
       <div className="footer-col-title">Platform</div>
       <ul className="footer-links">
         <li><Link href="/explore">Explore campaigns</Link></li>
+        <li><Link href="/protect">OneRaise Protect</Link></li>
         <li><Link href="/join">Start a campaign</Link></li>
         <li><Link href="/about">How it works</Link></li>
         <li><a href="#">Pricing</a></li>
