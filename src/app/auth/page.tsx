@@ -91,15 +91,9 @@ function AuthPageContent() {
     return () => clearInterval(interval);
   }, []);
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (status === 'authenticated' && session?.user) {
-      const userRole = (session.user as any).role;
-      if (userRole === 'creator') router.replace('/dashboard');
-      else if (userRole === 'backer') router.replace('/backer');
-      else if (userRole === 'admin' || (session.user as any).email === 'admin') router.replace('/admin');
-    }
-  }, [status, session, router]);
+  // Redirect if already authenticated has been disabled per user request
+  // Users will need to manually log in even if they have an active session
+  // when they visit the auth page directly.
 
   useEffect(() => {
     if (selectedSignupRole) setRole(selectedSignupRole);
@@ -219,27 +213,14 @@ function AuthPageContent() {
         setLoading(false);
         return;
       }
-
-      // Auto sign-in after registration
-      const signInRes = await signIn('credentials', {
-        email: normalizedEmail,
-        password,
-        redirect: false,
-      });
-
       setLoading(false);
 
-      if (signInRes?.error) {
-        showToast('Account created but auto-login failed. Please sign in.', 'warning', 'Sign In Required');
-        setMode('signin');
-        return;
-      }
-
       setSuccessState(true);
-      showToast('Account created successfully!', 'success', 'Welcome to OneRaise');
+      showToast('Account created successfully! Please sign in manually.', 'success', 'Welcome to OneRaise');
       setTimeout(() => {
-        window.location.href = selectedSignupRole === 'creator' ? '/dashboard' : '/backer';
-      }, 1500);
+        setSuccessState(false);
+        setMode('signin');
+      }, 2000);
     } catch (err) {
       setLoading(false);
       showToast('Something went wrong. Please try again.', 'error', 'Error');

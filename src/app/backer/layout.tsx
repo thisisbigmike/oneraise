@@ -11,6 +11,7 @@ export default function BackerLayout({ children }: { children: React.ReactNode }
   const pathname = usePathname();
   const { data: session } = useSession();
   const userName = session?.user?.name || 'Backer';
+  const userImage = session?.user?.image || '';
   const userInitials = userName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -92,7 +93,10 @@ export default function BackerLayout({ children }: { children: React.ReactNode }
 
           <div className="sidebar-footer">
             <Link href="/backer/settings" className="user-profile" onClick={() => setMobileMenuOpen(false)}>
-              <div className="up-avatar" style={{background: 'rgba(55,138,221,0.2)', color: '#85B7EB'}}>{userInitials}</div>
+              <div className="up-avatar" style={{background: 'rgba(55,138,221,0.2)', color: '#85B7EB'}}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {userImage ? <img src={userImage} alt={`${userName} profile`} /> : userInitials}
+              </div>
               <div className="up-info">
                 <div className="up-name">{userName}</div>
                 <div className="up-role">Backer</div>

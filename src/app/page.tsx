@@ -149,9 +149,9 @@ export default async function Home() {
     <p className="hero-sub">OneRaise connects creators, entrepreneurs, and changemakers with a global community of 2.1 million backers — across every border, currency, and timezone.</p>
     
     <form className="hero-search-form" action="/explore" method="GET">
-      <div style={{display: 'flex', gap: '10px', maxWidth: '500px', margin: '0 auto 30px auto'}}>
-        <input type="text" name="q" placeholder="Search campaigns, categories, or locations..." style={{flex: 1, padding: '14px 20px', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)', color: '#fff', fontSize: '16px', outline: 'none'}} />
-        <button type="submit" className="btn-hero-primary" style={{padding: '0 24px', borderRadius: '30px', height: 'auto'}}>Search</button>
+      <div className="hero-search-row">
+        <input className="hero-search-input" type="text" name="q" placeholder="Search campaigns, categories, or locations..." />
+        <button type="submit" className="hero-search-submit">Search</button>
       </div>
     </form>
 
