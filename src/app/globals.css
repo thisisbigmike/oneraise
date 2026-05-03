@@ -492,6 +492,7 @@ nav {
 .stats-section {
   padding: 0 5%;
   margin-top: -2px;
+  margin-bottom: clamp(32px, 4vw, 56px);
 }
 .stats-strip {
   background: var(--ink-mid);
