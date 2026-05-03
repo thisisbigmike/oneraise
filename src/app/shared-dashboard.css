@@ -1962,6 +1962,10 @@ select.s-input option,
   background: rgba(239,159,39,0.12);
   color: var(--amber-400);
 }
+.pm-icon-jupiter {
+  background: rgba(151,111,255,0.14);
+  color: #BDA8FF;
+}
 .pm-icon-local {
   background: rgba(29,158,117,0.12);
   color: var(--teal-200);
@@ -1997,6 +2001,10 @@ select.s-input option,
 .pm-badge-fast {
   background: rgba(55,138,221,0.12);
   color: #85B7EB;
+}
+.pm-badge-jupiter {
+  background: rgba(151,111,255,0.14);
+  color: #CDBEFF;
 }
 
 /* CTA Button */
@@ -2307,6 +2315,96 @@ select.s-input option,
   flex-wrap: wrap;
 }
 
+.jupiter-quote-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+  margin: 24px 0;
+  text-align: left;
+}
+.jq-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.jq-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #BDA8FF;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.jq-title {
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--white);
+}
+.jq-mode {
+  padding: 4px 9px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.jq-mode-live,
+.jq-mode-direct {
+  background: rgba(29,158,117,0.14);
+  color: var(--teal-200);
+}
+.jq-mode-demo {
+  background: rgba(239,159,39,0.14);
+  color: var(--amber-400);
+}
+.jq-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.jq-grid div {
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(245,250,247,0.035);
+}
+.jq-grid span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--w50);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.jq-grid strong {
+  color: var(--white);
+  font-size: 14px;
+}
+.jq-route {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 14px;
+}
+.jq-route span {
+  padding: 5px 9px;
+  border-radius: 99px;
+  background: rgba(151,111,255,0.12);
+  color: #CDBEFF;
+  font-size: 12px;
+  font-weight: 700;
+}
+.jq-note {
+  color: var(--w50);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 /* Crypto details */
 .crypto-details {
   margin-top: 16px;
@@ -2340,6 +2438,65 @@ select.s-input option,
   border-color: var(--teal-400);
   background: rgba(29,158,117,0.12);
   color: var(--teal-200);
+}
+
+.jupiter-details {
+  margin-top: 16px;
+  padding: 20px;
+  border-radius: 14px;
+  background: rgba(245,250,247,0.02);
+  border: 1px solid rgba(245,250,247,0.06);
+}
+.jupiter-token-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 8px;
+}
+.jupiter-token {
+  min-height: 62px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(245,250,247,0.1);
+  background: rgba(245,250,247,0.03);
+  color: var(--w80);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+.jupiter-token:hover:not(.active) {
+  background: rgba(245,250,247,0.06);
+  border-color: rgba(245,250,247,0.2);
+}
+.jupiter-token.active {
+  border-color: #BDA8FF;
+  background: rgba(151,111,255,0.14);
+  color: #fff;
+}
+.jupiter-token span {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 3px;
+}
+.jupiter-token small {
+  display: block;
+  color: var(--w50);
+  font-size: 11px;
+}
+.jupiter-info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(151,111,255,0.08);
+  border: 1px solid rgba(151,111,255,0.16);
+  font-size: 13px;
+  color: var(--w50);
+}
+.jupiter-info-row strong {
+  color: #CDBEFF;
 }
 
 .local-details {
@@ -2706,12 +2863,18 @@ select.s-input option,
 [data-theme="light"] .pm-radio { border-color: #C0C8C4; }
 [data-theme="light"] .fee-summary,
 [data-theme="light"] .crypto-details,
+[data-theme="light"] .jupiter-details,
+[data-theme="light"] .jupiter-quote-card,
 [data-theme="light"] .local-details {
   background: #F8FAF9;
   border-color: #E0E5E2;
 }
-[data-theme="light"] .crypto-asset {
+[data-theme="light"] .crypto-asset,
+[data-theme="light"] .jupiter-token {
   border-color: #D0D8D4;
+}
+[data-theme="light"] .jq-grid div {
+  background: rgba(10,24,18,0.035);
 }
 [data-theme="light"] .local-tabs {
   background: #F0F2F1;

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useToast } from '../../../components';
 import { CAMPAIGN_SEEDS } from '@/lib/campaign-seeds';
+import { JUPITER_INPUT_TOKENS, type JupiterDonationQuote } from '@/lib/jupiter';
 
 type CampaignView = {
   id: number; slug: string; title: string; image?: string | null; creator: string; creatorInitials: string;
@@ -21,7 +22,7 @@ const CURRENCIES = [
   { code: 'KES', symbol: 'KSh', label: 'KES' },
 ];
 
-type PaymentMethod = 'card' | 'crypto' | 'local';
+type PaymentMethod = 'card' | 'crypto' | 'jupiter' | 'local';
 type PaymentStatus = 'idle' | 'processing' | 'pending' | 'confirmed' | 'failed';
 type PaymentInstructions = {
   type?: 'local' | 'crypto' | string;
@@ -59,16 +60,18 @@ export default function DonatePage() {
   const [paymentInstructions, setPaymentInstructions] = useState<PaymentInstructions | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [currentDonationId, setCurrentDonationId] = useState<string | null>(null);
+  const [jupiterQuote, setJupiterQuote] = useState<JupiterDonationQuote | null>(null);
 
   // Crypto sub-state
   const [cryptoAsset, setCryptoAsset] = useState('USDT');
+  const [jupiterInputMint, setJupiterInputMint] = useState(JUPITER_INPUT_TOKENS[0]?.mint || '');
 
   // Local transfer sub-state
   const [localRegion, setLocalRegion] = useState<'ng' | 'ke'>('ng');
 
   const currencyObj = CURRENCIES.find(c => c.code === currency)!;
   const numAmount = parseFloat(amount) || 0;
-  const feeRate = paymentMethod === 'card' ? 0.039 : paymentMethod === 'crypto' ? 0.01 : 0.015;
+  const feeRate = paymentMethod === 'card' ? 0.039 : paymentMethod === 'crypto' ? 0.01 : paymentMethod === 'jupiter' ? 0 : 0.015;
   const feeAmount = coverFee ? numAmount * feeRate : 0;
   const totalAmount = numAmount + feeAmount;
 
@@ -84,6 +87,12 @@ export default function DonatePage() {
     CURRENCIES.find(c => c.code === code)?.symbol || code || '';
   const getQrCodeUrl = (value: string) =>
     `https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=12&data=${encodeURIComponent(value)}`;
+  const getPaymentMethodLabel = () => {
+    if (paymentMethod === 'card') return 'Card (MoonPay)';
+    if (paymentMethod === 'crypto') return `Crypto (${cryptoAsset})`;
+    if (paymentMethod === 'jupiter') return 'Jupiter any-token swap';
+    return `Local Transfer (${localRegion === 'ng' ? 'Nigeria Bank' : 'M-Pesa'})`;
+  };
 
   const refreshCampaignProgress = useCallback(async () => {
     if (!campaignId) return;
@@ -148,6 +157,36 @@ export default function DonatePage() {
 
     const executePayment = async () => {
       try {
+        if (paymentMethod === 'jupiter') {
+          const res = await fetch('/api/jupiter/quote', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              amount: Number(totalAmount.toFixed(2)),
+              currency,
+              inputMint: jupiterInputMint,
+              slippageBps: 50,
+            }),
+          });
+          const data = await res.json();
+
+          if (!res.ok || !data.success || !data.quote) {
+            throw new Error(data.error || 'Unable to prepare a Jupiter quote.');
+          }
+
+          setPaymentInstructions(null);
+          setCurrentDonationId(null);
+          setJupiterQuote(data.quote);
+          setStatus('pending');
+          showToast(
+            data.quote.mode === 'demo'
+              ? 'Demo route ready. Add JUPITER_API_KEY for live Jupiter pricing.'
+              : 'Jupiter route ready. Review the swap details before signing.',
+            data.quote.mode === 'demo' ? 'warning' : 'success',
+          );
+          return;
+        }
+
         const requestAmount = paymentMethod === 'local'
           ? Number(localTotal.toFixed(2))
           : Number(totalAmount.toFixed(2));
@@ -208,6 +247,7 @@ export default function DonatePage() {
   const handleRetry = () => {
     setCurrentDonationId(null);
     setPaymentInstructions(null);
+    setJupiterQuote(null);
     setIsVerifying(false);
     setStatus('idle');
   };
@@ -275,6 +315,7 @@ export default function DonatePage() {
   const ctaText = {
     card: 'Continue with Card',
     crypto: 'Continue with Crypto',
+    jupiter: 'Prepare Jupiter Quote',
     local: 'Continue with Local Transfer',
   }[paymentMethod];
 
@@ -324,9 +365,13 @@ export default function DonatePage() {
             {status === 'pending' && (
               <div className="payment-status">
                 <div className="ps-icon-wrap ps-icon-pending">⏳</div>
-                <div className="ps-title">Donation Pending</div>
+                <div className="ps-title">{paymentMethod === 'jupiter' ? 'Jupiter Quote Ready' : 'Donation Pending'}</div>
                 <p className="ps-desc">
-                  {paymentInstructions ? 'Please complete your transfer to definitively confirm your donation.' : 'Your donation is being processed. This may take a few moments depending on your payment method.'}
+                  {paymentMethod === 'jupiter'
+                    ? 'The campaign receives USDC. Your wallet pays with the selected Solana token through Jupiter routing.'
+                    : paymentInstructions
+                      ? 'Please complete your transfer to definitively confirm your donation.'
+                      : 'Your donation is being processed. This may take a few moments depending on your payment method.'}
                 </p>
                 
                 {paymentInstructions && paymentInstructions.type === 'local' && (
@@ -382,8 +427,49 @@ export default function DonatePage() {
                   </div>
                 )}
 
-                <div className="ps-amount" style={{ display: paymentInstructions ? 'none' : 'block' }}>{currencyObj.symbol}{numAmount.toLocaleString()}</div>
-                <div className="ps-method">via {paymentMethod === 'card' ? 'Card (MoonPay)' : paymentMethod === 'crypto' ? `Crypto (${cryptoAsset})` : `Local Transfer (${localRegion === 'ng' ? 'Nigeria Bank' : 'M-Pesa'})`}</div>
+                {paymentMethod === 'jupiter' && jupiterQuote && (
+                  <div className="jupiter-quote-card">
+                    <div className="jq-header">
+                      <div>
+                        <div className="jq-eyebrow">{jupiterQuote.mode === 'live' ? 'Live Jupiter route' : jupiterQuote.mode === 'direct' ? 'Direct transfer' : 'Demo estimate'}</div>
+                        <div className="jq-title">{jupiterQuote.inputAmount} {jupiterQuote.inputSymbol} → {jupiterQuote.outputAmount} USDC</div>
+                      </div>
+                      <span className={`jq-mode jq-mode-${jupiterQuote.mode}`}>{jupiterQuote.mode}</span>
+                    </div>
+
+                    <div className="jq-grid">
+                      <div>
+                        <span>You pay</span>
+                        <strong>{jupiterQuote.inputAmount} {jupiterQuote.inputSymbol}</strong>
+                      </div>
+                      <div>
+                        <span>Campaign receives</span>
+                        <strong>{jupiterQuote.outputAmount} USDC</strong>
+                      </div>
+                      <div>
+                        <span>Slippage</span>
+                        <strong>{(jupiterQuote.slippageBps / 100).toFixed(2)}%</strong>
+                      </div>
+                      <div>
+                        <span>Price impact</span>
+                        <strong>{Number(jupiterQuote.priceImpactPct).toFixed(4)}%</strong>
+                      </div>
+                    </div>
+
+                    <div className="jq-route">
+                      {(jupiterQuote.routeLabels.length ? jupiterQuote.routeLabels : ['Jupiter route']).map((label) => (
+                        <span key={label}>{label}</span>
+                      ))}
+                    </div>
+
+                    <div className="jq-note">
+                      Wallet signing is the next step: use this quote response with Jupiter&apos;s swap endpoint after connecting a Solana wallet.
+                    </div>
+                  </div>
+                )}
+
+                <div className="ps-amount" style={{ display: paymentInstructions || jupiterQuote ? 'none' : 'block' }}>{currencyObj.symbol}{numAmount.toLocaleString()}</div>
+                <div className="ps-method">via {getPaymentMethodLabel()}</div>
                 
                 {paymentInstructions && (
                   <button 
@@ -396,10 +482,16 @@ export default function DonatePage() {
                   </button>
                 )}
                 
-                {!paymentInstructions && (
+                {!paymentInstructions && paymentMethod !== 'jupiter' && (
                   <div className="ps-status-badge ps-status-pending">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                     Waiting for Transfer
+                  </div>
+                )}
+                {paymentMethod === 'jupiter' && (
+                  <div className="ps-status-badge ps-status-pending">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>
+                    Ready for wallet signing
                   </div>
                 )}
               </div>
@@ -410,7 +502,7 @@ export default function DonatePage() {
                 <div className="ps-title">Donation Confirmed!</div>
                 <p className="ps-desc">Thank you for your generous contribution to {campaign.title}. The organizer has been notified.</p>
                 <div className="ps-amount">{currencyObj.symbol}{numAmount.toLocaleString()}</div>
-                <div className="ps-method">via {paymentMethod === 'card' ? 'Card (MoonPay)' : paymentMethod === 'crypto' ? `Crypto (${cryptoAsset})` : `Local Transfer (${localRegion === 'ng' ? 'Nigeria Bank' : 'M-Pesa'})`}</div>
+                <div className="ps-method">via {getPaymentMethodLabel()}</div>
                 <div className="ps-status-badge ps-status-confirmed">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
                   Confirmed
@@ -635,6 +727,23 @@ export default function DonatePage() {
                 <span className="pm-text-badge pm-badge-popular">LOW FEES</span>
               </div>
 
+              {/* Jupiter */}
+              <div
+                className={`payment-method-card ${paymentMethod === 'jupiter' ? 'selected' : ''}`}
+                onClick={() => setPaymentMethod('jupiter')}
+                id="pm-jupiter"
+              >
+                <div className="pm-radio"><div className="pm-radio-dot" /></div>
+                <div className="pm-icon-wrap pm-icon-jupiter">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 7h10v10"/><path d="M7 17 17 7"/><path d="M4 12a8 8 0 0113.66-5.66M20 12A8 8 0 016.34 17.66"/></svg>
+                </div>
+                <div className="pm-text">
+                  <div className="pm-text-title">Donate with Any Solana Token</div>
+                  <div className="pm-text-sub">Route SOL, JUP, BONK, WIF, or a custom mint into USDC</div>
+                </div>
+                <span className="pm-text-badge pm-badge-jupiter">JUPITER</span>
+              </div>
+
               {/* Local */}
               <div
                 className={`payment-method-card ${paymentMethod === 'local' ? 'selected' : ''}`}
@@ -669,6 +778,45 @@ export default function DonatePage() {
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--w50)', lineHeight: 1.5 }}>
                   You&apos;ll be shown a wallet address or QR code to complete payment via Busha.
+                </div>
+              </div>
+            )}
+
+            {/* Jupiter sub-options */}
+            {paymentMethod === 'jupiter' && (
+              <div className="jupiter-details">
+                <label className="s-label" style={{ marginBottom: 10 }}>Pay from wallet token</label>
+                <div className="jupiter-token-grid">
+                  {JUPITER_INPUT_TOKENS.map(token => (
+                    <button
+                      key={token.mint}
+                      className={`jupiter-token ${jupiterInputMint === token.mint ? 'active' : ''}`}
+                      onClick={() => setJupiterInputMint(token.mint)}
+                    >
+                      <span>{token.symbol}</span>
+                      <small>{token.name}</small>
+                    </button>
+                  ))}
+                </div>
+
+                <label className="s-label" htmlFor="jupiter-custom-mint" style={{ margin: '14px 0 8px' }}>
+                  Custom token mint
+                </label>
+                <input
+                  id="jupiter-custom-mint"
+                  type="text"
+                  className="s-input"
+                  placeholder="Paste any Solana token mint"
+                  value={JUPITER_INPUT_TOKENS.some(token => token.mint === jupiterInputMint) ? '' : jupiterInputMint}
+                  onChange={e => setJupiterInputMint(e.target.value.trim())}
+                />
+
+                <div className="jupiter-info-row">
+                  <span>Settlement</span>
+                  <strong>Exact USDC to campaign</strong>
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--w50)', lineHeight: 1.5, marginTop: 10 }}>
+                  OneRaise prepares an exact-output Jupiter route so the campaign receives the intended USDC amount. The donor wallet covers the source token amount, Solana network fee, and any slippage.
                 </div>
               </div>
             )}
@@ -708,22 +856,24 @@ export default function DonatePage() {
           <div className="donate-divider" />
 
           {/* Cover fee */}
-          <div
-            className={`donate-checkbox-row ${coverFee ? 'checked' : ''}`}
-            onClick={() => setCoverFee(!coverFee)}
-          >
-            <div className="donate-check">
-              {coverFee && (
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="2.5"><path d="M3 8l4 4 6-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              )}
-            </div>
-            <div className="donate-check-info">
-              <div className="donate-check-label">Cover processing fee</div>
-              <div className="donate-check-hint">
-                Add {currencyObj.symbol}{feeAmount.toFixed(2)} ({(feeRate * 100).toFixed(1)}%) so 100% of your donation reaches the organizer
+          {paymentMethod !== 'jupiter' && (
+            <div
+              className={`donate-checkbox-row ${coverFee ? 'checked' : ''}`}
+              onClick={() => setCoverFee(!coverFee)}
+            >
+              <div className="donate-check">
+                {coverFee && (
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="2.5"><path d="M3 8l4 4 6-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                )}
+              </div>
+              <div className="donate-check-info">
+                <div className="donate-check-label">Cover processing fee</div>
+                <div className="donate-check-hint">
+                  Add {currencyObj.symbol}{feeAmount.toFixed(2)} ({(feeRate * 100).toFixed(1)}%) so 100% of your donation reaches the organizer
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Fee summary */}
           {numAmount > 0 && (
@@ -840,7 +990,7 @@ function CampaignSidebar({ campaign, pct }: { campaign: CampaignView; pct: numbe
           </div>
           <div className="cs-info-step">
             <div className="cs-info-step-num">2</div>
-            <span>Complete payment through our secure partner (MoonPay or Busha)</span>
+            <span>Complete payment through MoonPay, Busha, or a Jupiter-routed Solana swap</span>
           </div>
           <div className="cs-info-step">
             <div className="cs-info-step-num">3</div>
@@ -858,6 +1008,7 @@ function CampaignSidebar({ campaign, pct }: { campaign: CampaignView; pct: numbe
         <div className="cs-methods">
           <div className="cs-method-badge">💳 Visa / Mastercard</div>
           <div className="cs-method-badge">₿ Crypto</div>
+          <div className="cs-method-badge">◎ Jupiter swap</div>
           <div className="cs-method-badge">🏦 Bank Transfer</div>
           <div className="cs-method-badge">📱 M-Pesa</div>
         </div>
