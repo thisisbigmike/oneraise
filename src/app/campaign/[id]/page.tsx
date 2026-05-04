@@ -160,7 +160,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
         <ul className="nav-links">
           <li><Link href="/explore">Explore</Link></li>
           <li><Link href="/protect">Protect</Link></li>
-          <li><Link href="/about">How it works</Link></li>
+          <li><Link href="/how-it-works">How it works</Link></li>
           <li><Link href="/#features">Features</Link></li>
           <li><Link href="/#community">Community</Link></li>
         </ul>

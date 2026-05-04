@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { VersionedTransaction } from '@solana/web3.js';
 import { useToast } from '../../../components';
 import { CAMPAIGN_SEEDS } from '@/lib/campaign-seeds';
 import { JUPITER_INPUT_TOKENS, type JupiterDonationQuote } from '@/lib/jupiter';
@@ -36,6 +37,26 @@ type PaymentInstructions = {
   network?: string;
 };
 
+type SolanaWalletProvider = {
+  isPhantom?: boolean;
+  publicKey?: { toString: () => string };
+  connect: () => Promise<{ publicKey?: { toString: () => string } }>;
+  signAndSendTransaction: (
+    transaction: VersionedTransaction,
+    options?: { skipPreflight?: boolean; preflightCommitment?: string },
+  ) => Promise<{ signature?: string; hash?: string }>;
+};
+
+declare global {
+  interface Window {
+    solana?: SolanaWalletProvider;
+    solflare?: SolanaWalletProvider;
+    phantom?: {
+      solana?: SolanaWalletProvider;
+    };
+  }
+}
+
 export default function DonatePage() {
   const params = useParams();
   const campaignId = params.campaignId as string;
@@ -61,6 +82,9 @@ export default function DonatePage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [currentDonationId, setCurrentDonationId] = useState<string | null>(null);
   const [jupiterQuote, setJupiterQuote] = useState<JupiterDonationQuote | null>(null);
+  const [jupiterSignature, setJupiterSignature] = useState<string | null>(null);
+  const [jupiterTreasuryAccount, setJupiterTreasuryAccount] = useState<string | null>(null);
+  const [walletPublicKey, setWalletPublicKey] = useState<string | null>(null);
 
   // Crypto sub-state
   const [cryptoAsset, setCryptoAsset] = useState('USDT');
@@ -92,6 +116,36 @@ export default function DonatePage() {
     if (paymentMethod === 'crypto') return `Crypto (${cryptoAsset})`;
     if (paymentMethod === 'jupiter') return 'Jupiter any-token swap';
     return `Local Transfer (${localRegion === 'ng' ? 'Nigeria Bank' : 'M-Pesa'})`;
+  };
+
+  const readApiResponse = async (res: Response) => {
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      return res.json();
+    }
+
+    const text = await res.text();
+    return text ? { error: text } : {};
+  };
+
+  const getSolanaWallet = () => {
+    const provider = window.solana || window.phantom?.solana || window.solflare;
+    if (!provider) {
+      throw new Error('No Solana wallet found. Install Phantom or Solflare to donate with Jupiter.');
+    }
+    if (!provider.signAndSendTransaction) {
+      throw new Error('Your Solana wallet does not support transaction signing from this browser.');
+    }
+    return provider;
+  };
+
+  const decodeBase64Transaction = (value: string) => {
+    const binary = window.atob(value);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return VersionedTransaction.deserialize(bytes);
   };
 
   const refreshCampaignProgress = useCallback(async () => {
@@ -158,32 +212,84 @@ export default function DonatePage() {
     const executePayment = async () => {
       try {
         if (paymentMethod === 'jupiter') {
-          const res = await fetch('/api/jupiter/quote', {
+          const wallet = getSolanaWallet();
+          const connected = await wallet.connect();
+          const publicKey = connected.publicKey?.toString() || wallet.publicKey?.toString();
+
+          if (!publicKey) {
+            throw new Error('Unable to read your Solana wallet public key.');
+          }
+
+          setWalletPublicKey(publicKey);
+
+          const res = await fetch('/api/jupiter/swap', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              amount: Number(totalAmount.toFixed(2)),
+              amount: Number(numAmount.toFixed(2)),
               currency,
               inputMint: jupiterInputMint,
               slippageBps: 50,
+              userPublicKey: publicKey,
+              campaignId: params.campaignId,
+              donorName: anonymous ? null : donorName,
+              donorEmail,
+              donorMessage: message,
+              isAnonymous: anonymous,
             }),
           });
-          const data = await res.json();
+          const data = await readApiResponse(res);
 
-          if (!res.ok || !data.success || !data.quote) {
-            throw new Error(data.error || 'Unable to prepare a Jupiter quote.');
+          if (!res.ok || !data.success || !data.transaction || !data.donationId || !data.quote) {
+            throw new Error(data.error || 'Unable to prepare a Jupiter donation transaction.');
           }
 
           setPaymentInstructions(null);
-          setCurrentDonationId(null);
+          setCurrentDonationId(data.donationId);
           setJupiterQuote(data.quote);
+          setJupiterTreasuryAccount(data.treasury?.usdcTokenAccount || null);
           setStatus('pending');
-          showToast(
-            data.quote.mode === 'demo'
-              ? 'Demo route ready. Add JUPITER_API_KEY for live Jupiter pricing.'
-              : 'Jupiter route ready. Review the swap details before signing.',
-            data.quote.mode === 'demo' ? 'warning' : 'success',
-          );
+          showToast('Review and approve the donation in your Solana wallet.', 'info');
+
+          const transaction = decodeBase64Transaction(data.transaction);
+          const result = await wallet.signAndSendTransaction(transaction, {
+            skipPreflight: false,
+            preflightCommitment: 'confirmed',
+          });
+          const signature = result.signature || result.hash;
+
+          if (!signature) {
+            throw new Error('Wallet did not return a transaction signature.');
+          }
+
+          setJupiterSignature(signature);
+          showToast('Transaction submitted. Confirming USDC delivery...', 'info');
+
+          const confirmRes = await fetch('/api/jupiter/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              donationId: data.donationId,
+              signature,
+            }),
+          });
+          const confirmData = await readApiResponse(confirmRes);
+
+          if (!confirmRes.ok) {
+            throw new Error(confirmData.error || 'Unable to confirm the Jupiter donation.');
+          }
+
+          if (confirmData.status === 'completed') {
+            setStatus('confirmed');
+            refreshCampaignProgress();
+            showToast('Payment confirmed! Thank you for your donation.', 'success');
+          } else if (confirmData.status === 'failed') {
+            setStatus('failed');
+            showToast('The Solana transaction failed. No donation was credited.', 'error');
+          } else {
+            setStatus('pending');
+            showToast('Transaction is submitted and will be credited after confirmation.', 'info');
+          }
           return;
         }
 
@@ -211,9 +317,9 @@ export default function DonatePage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        const data = await res.json();
+        const data = await readApiResponse(res);
 
-        if (data.success) {
+        if (res.ok && data.success) {
           setCurrentDonationId(data.transactionId);
           if (paymentMethod === 'card' && data.url) {
              setPaymentInstructions(null);
@@ -231,13 +337,15 @@ export default function DonatePage() {
              }
           }
         } else {
-          setStatus('failed');
-          showToast('API Error: ' + (data.error || 'Unknown error'), 'error');
+          throw new Error(data.error || 'Unable to initiate payment.');
         }
-      } catch (e) {
-        console.error(e);
+      } catch (error) {
+        console.error(error);
+        const message = error instanceof Error && error.message
+          ? error.message
+          : 'Network error processing payment';
         setStatus('failed');
-        showToast('Network error processing payment', 'error');
+        showToast(message, 'error');
       }
     };
     
@@ -248,6 +356,8 @@ export default function DonatePage() {
     setCurrentDonationId(null);
     setPaymentInstructions(null);
     setJupiterQuote(null);
+    setJupiterSignature(null);
+    setJupiterTreasuryAccount(null);
     setIsVerifying(false);
     setStatus('idle');
   };
@@ -315,7 +425,7 @@ export default function DonatePage() {
   const ctaText = {
     card: 'Continue with Card',
     crypto: 'Continue with Crypto',
-    jupiter: 'Prepare Jupiter Quote',
+    jupiter: 'Connect Wallet & Donate',
     local: 'Continue with Local Transfer',
   }[paymentMethod];
 
@@ -365,10 +475,12 @@ export default function DonatePage() {
             {status === 'pending' && (
               <div className="payment-status">
                 <div className="ps-icon-wrap ps-icon-pending">⏳</div>
-                <div className="ps-title">{paymentMethod === 'jupiter' ? 'Jupiter Quote Ready' : 'Donation Pending'}</div>
+                <div className="ps-title">{paymentMethod === 'jupiter' ? 'Jupiter Donation Pending' : 'Donation Pending'}</div>
                 <p className="ps-desc">
                   {paymentMethod === 'jupiter'
-                    ? 'The campaign receives USDC. Your wallet pays with the selected Solana token through Jupiter routing.'
+                    ? jupiterSignature
+                      ? 'Your Solana transaction has been submitted. OneRaise is verifying that the campaign treasury received the expected USDC.'
+                      : 'The campaign receives USDC. Your wallet pays with the selected Solana token through Jupiter routing.'
                     : paymentInstructions
                       ? 'Please complete your transfer to definitively confirm your donation.'
                       : 'Your donation is being processed. This may take a few moments depending on your payment method.'}
@@ -457,13 +569,25 @@ export default function DonatePage() {
                     </div>
 
                     <div className="jq-route">
-                      {(jupiterQuote.routeLabels.length ? jupiterQuote.routeLabels : ['Jupiter route']).map((label) => (
-                        <span key={label}>{label}</span>
+                      {(jupiterQuote.routeLabels.length ? jupiterQuote.routeLabels : ['Jupiter route']).map((label, index) => (
+                        <span key={`${label}-${index}`}>{label}</span>
                       ))}
                     </div>
 
                     <div className="jq-note">
-                      Wallet signing is the next step: use this quote response with Jupiter&apos;s swap endpoint after connecting a Solana wallet.
+                      {walletPublicKey && <div>Wallet: <strong>{walletPublicKey.slice(0, 6)}...{walletPublicKey.slice(-4)}</strong></div>}
+                      {jupiterTreasuryAccount && <div>Campaign USDC account: <strong>{jupiterTreasuryAccount.slice(0, 6)}...{jupiterTreasuryAccount.slice(-4)}</strong></div>}
+                      {jupiterSignature && (
+                        <a
+                          href={`https://solscan.io/tx/${jupiterSignature}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="jq-link"
+                        >
+                          View transaction on Solscan
+                        </a>
+                      )}
+                      {!jupiterSignature && 'Your wallet will sign and broadcast this transaction. OneRaise credits the donation only after on-chain USDC delivery is verified.'}
                     </div>
                   </div>
                 )}
@@ -491,7 +615,7 @@ export default function DonatePage() {
                 {paymentMethod === 'jupiter' && (
                   <div className="ps-status-badge ps-status-pending">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>
-                    Ready for wallet signing
+                    {jupiterSignature ? 'Confirming on Solana' : 'Ready for wallet signing'}
                   </div>
                 )}
               </div>

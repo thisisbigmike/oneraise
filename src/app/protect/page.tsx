@@ -48,7 +48,7 @@ export default function ProtectPage() {
         <ul className="nav-links">
           <li><Link href="/explore">Explore</Link></li>
           <li><Link href="/protect" className="active">Protect</Link></li>
-          <li><Link href="/about">How it works</Link></li>
+          <li><Link href="/how-it-works">How it works</Link></li>
           <li><Link href="/#features">Features</Link></li>
         </ul>
         <div className="nav-actions">
@@ -63,7 +63,7 @@ export default function ProtectPage() {
       <div className="mobile-menu" id="mobile-menu">
         <Link href="/explore">Explore</Link>
         <Link href="/protect">Protect</Link>
-        <Link href="/about">How it works</Link>
+        <Link href="/how-it-works">How it works</Link>
         <Link href="/#features">Features</Link>
         <div className="mob-btns">
           <Link href="/auth?mode=signin" className="btn-ghost-nav">Sign in</Link>

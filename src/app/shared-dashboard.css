@@ -2404,6 +2404,16 @@ select.s-input option,
   font-size: 12px;
   line-height: 1.55;
 }
+.jq-note strong {
+  color: var(--w80);
+  font-weight: 700;
+}
+.jq-link {
+  display: inline-flex;
+  margin-top: 8px;
+  color: #CDBEFF;
+  font-weight: 700;
+}
 
 /* Crypto details */
 .crypto-details {

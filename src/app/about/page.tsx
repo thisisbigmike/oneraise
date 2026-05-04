@@ -37,7 +37,7 @@ export default function AboutPage() {
         <ul className="nav-links">
           <li><Link href="/explore">Explore</Link></li>
           <li><Link href="/protect">Protect</Link></li>
-          <li><Link href="/about" className="active">How it works</Link></li>
+          <li><Link href="/how-it-works" className="active">How it works</Link></li>
           <li><Link href="/#features">Features</Link></li>
           <li><Link href="/#community">Community</Link></li>
         </ul>

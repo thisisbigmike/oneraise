@@ -99,7 +99,7 @@ export default async function Home() {
   <ul className="nav-links">
     <li><Link href="/explore">Explore</Link></li>
     <li><Link href="/protect">Protect</Link></li>
-    <li><a href="#how">How it works</a></li>
+    <li><Link href="/how-it-works">How it works</Link></li>
     <li><a href="#features">Features</a></li>
     <li><a href="#community">Community</a></li>
   </ul>
@@ -116,7 +116,7 @@ export default async function Home() {
 <div className="mobile-menu" id="mobile-menu">
   <Link href="/explore">Explore</Link>
   <Link href="/protect">Protect</Link>
-  <a href="#how">How it works</a>
+  <Link href="/how-it-works">How it works</Link>
   <a href="#features">Features</a>
   <a href="#community">Community</a>
   <div className="mob-btns">
@@ -517,7 +517,7 @@ export default async function Home() {
         <li><Link href="/explore">Explore campaigns</Link></li>
         <li><Link href="/protect">OneRaise Protect</Link></li>
         <li><Link href="/join">Start a campaign</Link></li>
-        <li><Link href="/about">How it works</Link></li>
+        <li><Link href="/how-it-works">How it works</Link></li>
         <li><a href="#">Pricing</a></li>
         <li><a href="#">Success stories</a></li>
       </ul>
