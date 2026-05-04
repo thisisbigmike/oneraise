@@ -1,0 +1,91 @@
+.animata-btn {
+  position: relative;
+  display: inline-flex;
+  height: 40px;
+  min-width: 130px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 8px;
+  background-color: var(--teal-50);
+  padding: 6px 10px 6px 14px;
+  font-weight: 600;
+  transition: background-color 150ms ease-in-out;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.animata-btn:hover {
+  background-color: var(--teal-600);
+}
+
+.animata-btn-text {
+  color: var(--teal-600);
+  transition: color 150ms ease-in-out;
+}
+
+.animata-btn:hover .animata-btn-text {
+  color: var(--teal-50);
+}
+
+.animata-icon-wrapper {
+  position: relative;
+  display: flex;
+  height: 24px;
+  width: 24px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 9999px;
+  background-color: var(--teal-600);
+  transition: background-color 150ms ease-in-out;
+  flex-shrink: 0;
+}
+
+.animata-btn:hover .animata-icon-wrapper {
+  background-color: var(--teal-50);
+}
+
+.animata-icon-inner {
+  position: absolute;
+  left: 0;
+  display: flex;
+  height: 24px;
+  width: 48px;
+  transform: translateX(-50%);
+  align-items: center;
+  justify-content: center;
+  transition: transform 250ms ease-in-out;
+}
+
+.animata-btn:hover .animata-icon-inner {
+  transform: translateX(0);
+}
+
+.animata-icon-left, .animata-icon-right {
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+}
+
+.animata-icon-left {
+  color: var(--teal-600);
+  opacity: 0;
+  transition: opacity 150ms ease-in-out;
+}
+
+.animata-btn:hover .animata-icon-left {
+  opacity: 1;
+}
+
+.animata-icon-right {
+  color: var(--teal-50);
+  opacity: 1;
+  transition: opacity 250ms ease-in-out;
+}
+
+.animata-btn:hover .animata-icon-right {
+  opacity: 0;
+}

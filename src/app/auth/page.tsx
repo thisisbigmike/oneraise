@@ -6,6 +6,7 @@ import { getProviders, signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { useToast } from '../components';
 import './auth.css';
+import AnimatedButton from '@/components/ui/AnimatedButton';
 
 const TICKER_DATA = [
   {init:'TC',cls:'ta1',name:'Tunde Coker',action:'just received a payout · Lagos',amount:'₦3.6M'},
@@ -541,13 +542,13 @@ function AuthPageContent() {
                 </div>
               )}
 
-              <button className={`submit-btn ${loading ? 'loading' : ''}`} onClick={mode === 'signup' ? handleSignup : handleSignin}>
-                <div className="btn-content">
-                  {!loading && <span>{mode === 'signup' ? 'Create my account' : 'Sign in to OneRaise'}</span>}
-                  {loading && <div className="spinner" style={{display:'block'}}></div>}
-                  {!loading && <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                </div>
-              </button>
+              <AnimatedButton
+                text={loading ? 'Please wait...' : (mode === 'signup' ? 'Create my account' : 'Sign in to OneRaise')}
+                onClick={mode === 'signup' ? handleSignup : handleSignin}
+                className={loading ? 'loading' : ''}
+                disabled={loading}
+                style={{ width: '100%', marginTop: '24px' }}
+              />
 
               <div className="switch-link">
                 {mode === 'signup' ? 'Already have an account? ' : 'New to OneRaise? '}
@@ -605,13 +606,13 @@ function AuthPageContent() {
                   </div>
                 </div>
 
-                <button className={`submit-btn ${loading ? 'loading' : ''}`} style={{marginTop:0, opacity:1, animation:'none'}} onClick={handleSendReset}>
-                  <div className="btn-content">
-                    {!loading && <span>Send reset code</span>}
-                    {loading && <div className="spinner" style={{display:'block'}}></div>}
-                    {!loading && <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                  </div>
-                </button>
+                <AnimatedButton
+                  text={loading ? 'Sending...' : 'Send reset code'}
+                  onClick={handleSendReset}
+                  className={loading ? 'loading' : ''}
+                  disabled={loading}
+                  style={{ width: '100%', marginTop: '0', opacity: 1, animation: 'none' }}
+                />
                 <div className="switch-link" style={{opacity:1, animation:'none'}}>Remember it? <a href="#" onClick={(e) => { e.preventDefault(); setForgotStep(0); }}>Sign in instead</a></div>
               </div>
             </div>
@@ -654,13 +655,13 @@ function AuthPageContent() {
                   Didn&apos;t get it? {resendTimer === 0 ? <span className="resend-link" onClick={() => { setOtp(['','','','','','']); setResendTimer(60); }}>Resend code</span> : <span className="resend-timer">Resend in <strong>{resendTimer}</strong>s</span>}
                 </div>
 
-                <button className={`submit-btn ${loading ? 'loading' : ''}`} style={{marginTop:0, opacity:1, animation:'none'}} onClick={handleVerifyOtp}>
-                  <div className="btn-content">
-                    {!loading && <span>Verify code</span>}
-                    {loading && <div className="spinner" style={{display:'block'}}></div>}
-                    {!loading && <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                  </div>
-                </button>
+                <AnimatedButton
+                  text={loading ? 'Verifying...' : 'Verify code'}
+                  onClick={handleVerifyOtp}
+                  className={loading ? 'loading' : ''}
+                  disabled={loading}
+                  style={{ width: '100%', marginTop: '0', opacity: 1, animation: 'none' }}
+                />
               </div>
             </div>
           )}
@@ -721,13 +722,13 @@ function AuthPageContent() {
                   </div>
                 </div>
 
-                <button className={`submit-btn ${loading ? 'loading' : ''}`} style={{marginTop:0, opacity:1, animation:'none'}} onClick={handleResetPassword}>
-                  <div className="btn-content">
-                    {!loading && <span>Reset my password</span>}
-                    {loading && <div className="spinner" style={{display:'block'}}></div>}
-                    {!loading && <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                  </div>
-                </button>
+                <AnimatedButton
+                  text={loading ? 'Resetting...' : 'Reset my password'}
+                  onClick={handleResetPassword}
+                  className={loading ? 'loading' : ''}
+                  disabled={loading}
+                  style={{ width: '100%', marginTop: '0', opacity: 1, animation: 'none' }}
+                />
               </div>
             </div>
           )}
@@ -740,11 +741,11 @@ function AuthPageContent() {
                 </div>
                 <div className="fp-title" style={{marginBottom:8}}>Password reset!</div>
                 <div className="fp-sub" style={{textAlign:'center', margin:'0 auto 28px'}}>Your password has been updated successfully. You can now sign in with your new password.</div>
-                <button className="submit-btn" style={{marginTop:0, opacity:1, animation:'none'}} onClick={() => { setForgotStep(0); setMode('signin'); setPassword(''); }}>
-                  <div className="btn-content">
-                    Sign in now <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  </div>
-                </button>
+                <AnimatedButton
+                  text="Sign in now"
+                  onClick={() => { setForgotStep(0); setMode('signin'); setPassword(''); }}
+                  style={{ width: '100%', marginTop: '0', opacity: 1, animation: 'none' }}
+                />
               </div>
             </div>
           )}

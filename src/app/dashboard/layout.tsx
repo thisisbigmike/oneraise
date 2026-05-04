@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { ToastProvider, ThemeProvider, useTheme } from '../components';
 import '../shared-dashboard.css';
+import AnimatedButton from '@/components/ui/AnimatedButton';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -96,12 +97,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 const isActive = pathname === item.path || (pathname.startsWith(item.path) && item.path !== '/dashboard' && item.path !== '#');
                 if (item.name === 'Sign Out') {
                   return (
-                    <button key={item.name} onClick={() => { setMobileMenuOpen(false); signOut({ callbackUrl: '/' }); }} className="nav-link" style={{ background: 'transparent', border: 'none', width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
-                      <div className="nl-left">
-                        <span className="nl-icon">{item.icon}</span>
-                        <span className="nl-text" style={{ color: '#F09595' }}>{item.name}</span>
-                      </div>
-                    </button>
+                    <div key={item.name} style={{ padding: '0 12px', marginTop: '8px' }}>
+                      <AnimatedButton 
+                        text={item.name} 
+                        onClick={() => { setMobileMenuOpen(false); signOut({ callbackUrl: '/' }); }} 
+                        style={{ width: '100%', justifyContent: 'flex-start', paddingLeft: '16px' }} 
+                      />
+                    </div>
                   );
                 }
                 return (

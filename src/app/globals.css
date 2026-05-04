@@ -449,18 +449,20 @@ nav {
 
 .btn-hero-secondary {
   font-family: 'Instrument Sans', sans-serif;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
   background: transparent;
   color: var(--white-60);
   border: 1px solid var(--white-30);
-  border-radius: 12px;
-  padding: 16px 32px;
+  border-radius: 8px;
+  padding: 0 24px;
+  height: 40px;
   cursor: pointer;
   transition: all 0.25s;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
 }
 .btn-hero-secondary:hover { border-color: var(--white-60); color: var(--white); transform: translateY(-2px); }
