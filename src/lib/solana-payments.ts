@@ -6,6 +6,7 @@ import {
 } from "@solana/web3.js";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
+  AccountLayout,
   TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountIdempotentInstruction,
   getAssociatedTokenAddressSync,
@@ -42,6 +43,13 @@ export type JupiterTreasury = {
   source: string;
 };
 
+export type SolanaUsdcDestination = {
+  owner: PublicKey;
+  usdcTokenAccount: PublicKey;
+  source: string;
+  createAta: boolean;
+};
+
 export function getSolanaRpcUrl() {
   return process.env.SOLANA_RPC_URL || process.env.NEXT_PUBLIC_SOLANA_RPC_URL || SOLANA_MAINNET_RPC;
 }
@@ -62,6 +70,52 @@ export function getUsdcAta(owner: PublicKey) {
     TOKEN_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID,
   );
+}
+
+export async function resolveSolanaUsdcDestination(args: {
+  address: string;
+  source: string;
+}): Promise<SolanaUsdcDestination> {
+  let publicKey: PublicKey;
+  try {
+    publicKey = new PublicKey(args.address);
+  } catch {
+    throw new Error("Busha returned an invalid Solana deposit address.");
+  }
+
+  const connection = getSolanaConnection();
+  const account = await connection.getAccountInfo(publicKey, "confirmed");
+
+  if (account?.owner.equals(TOKEN_PROGRAM_ID)) {
+    try {
+      const tokenAccount = AccountLayout.decode(account.data);
+      const mint = new PublicKey(tokenAccount.mint);
+      const owner = new PublicKey(tokenAccount.owner);
+
+      if (!mint.equals(getUsdcMintPublicKey())) {
+        throw new Error("Busha returned a token account that is not a USDC account.");
+      }
+
+      return {
+        owner,
+        usdcTokenAccount: publicKey,
+        source: args.source,
+        createAta: false,
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error("Unable to parse Busha Solana token account.");
+    }
+  }
+
+  return {
+    owner: publicKey,
+    usdcTokenAccount: getUsdcAta(publicKey),
+    source: args.source,
+    createAta: true,
+  };
 }
 
 export function deserializeJupiterInstruction(payload: JupiterInstructionPayload) {

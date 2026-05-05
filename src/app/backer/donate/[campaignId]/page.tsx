@@ -479,7 +479,7 @@ export default function DonatePage() {
                 <p className="ps-desc">
                   {paymentMethod === 'jupiter'
                     ? jupiterSignature
-                      ? 'Your Solana transaction has been submitted. OneRaise is verifying that the campaign treasury received the expected USDC.'
+                      ? 'Your Solana transaction has been submitted. OneRaise is verifying that Busha received the expected USDC.'
                       : 'The campaign receives USDC. Your wallet pays with the selected Solana token through Jupiter routing.'
                     : paymentInstructions
                       ? 'Please complete your transfer to definitively confirm your donation.'
@@ -576,7 +576,7 @@ export default function DonatePage() {
 
                     <div className="jq-note">
                       {walletPublicKey && <div>Wallet: <strong>{walletPublicKey.slice(0, 6)}...{walletPublicKey.slice(-4)}</strong></div>}
-                      {jupiterTreasuryAccount && <div>Campaign USDC account: <strong>{jupiterTreasuryAccount.slice(0, 6)}...{jupiterTreasuryAccount.slice(-4)}</strong></div>}
+                      {jupiterTreasuryAccount && <div>Busha USDC account: <strong>{jupiterTreasuryAccount.slice(0, 6)}...{jupiterTreasuryAccount.slice(-4)}</strong></div>}
                       {jupiterSignature && (
                         <a
                           href={`https://solscan.io/tx/${jupiterSignature}`}
@@ -587,7 +587,7 @@ export default function DonatePage() {
                           View transaction on Solscan
                         </a>
                       )}
-                      {!jupiterSignature && 'Your wallet will sign and broadcast this transaction. OneRaise credits the donation only after on-chain USDC delivery is verified.'}
+                      {!jupiterSignature && 'Your wallet will sign and broadcast this transaction. OneRaise credits the donation only after Busha-bound USDC delivery is verified.'}
                     </div>
                   </div>
                 )}

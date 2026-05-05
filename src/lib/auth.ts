@@ -103,8 +103,19 @@ providers.push(
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   providers,
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === "credentials") return true;
@@ -133,15 +144,35 @@ export const authOptions: AuthOptions = {
       }
       return session;
     },
-    async jwt({ token, user, trigger, session }) {
-      setCookieSafePicture(token, token.picture);
-
+    async jwt({ token, user, trigger, session, account }) {
+      // On initial sign-in, build a minimal token
       if (user) {
         const authUser = user as AuthUser;
-        token.id = user.id;
-        token.role = authUser.role || null;
-        setCookieSafePicture(token, authUser.image);
+        // Start with a clean token to avoid inheriting large OAuth data
+        const minimalToken: JWT = {
+          id: user.id,
+          name: user.name || null,
+          email: user.email || null,
+          role: authUser.role || null,
+        };
+        setCookieSafePicture(minimalToken, authUser.image);
+        return minimalToken;
       }
+
+      // Strip any bloated fields that may have leaked into the token
+      // (OAuth providers can inject access_token, id_token, profile, etc.)
+      delete (token as Record<string, unknown>).access_token;
+      delete (token as Record<string, unknown>).id_token;
+      delete (token as Record<string, unknown>).refresh_token;
+      delete (token as Record<string, unknown>).token_type;
+      delete (token as Record<string, unknown>).scope;
+      delete (token as Record<string, unknown>).session_state;
+      delete (token as Record<string, unknown>).provider;
+      delete (token as Record<string, unknown>).type;
+      delete (token as Record<string, unknown>).providerAccountId;
+
+      setCookieSafePicture(token, token.picture);
+
       // Provide way to update role dynamically 
       if (trigger === "update" && session?.role) {
         token.role = session.role;

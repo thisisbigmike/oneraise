@@ -55,7 +55,7 @@ export async function POST(
           treasury?: { usdcTokenAccount?: string };
         }
       : {};
-    const signature = donation.solanaTxSignature || donation.paymentId;
+    const signature = donation.solanaTxSignature;
     const treasuryTokenAccount = providerData.treasury?.usdcTokenAccount;
     const expectedOutputRaw = providerData.expectedOutputRaw;
 

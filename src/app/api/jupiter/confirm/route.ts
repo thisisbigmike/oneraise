@@ -95,7 +95,7 @@ export async function POST(req: Request) {
         where: { id: donation.id },
         data: {
           solanaTxSignature: parsedSignature,
-          paymentId: parsedSignature,
+          providerRef: parsedSignature,
           providerStatus: "submitted",
           providerDataJson: JSON.stringify({
             ...providerData,

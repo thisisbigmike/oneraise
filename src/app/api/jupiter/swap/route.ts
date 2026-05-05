@@ -11,6 +11,11 @@ import { authOptions } from "@/lib/auth";
 import { CAMPAIGN_SEEDS } from "@/lib/campaign-seeds";
 import { convertToUsd, getDonationCreditUsd } from "@/lib/currency";
 import {
+  createBushaCryptoDeposit,
+  extractBushaInstructions,
+  fetchBushaTransfer,
+} from "@/lib/payments";
+import {
   JUPITER_SWAP_INSTRUCTIONS_URL,
   JUPITER_USDC,
   buildDirectUsdcQuote,
@@ -25,11 +30,22 @@ import {
   getSolanaConnection,
   getUsdcAta,
   getUsdcMintPublicKey,
-  resolveJupiterTreasury,
+  resolveSolanaUsdcDestination,
   type JupiterSwapInstructions,
+  type SolanaUsdcDestination,
 } from "@/lib/solana-payments";
 
 const DEFAULT_SLIPPAGE_BPS = 50;
+const BUSHA_JUPITER_SETTLEMENT_ASSET = (
+  process.env.JUPITER_BUSHA_SETTLEMENT_ASSET ||
+  process.env.BUSHA_JUPITER_SETTLEMENT_ASSET ||
+  "USDC"
+).toUpperCase();
+const BUSHA_JUPITER_SETTLEMENT_NETWORK = (
+  process.env.JUPITER_BUSHA_SETTLEMENT_NETWORK ||
+  process.env.BUSHA_JUPITER_SETTLEMENT_NETWORK ||
+  "SOL"
+).toUpperCase();
 
 const CAMPAIGN_FALLBACKS: Record<
   string,
@@ -99,6 +115,57 @@ function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
+async function createBushaJupiterDestination(args: {
+  outputAmountUsd: number;
+}): Promise<{
+  quote: Record<string, unknown>;
+  transfer: Record<string, unknown>;
+  instructions: Record<string, unknown>;
+  destination: SolanaUsdcDestination;
+}> {
+  if (BUSHA_JUPITER_SETTLEMENT_ASSET !== "USDC") {
+    throw new Error("Jupiter donations are currently configured for USDC settlement only.");
+  }
+
+  if (!["SOL", "SOLANA"].includes(BUSHA_JUPITER_SETTLEMENT_NETWORK)) {
+    throw new Error(
+      "Jupiter donations need Busha to return a Solana USDC deposit address. Set JUPITER_BUSHA_SETTLEMENT_NETWORK=SOL.",
+    );
+  }
+
+  const { quote, transfer } = await createBushaCryptoDeposit({
+    asset: BUSHA_JUPITER_SETTLEMENT_ASSET,
+    network: BUSHA_JUPITER_SETTLEMENT_NETWORK,
+    quoteAmount: args.outputAmountUsd,
+    quoteCurrency: "USD",
+    targetAsset: BUSHA_JUPITER_SETTLEMENT_ASSET,
+  });
+
+  let resolvedTransfer = transfer;
+  let instructions = extractBushaInstructions(transfer, BUSHA_JUPITER_SETTLEMENT_ASSET);
+
+  if (!instructions && transfer.id) {
+    resolvedTransfer = await fetchBushaTransfer(String(transfer.id));
+    instructions = extractBushaInstructions(resolvedTransfer, BUSHA_JUPITER_SETTLEMENT_ASSET);
+  }
+
+  if (!instructions || instructions.type !== "crypto" || !instructions.address) {
+    throw new Error("Busha did not return a Solana USDC deposit address for this Jupiter donation.");
+  }
+
+  const destination = await resolveSolanaUsdcDestination({
+    address: String(instructions.address),
+    source: "busha_deposit",
+  });
+
+  return {
+    quote,
+    transfer: resolvedTransfer,
+    instructions,
+    destination,
+  };
+}
+
 export async function POST(req: Request) {
   let donationId: string | null = null;
 
@@ -147,7 +214,6 @@ export async function POST(req: Request) {
     }
 
     const campaign = await ensureCampaign(campaignSlug);
-    const treasury = await resolveJupiterTreasury(campaignSlug);
     const connection = getSolanaConnection();
 
     const quotePayload =
@@ -167,6 +233,9 @@ export async function POST(req: Request) {
             slippageBps,
           });
     const expectedOutputRaw = quote.outputRawAmount;
+    const bushaDeposit = await createBushaJupiterDestination({
+      outputAmountUsd,
+    });
     const credit = {
       amount,
       currency,
@@ -191,11 +260,15 @@ export async function POST(req: Request) {
         coverFee: false,
         asset: quote.inputSymbol,
         network: "SOLANA",
+        paymentId: String(bushaDeposit.transfer.id || ""),
+        quoteId: String(bushaDeposit.quote.id || ""),
         instructionsJson: JSON.stringify({
           type: "solana_jupiter",
           wallet: userPublicKey.toString(),
-          treasuryOwner: treasury.owner.toString(),
-          treasuryUsdcTokenAccount: treasury.usdcTokenAccount.toString(),
+          bushaDepositAddress: bushaDeposit.instructions.address,
+          bushaTransferId: bushaDeposit.transfer.id,
+          treasuryOwner: bushaDeposit.destination.owner.toString(),
+          treasuryUsdcTokenAccount: bushaDeposit.destination.usdcTokenAccount.toString(),
           expectedOutputRaw,
           expectedOutputAmount: quote.outputAmount,
         }),
@@ -204,10 +277,17 @@ export async function POST(req: Request) {
           quote,
           quoteResponse: quotePayload,
           wallet: userPublicKey.toString(),
+          busha: {
+            quote: bushaDeposit.quote,
+            transfer: bushaDeposit.transfer,
+            instructions: bushaDeposit.instructions,
+          },
           treasury: {
-            owner: treasury.owner.toString(),
-            usdcTokenAccount: treasury.usdcTokenAccount.toString(),
-            source: treasury.source,
+            owner: bushaDeposit.destination.owner.toString(),
+            usdcTokenAccount: bushaDeposit.destination.usdcTokenAccount.toString(),
+            source: bushaDeposit.destination.source,
+            bushaDepositAddress: bushaDeposit.instructions.address,
+            createAta: bushaDeposit.destination.createAta,
           },
           expectedOutputRaw,
         }),
@@ -217,13 +297,15 @@ export async function POST(req: Request) {
     });
     donationId = donation.id;
 
-    const createTreasuryAtaIx = createTreasuryUsdcAtaInstruction({
-      payer: userPublicKey,
-      treasuryOwner: treasury.owner,
-      treasuryUsdcTokenAccount: treasury.usdcTokenAccount,
-    });
+    const createTreasuryAtaIx = bushaDeposit.destination.createAta
+      ? createTreasuryUsdcAtaInstruction({
+          payer: userPublicKey,
+          treasuryOwner: bushaDeposit.destination.owner,
+          treasuryUsdcTokenAccount: bushaDeposit.destination.usdcTokenAccount,
+        })
+      : null;
 
-    let instructions = [createTreasuryAtaIx];
+    let instructions = createTreasuryAtaIx ? [createTreasuryAtaIx] : [];
     let addressLookupTableAddresses: string[] = [];
 
     if (inputMint === JUPITER_USDC.mint) {
@@ -232,7 +314,7 @@ export async function POST(req: Request) {
         createTransferCheckedInstruction(
           userUsdcAta,
           getUsdcMintPublicKey(),
-          treasury.usdcTokenAccount,
+          bushaDeposit.destination.usdcTokenAccount,
           userPublicKey,
           BigInt(expectedOutputRaw),
           JUPITER_USDC.decimals,
@@ -248,7 +330,7 @@ export async function POST(req: Request) {
         body: JSON.stringify({
           quoteResponse: quotePayload,
           userPublicKey: userPublicKey.toString(),
-          destinationTokenAccount: treasury.usdcTokenAccount.toString(),
+          destinationTokenAccount: bushaDeposit.destination.usdcTokenAccount.toString(),
           dynamicComputeUnitLimit: true,
           prioritizationFeeLamports: {
             priorityLevelWithMaxLamports: {
@@ -267,7 +349,7 @@ export async function POST(req: Request) {
       instructions = [
         ...(payload.computeBudgetInstructions || []).map(deserializeJupiterInstruction),
         ...(payload.otherInstructions || []).map(deserializeJupiterInstruction),
-        createTreasuryAtaIx,
+        ...(createTreasuryAtaIx ? [createTreasuryAtaIx] : []),
         ...(payload.setupInstructions || []).map(deserializeJupiterInstruction),
         ...(payload.tokenLedgerInstruction
           ? [deserializeJupiterInstruction(payload.tokenLedgerInstruction)]
@@ -297,9 +379,10 @@ export async function POST(req: Request) {
       lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
       quote,
       treasury: {
-        owner: treasury.owner.toString(),
-        usdcTokenAccount: treasury.usdcTokenAccount.toString(),
-        source: treasury.source,
+        owner: bushaDeposit.destination.owner.toString(),
+        usdcTokenAccount: bushaDeposit.destination.usdcTokenAccount.toString(),
+        source: bushaDeposit.destination.source,
+        bushaDepositAddress: String(bushaDeposit.instructions.address),
       },
     });
   } catch (error: unknown) {
