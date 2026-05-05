@@ -41,13 +41,6 @@ export async function POST(
     return NextResponse.json({ error: "Donation not found" }, { status: 404 });
   }
 
-  if (!donation.paymentId) {
-    return NextResponse.json({
-      success: true,
-      donation: formatDonationResponse(donation),
-    });
-  }
-
   if (donation.provider === "solana_jupiter") {
     const providerData = donation.providerDataJson
       ? JSON.parse(donation.providerDataJson) as {
@@ -135,6 +128,13 @@ export async function POST(
       });
     }
 
+    return NextResponse.json({
+      success: true,
+      donation: formatDonationResponse(donation),
+    });
+  }
+
+  if (!donation.paymentId) {
     return NextResponse.json({
       success: true,
       donation: formatDonationResponse(donation),

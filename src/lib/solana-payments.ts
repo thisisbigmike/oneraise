@@ -205,6 +205,32 @@ export async function resolveJupiterTreasury(campaignSlug: string): Promise<Jupi
   };
 }
 
+export function resolveOneRaiseTreasury(): JupiterTreasury {
+  const configuredWallet =
+    process.env.SOLANA_TREASURY_WALLET ||
+    process.env.NEXT_PUBLIC_SOLANA_TREASURY_WALLET ||
+    "";
+
+  if (!configuredWallet) {
+    throw new Error(
+      "Set SOLANA_TREASURY_WALLET to accept Jupiter donations into the OneRaise Solana treasury.",
+    );
+  }
+
+  let owner: PublicKey;
+  try {
+    owner = new PublicKey(configuredWallet);
+  } catch {
+    throw new Error("SOLANA_TREASURY_WALLET is not a valid Solana public key.");
+  }
+
+  return {
+    owner,
+    usdcTokenAccount: getUsdcAta(owner),
+    source: "oneraise_treasury",
+  };
+}
+
 export function createTreasuryUsdcAtaInstruction(args: {
   payer: PublicKey;
   treasuryOwner: PublicKey;
