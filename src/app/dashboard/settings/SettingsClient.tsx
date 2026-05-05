@@ -83,7 +83,6 @@ export default function SettingsClient({ initialName, initialEmail, initialImage
       await updateSession({
         name: data.user.name,
         email: data.user.email,
-        image: data.user.image,
       });
       showToast('Profile settings saved successfully!', 'success');
     } catch (error) {

@@ -1,11 +1,46 @@
-import NextAuth, { AuthOptions } from "next-auth";
+import type { AuthOptions, Session } from "next-auth";
 import AppleProvider from "next-auth/providers/apple";
 import GoogleProvider from "next-auth/providers/google";
 import TwitterProvider from "next-auth/providers/twitter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import type { JWT } from "next-auth/jwt";
 import prisma from "./prisma";
 import bcrypt from "bcryptjs";
+
+const MAX_SESSION_IMAGE_URL_LENGTH = 2048;
+
+type AuthUser = {
+  id?: string | null;
+  image?: string | null;
+  role?: string | null;
+};
+
+type MutableSessionUser = NonNullable<Session["user"]> & {
+  id?: unknown;
+  role?: unknown;
+};
+
+function getCookieSafeImage(value: unknown) {
+  if (typeof value !== "string") return undefined;
+
+  const image = value.trim();
+  if (!image || image.length > MAX_SESSION_IMAGE_URL_LENGTH) return undefined;
+  if (!image.startsWith("/") && !image.startsWith("https://")) return undefined;
+
+  return image;
+}
+
+function setCookieSafePicture(token: JWT, value: unknown) {
+  const safeImage = getCookieSafeImage(value);
+
+  if (safeImage) {
+    token.picture = safeImage;
+    return;
+  }
+
+  delete token.picture;
+}
 
 const providers = [];
 
@@ -77,9 +112,10 @@ export const authOptions: AuthOptions = {
       const email = user.email?.trim().toLowerCase();
       if (!email) return "/auth?mode=signin&error=OAuthEmail";
 
-      if ((user as any).id) {
+      const userId = (user as AuthUser).id;
+      if (userId) {
         await prisma.user.update({
-          where: { id: (user as any).id },
+          where: { id: userId },
           data: { email },
         }).catch(() => null);
       }
@@ -88,19 +124,23 @@ export const authOptions: AuthOptions = {
     },
     async session({ session, token }) {
       if (token && session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
+        const sessionUser = session.user as MutableSessionUser;
+        sessionUser.id = token.id;
+        sessionUser.role = token.role;
         session.user.name = token.name || session.user.name;
         session.user.email = token.email || session.user.email;
-        session.user.image = token.picture || session.user.image;
+        session.user.image = getCookieSafeImage(token.picture) || null;
       }
       return session;
     },
     async jwt({ token, user, trigger, session }) {
+      setCookieSafePicture(token, token.picture);
+
       if (user) {
+        const authUser = user as AuthUser;
         token.id = user.id;
-        token.role = (user as any).role || null;
-        if (user.image) token.picture = user.image;
+        token.role = authUser.role || null;
+        setCookieSafePicture(token, authUser.image);
       }
       // Provide way to update role dynamically 
       if (trigger === "update" && session?.role) {
@@ -109,7 +149,9 @@ export const authOptions: AuthOptions = {
       if (trigger === "update") {
         if (typeof session?.name === "string") token.name = session.name;
         if (typeof session?.email === "string") token.email = session.email;
-        if (typeof session?.image === "string" || session?.image === null) token.picture = session.image;
+        if (typeof session?.image === "string" || session?.image === null) {
+          setCookieSafePicture(token, session.image);
+        }
       }
       return token;
     }
