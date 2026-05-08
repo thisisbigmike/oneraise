@@ -1,8 +1,23 @@
-## OneRaise
+# OneRaise: The World's First Borderless Trust Protocol
 
-This app now expects a Supabase Postgres database through Prisma.
+OneRaise is a next-generation crowdfunding platform designed to bridge the gap between global capital and local impact. We go beyond moving money; we move trust. By leveraging blockchain technology and milestone-based disbursement, OneRaise ensures that every donation is protected and every outcome is verifiable.
 
-## Supabase Setup
+**One Goal. One Platform. OneRaise.**
+
+## Core Features
+
+- **The "Protect" Protocol**: Funds are held in a secure escrow and released to creators only when predefined project milestones are verified.
+- **Borderless by Design**: Seamlessly connect local African payment rails (Busha, Raenest) to global liquidity via Solana and stablecoins.
+- **Radical Transparency**: Real-time tracking of donations and proof-of-impact through verifiable milestones.
+- **Collective Impact**: Tools for community-led campaigns, emergency aid, and grant distribution.
+
+---
+
+## Technical Setup
+
+This app is built with **Next.js 15**, **Prisma**, and **Supabase**.
+
+### Supabase Setup
 
 1. In Supabase, open your project and copy two database connection strings:
    - `DATABASE_URL`: the pooled Supavisor transaction string on port `6543`, with `?pgbouncer=true`
@@ -20,9 +35,9 @@ npm run db:push
 npm run dev
 ```
 
-The app still uses Prisma and the existing NextAuth Prisma adapter. Only the database backend changed from local SQLite to Supabase Postgres.
+The app uses Prisma and the NextAuth Prisma adapter. The database backend is Supabase Postgres.
 
-## Helpful Commands
+### Helpful Commands
 
 ```bash
 npm run db:generate

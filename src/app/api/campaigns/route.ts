@@ -7,15 +7,23 @@ import { getCachedCampaignsList, getNumericCampaignId, getUserCampaignsList } fr
 
 const MAX_IMAGE_DATA_URL_LENGTH = 7 * 1024 * 1024;
 
-function getInitials(name: string) {
-  return (
-    name
-      .split(" ")
-      .map((part) => part[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "OR"
-  );
+type SessionUser = {
+  id?: string;
+  role?: string;
+};
+
+type RequestedMilestone = {
+  title?: unknown;
+  description?: unknown;
+};
+
+function getSessionUser(session: unknown): SessionUser {
+  if (!session || typeof session !== "object" || !("user" in session)) return {};
+  return ((session as { user?: unknown }).user as SessionUser | undefined) ?? {};
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
 }
 
 function slugify(value: string) {
@@ -53,6 +61,26 @@ function revalidateCampaignViews() {
   revalidatePath("/backer/discover");
 }
 
+function parseCampaignType(value: unknown) {
+  if (value === "protected_crowdfunding" || value === "emergency_aid" || value === "grant_distribution") {
+    return value;
+  }
+
+  return "standard";
+}
+
+function parseMilestones(value: unknown): { title: string; description?: string | null }[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item: RequestedMilestone) => ({
+      title: String(item?.title || "").trim(),
+      description: String(item?.description || "").trim() || null,
+    }))
+    .filter((item) => item.title)
+    .slice(0, 8);
+}
+
 
 
 async function createUniqueSlug(title: string) {
@@ -76,7 +104,7 @@ export async function GET(req: Request) {
 
   if (mine) {
     const session = await getServerSession(authOptions);
-    const userId = session?.user ? ((session.user as any).id as string) : null;
+    const userId = getSessionUser(session).id ?? null;
 
     if (!userId) {
       return NextResponse.json({ error: "Please sign in to view your campaigns." }, { status: 401 });
@@ -100,8 +128,9 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const userId = session?.user ? ((session.user as any).id as string) : null;
-    const role = session?.user ? ((session.user as any).role as string | undefined) : null;
+    const sessionUser = getSessionUser(session);
+    const userId = sessionUser.id ?? null;
+    const role = sessionUser.role ?? null;
 
     if (!userId) {
       return NextResponse.json({ error: "Please sign in to create a campaign." }, { status: 401 });
@@ -111,10 +140,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Only creator accounts can create campaigns." }, { status: 403 });
     }
 
-    const { title, goal, category, description, status, image } = await req.json();
+    const { title, goal, category, description, status, image, type, milestones } = await req.json();
     const parsedTitle = String(title || "").trim();
     const parsedGoal = Number(goal);
     const parsedImage = parseCampaignImage(image);
+    const parsedType = parseCampaignType(type);
+    const parsedMilestones = parseMilestones(milestones);
 
     if (!parsedTitle || !Number.isFinite(parsedGoal) || parsedGoal <= 0) {
       return NextResponse.json({ error: "Campaign title and a valid goal amount are required." }, { status: 400 });
@@ -130,6 +161,13 @@ export async function POST(req: Request) {
         goal: parsedGoal,
         category: String(category || "General").trim() || "General",
         status: status === "active" ? "active" : "draft",
+        type: parsedType,
+        protectStatus: "funding",
+        milestones: parsedMilestones.length
+          ? {
+              create: parsedMilestones,
+            }
+          : undefined,
         user: {
           connect: {
             id: userId,
@@ -155,10 +193,12 @@ export async function POST(req: Request) {
         backers: 0,
         daysLeft: campaign.status === "active" ? 30 : 0,
         category: campaign.category,
+        type: campaign.type,
+        protectStatus: campaign.protectStatus,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Create campaign error:", error);
-    return NextResponse.json({ error: error?.message || "Unable to create campaign." }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error, "Unable to create campaign.") }, { status: 500 });
   }
 }

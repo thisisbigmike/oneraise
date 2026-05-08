@@ -12,7 +12,28 @@ type CampaignView = {
   id: number; slug: string; title: string; image?: string | null; creator: string; creatorInitials: string;
   raised: number; goal: number; category: string; desc: string;
   backers: number; daysLeft: number; verified: boolean;
+  type?: string;
+  protectStatus?: string;
+  milestones?: {
+    id: string;
+    title: string;
+    description: string | null;
+    status: string;
+    proofUrl: string | null;
+  }[];
 };
+
+const PROTECT_STATUS_LABELS: Record<string, string> = {
+  funding: 'Funding',
+  locked: 'Funds locked',
+  pending_verification: 'Pending verification',
+  unlocked: 'Funds released',
+  refunded: 'Refunded',
+};
+
+function isProtectedType(type?: string) {
+  return type === 'protected_crowdfunding' || type === 'emergency_aid' || type === 'grant_distribution';
+}
 
 const PRESETS = [25, 50, 100, 250];
 const CURRENCIES = [
@@ -1053,6 +1074,9 @@ export default function DonatePage() {
 
 /* ── Campaign Sidebar Component ── */
 function CampaignSidebar({ campaign, pct }: { campaign: CampaignView; pct: number }) {
+  const isProtectedCampaign = isProtectedType(campaign.type);
+  const milestones = campaign.milestones || [];
+
   return (
     <div className="campaign-sidebar">
       {/* Campaign info card */}
@@ -1060,6 +1084,24 @@ function CampaignSidebar({ campaign, pct }: { campaign: CampaignView; pct: numbe
         <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--w50)', marginBottom: 12 }}>
           {campaign.category}
         </div>
+        {isProtectedCampaign && (
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '7px 10px',
+            borderRadius: 999,
+            background: 'rgba(29,158,117,0.14)',
+            border: '1px solid rgba(29,158,117,0.32)',
+            color: 'var(--teal-200)',
+            fontSize: 12,
+            fontWeight: 800,
+            marginBottom: 12,
+          }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--teal-200)' }} />
+            OneRaise Protect
+          </div>
+        )}
         <div className="cs-campaign-title">{campaign.title}</div>
         {campaign.image && (
           <div className="cs-campaign-cover">
@@ -1101,6 +1143,32 @@ function CampaignSidebar({ campaign, pct }: { campaign: CampaignView; pct: numbe
         </div>
       </div>
 
+      {isProtectedCampaign && (
+        <div className="cs-info-card">
+          <div className="cs-info-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal-200)" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+            Protect timeline
+          </div>
+          <div style={{ color: 'var(--w50)', fontSize: 13, lineHeight: 1.5, marginBottom: 12 }}>
+            Status: <strong style={{ color: 'var(--teal-200)' }}>{PROTECT_STATUS_LABELS[campaign.protectStatus || 'funding'] || campaign.protectStatus}</strong>
+          </div>
+          <div className="cs-info-steps">
+            {milestones.length === 0 && (
+              <div className="cs-info-step">
+                <div className="cs-info-step-num">1</div>
+                <span>Milestones will appear here once the creator publishes them.</span>
+              </div>
+            )}
+            {milestones.slice(0, 4).map((milestone, index) => (
+              <div className="cs-info-step" key={milestone.id}>
+                <div className="cs-info-step-num">{index + 1}</div>
+                <span>{milestone.title} · {milestone.status.replace('_', ' ')}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* How it works */}
       <div className="cs-info-card">
         <div className="cs-info-title">
@@ -1118,7 +1186,7 @@ function CampaignSidebar({ campaign, pct }: { campaign: CampaignView; pct: numbe
           </div>
           <div className="cs-info-step">
             <div className="cs-info-step-num">3</div>
-            <span>Your donation is converted and sent directly to the campaign organizer</span>
+            <span>{isProtectedCampaign ? 'Protected funds can release when milestone proof is approved' : 'Your donation is converted and sent directly to the campaign organizer'}</span>
           </div>
         </div>
       </div>

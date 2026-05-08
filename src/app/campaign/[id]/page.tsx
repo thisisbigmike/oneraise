@@ -13,6 +13,16 @@ type CampaignDonor = {
   initial: string;
 };
 
+type CampaignMilestone = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  proofUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type CampaignView = {
   id: number;
   slug: string;
@@ -28,8 +38,44 @@ type CampaignView = {
   daysLeft: number;
   verified: boolean;
   status: 'active' | 'completed' | 'draft';
+  type: 'standard' | 'protected_crowdfunding' | 'emergency_aid' | 'grant_distribution';
+  protectStatus: string;
+  milestones?: CampaignMilestone[];
   recentDonors?: CampaignDonor[];
 };
+
+const TYPE_LABELS: Record<string, string> = {
+  protected_crowdfunding: 'Protected crowdfunding',
+  emergency_aid: 'Emergency aid escrow',
+  grant_distribution: 'Grant distribution',
+};
+
+const PROTECT_STATUS_LABELS: Record<string, string> = {
+  funding: 'Funding',
+  locked: 'Funds locked',
+  pending_verification: 'Pending verification',
+  unlocked: 'Funds released',
+  refunded: 'Refunded',
+};
+
+const MILESTONE_STATUS_LABELS: Record<string, string> = {
+  pending: 'Pending proof',
+  submitted: 'Proof submitted',
+  approved: 'Approved',
+  rejected: 'Needs revision',
+};
+
+function isProtectedType(type?: string) {
+  return type === 'protected_crowdfunding' || type === 'emergency_aid' || type === 'grant_distribution';
+}
+
+function getProtectTone(status?: string) {
+  if (status === 'unlocked' || status === 'approved') return '#5DCAA5';
+  if (status === 'pending_verification' || status === 'submitted') return '#EF9F27';
+  if (status === 'refunded') return '#85B7EB';
+  if (status === 'rejected') return '#F09595';
+  return '#1D9E75';
+}
 
 function formatRelativeTime(value: string) {
   const timestamp = new Date(value).getTime();
@@ -48,7 +94,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
   const initialCampaign = CAMPAIGN_SEEDS[resolvedParams.id] as CampaignView | undefined;
   const [campaign, setCampaign] = useState<CampaignView | undefined>(initialCampaign);
   const [isLoadingCampaign, setIsLoadingCampaign] = useState(!initialCampaign);
-  const [activeTab, setActiveTab] = useState<'story' | 'updates' | 'donors'>('story');
+  const [activeTab, setActiveTab] = useState<'story' | 'protect' | 'updates' | 'donors'>('story');
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('fake');
   const [reportDetails, setReportDetails] = useState('');
@@ -99,6 +145,8 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
   }
 
   const pct = getCampaignPct(campaign.raised, campaign.goal);
+  const isProtectedCampaign = isProtectedType(campaign.type);
+  const milestones = campaign.milestones || [];
   const reportReasons = [
     { value: 'fake', label: 'Fake campaign' },
     { value: 'misleading', label: 'Misleading information' },
@@ -174,7 +222,15 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
         {/* Header Section */}
         <div className="campaign-hero">
           <div className="campaign-hero-left">
-            <div className="campaign-badge">{campaign.category}</div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
+              <div className="campaign-badge" style={{ marginBottom: 0 }}>{campaign.category}</div>
+              {isProtectedCampaign && (
+                <div className="campaign-badge protect-campaign-badge">
+                  <span className="protect-badge-dot" />
+                  OneRaise Protect
+                </div>
+              )}
+            </div>
             <h1 className="campaign-title">{campaign.title}</h1>
             <p className="campaign-subtitle">{campaign.desc}</p>
             <div className="campaign-creator">
@@ -203,6 +259,17 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
 
           <div className="campaign-hero-right">
             <div className="funding-card">
+              {isProtectedCampaign && (
+                <div className="protect-summary-card">
+                  <div className="protect-summary-top">
+                    <span>{TYPE_LABELS[campaign.type] || 'Protected campaign'}</span>
+                    <strong style={{ color: getProtectTone(campaign.protectStatus) }}>
+                      {PROTECT_STATUS_LABELS[campaign.protectStatus] || campaign.protectStatus}
+                    </strong>
+                  </div>
+                  <p>Funds are tied to milestone proof before release.</p>
+                </div>
+              )}
               <div className="funding-raised">
                 ${campaign.raised.toLocaleString()}
                 <span className="funding-goal"> raised of ${campaign.goal.toLocaleString()} goal</span>
@@ -236,7 +303,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
                   <rect x="2" y="4" width="10" height="8" rx="2" stroke="#1D9E75" strokeWidth="1.2"/>
                   <path d="M5 4V3a2 2 0 014 0v1" stroke="#1D9E75" strokeWidth="1.2" strokeLinecap="round"/>
                 </svg>
-                Secure payments by Stripe & Moonpay
+                {isProtectedCampaign ? 'Protected by escrow, verification, and milestone release' : 'Secure payments by Stripe & Moonpay'}
               </p>
 
               <button
@@ -258,6 +325,11 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
         <div className="campaign-tabs-wrapper">
           <div className="campaign-tabs">
             <button className={`tab-btn ${activeTab === 'story' ? 'active' : ''}`} onClick={() => setActiveTab('story')}>Story</button>
+            {isProtectedCampaign && (
+              <button className={`tab-btn ${activeTab === 'protect' ? 'active' : ''}`} onClick={() => setActiveTab('protect')}>
+                Protect <span className="tab-badge">{milestones.length}</span>
+              </button>
+            )}
             <button className={`tab-btn ${activeTab === 'updates' ? 'active' : ''}`} onClick={() => setActiveTab('updates')}>Updates <span className="tab-badge">{updates.length}</span></button>
             <button className={`tab-btn ${activeTab === 'donors' ? 'active' : ''}`} onClick={() => setActiveTab('donors')}>Donors <span className="tab-badge">{donors.length}</span></button>
           </div>
@@ -272,6 +344,60 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
               <p>
                 Every contribution moves this campaign closer to its goal. Your donation is tracked securely and reflected in the campaign progress once payment is confirmed.
               </p>
+            </div>
+          )}
+
+          {activeTab === 'protect' && isProtectedCampaign && (
+            <div className="content-section protect-section">
+              <h2>OneRaise Protect timeline</h2>
+              <p>
+                This campaign uses OneRaise Protect. Funds can be held against milestone rules and released when progress is proven.
+              </p>
+
+              <div className="protect-status-strip">
+                {['funding', 'locked', 'pending_verification', 'unlocked'].map((status) => (
+                  <div
+                    key={status}
+                    className={`protect-status-step ${campaign.protectStatus === status ? 'active' : ''}`}
+                    style={{
+                      borderColor: campaign.protectStatus === status ? getProtectTone(status) : undefined,
+                    }}
+                  >
+                    <span>{PROTECT_STATUS_LABELS[status]}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="protect-milestone-list">
+                {milestones.length === 0 && (
+                  <div className="protect-empty-note">Milestones have not been published yet.</div>
+                )}
+                {milestones.map((milestone, index) => (
+                  <div key={milestone.id} className="protect-timeline-item">
+                    <div className="protect-timeline-index" style={{ background: getProtectTone(milestone.status) }}>
+                      {index + 1}
+                    </div>
+                    <div className="protect-timeline-body">
+                      <div className="protect-timeline-head">
+                        <h3>{milestone.title}</h3>
+                        <span style={{ color: getProtectTone(milestone.status), background: `${getProtectTone(milestone.status)}18` }}>
+                          {MILESTONE_STATUS_LABELS[milestone.status] || milestone.status}
+                        </span>
+                      </div>
+                      {milestone.description && <p>{milestone.description}</p>}
+                      {milestone.proofUrl && (
+                        <div className="protect-proof-note">
+                          Proof submitted: {milestone.proofUrl.startsWith('http') ? (
+                            <a href={milestone.proofUrl} target="_blank" rel="noreferrer">open proof</a>
+                          ) : (
+                            milestone.proofUrl
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

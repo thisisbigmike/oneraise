@@ -7,6 +7,11 @@ import { CAMPAIGN_SEEDS, getCampaignPct } from "@/lib/campaign-seeds";
 import { getStoredDonationCreditUsd } from "@/lib/currency";
 
 const MAX_IMAGE_DATA_URL_LENGTH = 7 * 1024 * 1024;
+const PROTECTED_CAMPAIGN_TYPES = new Set([
+  "protected_crowdfunding",
+  "emergency_aid",
+  "grant_distribution",
+]);
 
 type SessionUser = {
   id?: string;
@@ -55,6 +60,15 @@ function revalidateCampaignViews(slug?: string) {
   }
 }
 
+function parseCampaignType(value: unknown) {
+  if (value === "protected_crowdfunding" || value === "emergency_aid" || value === "grant_distribution") {
+    return value;
+  }
+
+  if (value === "standard") return "standard";
+  return undefined;
+}
+
 export async function GET(
   _req: Request,
   context: { params: Promise<{ slug: string }> },
@@ -73,9 +87,25 @@ export async function GET(
       raised: true,
       category: true,
       status: true,
+      type: true,
+      protectStatus: true,
       user: {
         select: {
           name: true,
+        },
+      },
+      milestones: {
+        orderBy: {
+          createdAt: "asc",
+        },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          status: true,
+          proofUrl: true,
+          createdAt: true,
+          updatedAt: true,
         },
       },
       _count: {
@@ -165,6 +195,13 @@ export async function GET(
       daysLeft: seed?.daysLeft ?? 0,
       verified: seed?.verified ?? true,
       status: campaign?.status || seed?.status || "active",
+      type: campaign?.type || "standard",
+      protectStatus: campaign?.protectStatus || "funding",
+      milestones: campaign?.milestones.map((milestone) => ({
+        ...milestone,
+        createdAt: milestone.createdAt.toISOString(),
+        updatedAt: milestone.updatedAt.toISOString(),
+      })) ?? [],
       recentDonors,
     },
   });
@@ -202,7 +239,7 @@ export async function PATCH(
       return NextResponse.json({ error: "You can only update your own campaigns." }, { status: 403 });
     }
 
-    const { title, goal, category, description, status, image } = await req.json();
+    const { title, goal, category, description, status, image, type } = await req.json();
     const data: {
       title?: string;
       image?: string | null;
@@ -210,6 +247,8 @@ export async function PATCH(
       category?: string;
       description?: string | null;
       status?: string;
+      type?: string;
+      protectStatus?: string;
     } = {};
 
     if (typeof title === "string" && title.trim()) data.title = title.trim();
@@ -224,6 +263,11 @@ export async function PATCH(
     if (typeof description === "string") data.description = description.trim() || null;
     if (status === "active" || status === "draft" || status === "completed") data.status = status;
     if (image !== undefined) data.image = parseCampaignImage(image) ?? null;
+    const parsedType = parseCampaignType(type);
+    if (parsedType) {
+      data.type = parsedType;
+      if (!PROTECTED_CAMPAIGN_TYPES.has(parsedType)) data.protectStatus = "funding";
+    }
 
     const updated = await prisma.campaign.update({
       where: { slug },
@@ -247,6 +291,8 @@ export async function PATCH(
         backers: 0,
         daysLeft: updated.status === "active" ? 30 : 0,
         category: updated.category,
+        type: updated.type,
+        protectStatus: updated.protectStatus,
       },
     });
   } catch (error: unknown) {
@@ -288,6 +334,7 @@ export async function DELETE(
     }
 
     await prisma.$transaction([
+      prisma.milestone.deleteMany({ where: { campaignId: campaign.id } }),
       prisma.payout.deleteMany({ where: { campaignId: campaign.id } }),
       prisma.donation.deleteMany({ where: { campaignId: campaign.id } }),
       prisma.campaign.delete({ where: { id: campaign.id } }),

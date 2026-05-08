@@ -20,6 +20,19 @@ export type CampaignListItem = {
   daysLeft: number;
   verified: boolean;
   status: string;
+  type: string;
+  protectStatus: string;
+  milestones?: CampaignMilestoneItem[];
+};
+
+export type CampaignMilestoneItem = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  proofUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 function getCampaignPct(raised: number, goal: number) {
@@ -46,6 +59,9 @@ function getSeedCampaignsList(): CampaignListItem[] {
   return CAMPAIGN_SEED_LIST.map((campaign) => ({
     ...campaign,
     pct: getCampaignPct(campaign.raised, campaign.goal),
+    type: "standard",
+    protectStatus: "funding",
+    milestones: [],
   }));
 }
 
@@ -63,9 +79,25 @@ async function getLiveCampaignsList(where?: { userId?: string }): Promise<Campai
       raised: true,
       category: true,
       status: true,
+      type: true,
+      protectStatus: true,
       user: {
         select: {
           name: true,
+        },
+      },
+      milestones: {
+        orderBy: {
+          createdAt: "asc",
+        },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          status: true,
+          proofUrl: true,
+          createdAt: true,
+          updatedAt: true,
         },
       },
       _count: {
@@ -120,6 +152,13 @@ async function getLiveCampaignsList(where?: { userId?: string }): Promise<Campai
       daysLeft: 30,
       verified: true,
       status: campaign.status,
+      type: campaign.type,
+      protectStatus: campaign.protectStatus,
+      milestones: campaign.milestones.map((milestone) => ({
+        ...milestone,
+        createdAt: milestone.createdAt.toISOString(),
+        updatedAt: milestone.updatedAt.toISOString(),
+      })),
     };
   });
 

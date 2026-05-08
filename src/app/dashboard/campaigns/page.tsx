@@ -1,9 +1,20 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useToast, Modal } from '../../components';
 
 type CampaignStatus = 'active' | 'completed' | 'draft';
+type CampaignType = 'standard' | 'protected_crowdfunding' | 'emergency_aid' | 'grant_distribution';
+
+type CampaignMilestone = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  proofUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
 
 type CampaignManagerItem = {
   id: number;
@@ -17,6 +28,9 @@ type CampaignManagerItem = {
   backers: number;
   daysLeft: number;
   category: string;
+  type: CampaignType;
+  protectStatus: string;
+  milestones?: CampaignMilestone[];
 };
 
 const INITIAL_CAMPAIGNS: CampaignManagerItem[] = [];
@@ -45,7 +59,43 @@ function mapCampaignManagerItems(campaigns: CampaignManagerItem[]) {
     backers: campaign.backers,
     daysLeft: campaign.daysLeft,
     category: campaign.category,
+    type: campaign.type || 'standard',
+    protectStatus: campaign.protectStatus || 'funding',
+    milestones: campaign.milestones || [],
   }));
+}
+
+const CAMPAIGN_TYPE_LABELS: Record<CampaignType, string> = {
+  standard: 'Standard crowdfunding',
+  protected_crowdfunding: 'Protected crowdfunding',
+  emergency_aid: 'Emergency aid escrow',
+  grant_distribution: 'Grant distribution',
+};
+
+const PROTECT_STATUS_LABELS: Record<string, string> = {
+  funding: 'Funding',
+  locked: 'Locked',
+  pending_verification: 'Pending verification',
+  unlocked: 'Released',
+  refunded: 'Refunded',
+};
+
+const MILESTONE_STATUS_LABELS: Record<string, string> = {
+  pending: 'Pending',
+  submitted: 'Submitted',
+  approved: 'Approved',
+  rejected: 'Rejected',
+};
+
+function isProtectedType(type?: string) {
+  return type === 'protected_crowdfunding' || type === 'emergency_aid' || type === 'grant_distribution';
+}
+
+function getProtectTone(status?: string) {
+  if (status === 'unlocked') return '#5DCAA5';
+  if (status === 'pending_verification') return '#EF9F27';
+  if (status === 'refunded') return '#85B7EB';
+  return '#1D9E75';
 }
 
 function readImageFileAsDataUrl(file: File | null): Promise<string | undefined> {
@@ -75,17 +125,12 @@ function ImageUploadArea({
   existingImage?: string | null;
 }) {
   const [dragActive, setDragActive] = useState(false);
-  const [preview, setPreview] = useState<string | null>(null);
+  const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
 
   useEffect(() => {
-    if (file) {
-      const objectUrl = URL.createObjectURL(file);
-      setPreview(objectUrl);
-      return () => URL.revokeObjectURL(objectUrl);
-    } else {
-      setPreview(null);
-    }
-  }, [file]);
+    if (!preview) return;
+    return () => URL.revokeObjectURL(preview);
+  }, [preview]);
 
   const displayImage = preview || existingImage || null;
 
@@ -168,7 +213,7 @@ function ImageUploadArea({
 export default function CampaignsPage() {
   const { showToast } = useToast();
   const [filter, setFilter] = useState('all');
-  const [campaigns, setCampaigns] = useState(INITIAL_CAMPAIGNS);
+  const [campaigns, setCampaigns] = useState<CampaignManagerItem[]>(INITIAL_CAMPAIGNS);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareTitle, setShareTitle] = useState('');
   const [newOpen, setNewOpen] = useState(false);
@@ -179,6 +224,8 @@ export default function CampaignsPage() {
   const [newEndDate, setNewEndDate] = useState('');
   const [newCoverImage, setNewCoverImage] = useState<File | null>(null);
   const [newRewardTiers, setNewRewardTiers] = useState([{ title: '', amount: '' }]);
+  const [newCampaignType, setNewCampaignType] = useState<CampaignType>('standard');
+  const [newMilestones, setNewMilestones] = useState([{ title: '', description: '' }]);
   const [newSlug, setNewSlug] = useState('');
   const [newVisibility, setNewVisibility] = useState('public');
   const [confirmPublish, setConfirmPublish] = useState<number | null>(null);
@@ -190,6 +237,9 @@ export default function CampaignsPage() {
   const [editEndDate, setEditEndDate] = useState('');
   const [editCoverImage, setEditCoverImage] = useState<File | null>(null);
   const [editRewardTiers, setEditRewardTiers] = useState([{ title: '', amount: '' }]);
+  const [editCampaignType, setEditCampaignType] = useState<CampaignType>('standard');
+  const [newManageMilestone, setNewManageMilestone] = useState({ title: '', description: '' });
+  const [proofInputs, setProofInputs] = useState<Record<string, string>>({});
   const [editSlug, setEditSlug] = useState('');
   const [editVisibility, setEditVisibility] = useState('public');
 
@@ -274,8 +324,8 @@ export default function CampaignsPage() {
       await refreshCampaigns();
       showToast('Campaign published! It\'s now live for backers.', 'success');
       setConfirmPublish(null);
-    } catch (error: any) {
-      showToast(error?.message || 'Could not publish campaign.', 'error');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Could not publish campaign.', 'error');
     }
   };
 
@@ -294,6 +344,8 @@ export default function CampaignsPage() {
           status: 'draft',
           description: newDescription,
           image,
+          type: newCampaignType,
+          milestones: isProtectedType(newCampaignType) ? newMilestones : [],
           endDate: newEndDate,
           slug: newSlug,
           visibility: newVisibility,
@@ -308,10 +360,12 @@ export default function CampaignsPage() {
       setNewTitle(''); setNewGoal(''); setNewCategory('');
       setNewDescription(''); setNewEndDate(''); setNewCoverImage(null);
       setNewRewardTiers([{ title: '', amount: '' }]);
+      setNewCampaignType('standard');
+      setNewMilestones([{ title: '', description: '' }]);
       setNewSlug(''); setNewVisibility('public');
       setNewOpen(false);
-    } catch (error: any) {
-      showToast(error?.message || 'Could not create campaign.', 'error');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Could not create campaign.', 'error');
     }
   };
 
@@ -322,6 +376,9 @@ export default function CampaignsPage() {
       setEditTitle(c.title); 
       setEditGoal(String(c.goal)); 
       setEditCategory(c.category || '');
+      setEditCampaignType(c.type || 'standard');
+      setNewManageMilestone({ title: '', description: '' });
+      setProofInputs({});
       setEditSlug(c.slug || '');
       setEditDescription('');
       setEditEndDate('');
@@ -347,6 +404,7 @@ export default function CampaignsPage() {
           title: editTitle, 
           goal: parseInt(editGoal) || campaign.goal,
           category: editCategory,
+          type: editCampaignType,
           slug: editSlug,
           description: editDescription,
           image,
@@ -361,8 +419,8 @@ export default function CampaignsPage() {
       await refreshCampaigns();
       showToast('Campaign updated!', 'success');
       setManageId(null);
-    } catch (error: any) {
-      showToast(error?.message || 'Could not update campaign.', 'error');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Could not update campaign.', 'error');
     }
   };
   const handleDeleteCampaign = async (idToDel?: number) => {
@@ -383,8 +441,67 @@ export default function CampaignsPage() {
       await refreshCampaigns();
       showToast('Campaign deleted.', 'info');
       if (!idToDel) setManageId(null);
-    } catch (error: any) {
-      showToast(error?.message || 'Could not delete campaign.', 'error');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Could not delete campaign.', 'error');
+    }
+  };
+
+  const handleAddManageMilestone = async () => {
+    const campaign = campaigns.find(c => c.id === manageId);
+    if (!campaign?.slug) {
+      showToast('Campaign could not be updated because it is missing a share link.', 'error');
+      return;
+    }
+
+    if (!newManageMilestone.title.trim()) {
+      showToast('Milestone title is required.', 'warning');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/campaigns/${encodeURIComponent(campaign.slug)}/milestones`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newManageMilestone),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unable to add milestone.');
+
+      await refreshCampaigns();
+      setNewManageMilestone({ title: '', description: '' });
+      showToast('Milestone added.', 'success');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Could not add milestone.', 'error');
+    }
+  };
+
+  const handleSubmitProof = async (milestoneId: string) => {
+    const campaign = campaigns.find(c => c.id === manageId);
+    if (!campaign?.slug) {
+      showToast('Campaign could not be updated because it is missing a share link.', 'error');
+      return;
+    }
+
+    const proofUrl = proofInputs[milestoneId]?.trim();
+    if (!proofUrl) {
+      showToast('Add a proof link or note before submitting.', 'warning');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/campaigns/${encodeURIComponent(campaign.slug)}/milestones`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ milestoneId, proofUrl, action: 'submit-proof' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unable to submit proof.');
+
+      await refreshCampaigns();
+      setProofInputs((current) => ({ ...current, [milestoneId]: '' }));
+      showToast('Proof submitted for admin verification.', 'success');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Could not submit proof.', 'error');
     }
   };
 
@@ -429,6 +546,19 @@ export default function CampaignsPage() {
                   <span className={`cmp-badge-dot ${c.status === 'active' ? 'live' : c.status}`}></span>
                   {c.status === 'active' ? 'LIVE' : c.status === 'draft' ? 'DRAFT' : 'COMPLETED'}
                 </div>
+                {isProtectedType(c.type) && (
+                  <div
+                    className="cmp-badge-status"
+                    style={{
+                      borderColor: `${getProtectTone(c.protectStatus)}55`,
+                      color: getProtectTone(c.protectStatus),
+                      background: `${getProtectTone(c.protectStatus)}18`,
+                    }}
+                  >
+                    <span className="cmp-badge-dot" style={{ background: getProtectTone(c.protectStatus) }}></span>
+                    PROTECT
+                  </div>
+                )}
                 <div className="cmp-badge-category">{c.category}</div>
               </div>
             </div>
@@ -438,6 +568,11 @@ export default function CampaignsPage() {
               <div>
                 <h3 className="cmp-title">{c.title}</h3>
                 <p className="cmp-description">Goal: ${c.goal.toLocaleString()} {c.daysLeft > 0 ? `• Ends ${endDate}` : ''}</p>
+                {isProtectedType(c.type) && (
+                  <p className="cmp-description" style={{ color: getProtectTone(c.protectStatus), marginTop: 8 }}>
+                    {CAMPAIGN_TYPE_LABELS[c.type]} · {PROTECT_STATUS_LABELS[c.protectStatus] || c.protectStatus}
+                  </p>
+                )}
               </div>
 
               {c.status !== 'draft' && (
@@ -626,6 +761,66 @@ export default function CampaignsPage() {
             </div>
           </section>
 
+          {/* Protect Setup */}
+          <section className="form-section">
+            <h3 className="form-section-title">OneRaise Protect</h3>
+            <div className="form-grid">
+              <div className="s-field form-grid-full">
+                <label className="s-label">Campaign Protection Mode</label>
+                <div className="s-select-wrap">
+                  <select className="s-select" value={newCampaignType} onChange={e => setNewCampaignType(e.target.value as CampaignType)}>
+                    <option value="standard">Standard crowdfunding</option>
+                    <option value="protected_crowdfunding">Protected crowdfunding</option>
+                    <option value="emergency_aid">Emergency aid escrow</option>
+                    <option value="grant_distribution">Grant distribution</option>
+                  </select>
+                  <span className="s-select-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
+                  </span>
+                </div>
+                <div className="s-hint" style={{ marginTop: 8 }}>
+                  Protected modes show a public badge and let you submit milestone proof before funds are released.
+                </div>
+              </div>
+            </div>
+
+            {isProtectedType(newCampaignType) && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 14 }}>
+                {newMilestones.map((milestone, index) => (
+                  <div key={index} className="s-tier-card">
+                    <div className="s-tier-grid">
+                      <div>
+                        <div className="s-tier-field-label">Milestone Title</div>
+                        <input className="s-tier-input" placeholder="e.g. Vendor deposit paid" value={milestone.title} onChange={e => {
+                          const milestones = [...newMilestones];
+                          milestones[index].title = e.target.value;
+                          setNewMilestones(milestones);
+                        }} />
+                      </div>
+                      <div>
+                        <div className="s-tier-field-label">Verification Detail</div>
+                        <input className="s-tier-input" placeholder="Receipt, photo, report, or proof required" value={milestone.description} onChange={e => {
+                          const milestones = [...newMilestones];
+                          milestones[index].description = e.target.value;
+                          setNewMilestones(milestones);
+                        }} />
+                      </div>
+                    </div>
+                    {newMilestones.length > 1 && (
+                      <button className="s-tier-remove" type="button" onClick={() => setNewMilestones(newMilestones.filter((_, i) => i !== index))}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button className="s-add-tier-btn" type="button" onClick={() => setNewMilestones([...newMilestones, { title: '', description: '' }])}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
+                  Add milestone
+                </button>
+              </div>
+            )}
+          </section>
+
           {/* Reward Tiers */}
           <section className="form-section">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px solid rgba(245,250,247,0.05)' }}>
@@ -728,9 +923,83 @@ export default function CampaignsPage() {
             </select>
           </div>
           <div className="s-field s-field-full">
+            <label className="s-label">OneRaise Protect Mode</label>
+            <select className="s-input" value={editCampaignType} onChange={e => setEditCampaignType(e.target.value as CampaignType)}>
+              <option value="standard">Standard crowdfunding</option>
+              <option value="protected_crowdfunding">Protected crowdfunding</option>
+              <option value="emergency_aid">Emergency aid escrow</option>
+              <option value="grant_distribution">Grant distribution</option>
+            </select>
+            <div className="s-hint" style={{ marginTop: 8 }}>
+              Protected modes show a public badge and enable milestone proof submissions.
+            </div>
+          </div>
+          <div className="s-field s-field-full">
             <label className="s-label">Cover Image</label>
             <ImageUploadArea file={editCoverImage} setFile={setEditCoverImage} existingImage={campaigns.find(c => c.id === manageId)?.image} />
           </div>
+
+          {isProtectedType(editCampaignType) && (
+            <div className="s-field s-field-full">
+              <label className="s-label">Protect Milestones</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {(campaigns.find(c => c.id === manageId)?.milestones || []).length === 0 && (
+                  <div className="cmp-draft-msg">No milestones yet. Add at least one proof checkpoint before launching a protected campaign.</div>
+                )}
+                {(campaigns.find(c => c.id === manageId)?.milestones || []).map((milestone) => (
+                  <div key={milestone.id} className="s-tier-card" style={{ display: 'block' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
+                      <div>
+                        <div style={{ fontWeight: 700 }}>{milestone.title}</div>
+                        {milestone.description && <div className="s-hint" style={{ marginTop: 4 }}>{milestone.description}</div>}
+                      </div>
+                      <span style={{
+                        height: 26,
+                        padding: '5px 9px',
+                        borderRadius: 999,
+                        background: `${milestone.status === 'approved' ? '#5DCAA5' : milestone.status === 'submitted' ? '#EF9F27' : milestone.status === 'rejected' ? '#F09595' : '#85B7EB'}22`,
+                        color: milestone.status === 'approved' ? '#5DCAA5' : milestone.status === 'submitted' ? '#EF9F27' : milestone.status === 'rejected' ? '#F09595' : '#85B7EB',
+                        fontSize: 11,
+                        fontWeight: 800,
+                        textTransform: 'uppercase',
+                      }}>
+                        {MILESTONE_STATUS_LABELS[milestone.status] || milestone.status}
+                      </span>
+                    </div>
+                    {milestone.proofUrl && <div className="s-hint" style={{ marginBottom: 8 }}>Proof: {milestone.proofUrl}</div>}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input
+                        className="s-input"
+                        placeholder="Paste receipt/report URL or a short proof note"
+                        value={proofInputs[milestone.id] ?? ''}
+                        onChange={e => setProofInputs(current => ({ ...current, [milestone.id]: e.target.value }))}
+                      />
+                      <button className="btn-primary" type="button" style={{ flexShrink: 0 }} onClick={() => handleSubmitProof(milestone.id)}>
+                        Submit proof
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="s-tier-card" style={{ display: 'block' }}>
+                  <div className="s-tier-grid" style={{ marginBottom: 10 }}>
+                    <div>
+                      <div className="s-tier-field-label">New milestone</div>
+                      <input className="s-tier-input" placeholder="e.g. Equipment purchased" value={newManageMilestone.title} onChange={e => setNewManageMilestone(current => ({ ...current, title: e.target.value }))} />
+                    </div>
+                    <div>
+                      <div className="s-tier-field-label">Verification requirement</div>
+                      <input className="s-tier-input" placeholder="e.g. Upload vendor receipt" value={newManageMilestone.description} onChange={e => setNewManageMilestone(current => ({ ...current, description: e.target.value }))} />
+                    </div>
+                  </div>
+                  <button className="s-add-tier-btn" type="button" onClick={handleAddManageMilestone}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
+                    Add milestone
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="s-field s-field-full">
             <label className="s-label">Reward Tiers Setup</label>
