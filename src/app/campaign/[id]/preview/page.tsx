@@ -3,9 +3,10 @@ import Link from 'next/link';
 import prisma from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 
-export default async function CampaignPreviewPage({ params }: { params: { slug: string } }) {
+export default async function CampaignPreviewPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
   const campaign = await prisma.campaign.findUnique({
-    where: { slug: params.slug },
+    where: { slug: resolvedParams.id },
     include: {
       user: true,
       donations: true,
