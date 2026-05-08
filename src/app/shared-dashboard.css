@@ -802,19 +802,19 @@ select.s-input option,
    M3 NEW CAMPAIGN MODAL (Redesign)
    ══════════════════════════════════════════ */
 :root {
-  --m3-surface: #f8faf9;
-  --m3-surface-bright: #f8faf9;
-  --m3-surface-variant: #e1e3e2;
-  --m3-surface-container-low: #f3f4f3;
-  --m3-surface-container-lowest: #ffffff;
-  --m3-on-surface: #191c1c;
-  --m3-on-surface-variant: #3d4944;
-  --m3-primary: #00694f;
-  --m3-primary-container: #008565;
-  --m3-on-primary: #ffffff;
-  --m3-outline: #6d7a73;
-  --m3-outline-variant: #bccac2;
-  --m3-secondary-container: #d9e6da;
+  --m3-surface: var(--ink);
+  --m3-surface-bright: var(--ink-mid);
+  --m3-surface-variant: rgba(248, 252, 249, 0.08); /* --white-10 */
+  --m3-surface-container-low: var(--ink-card);
+  --m3-surface-container-lowest: #050C09;
+  --m3-on-surface: var(--white);
+  --m3-on-surface-variant: rgba(248, 252, 249, 0.6); /* --white-60 */
+  --m3-primary: var(--teal-400);
+  --m3-primary-container: var(--teal-900);
+  --m3-on-primary: var(--white);
+  --m3-outline: rgba(248, 252, 249, 0.3); /* --white-30 */
+  --m3-outline-variant: rgba(248, 252, 249, 0.08); /* --white-10 */
+  --m3-secondary-container: var(--teal-800);
 }
 
 /* Base Modal Overrides for M3 */

@@ -89,6 +89,7 @@ export async function GET(
       status: true,
       type: true,
       protectStatus: true,
+      createdAt: true,
       user: {
         select: {
           name: true,
@@ -149,7 +150,8 @@ export async function GET(
     0,
   ) ?? 0;
   const baseBackers = campaign ? 0 : seed ? seed.backers : 0;
-  const liveBackers = campaign?._count.donations ?? 0;
+  const uniqueDonors = campaign ? new Set(campaign.donations.map(d => (d.donorEmail || d.donorName || Math.random().toString()).toLowerCase().trim())) : new Set();
+  const liveBackers = uniqueDonors.size;
   const goal = campaign?.goal || seed?.goal || 0;
   const raised = baseRaised + liveRaised;
   const pct = getCampaignPct(raised, goal);
@@ -192,7 +194,7 @@ export async function GET(
       category: campaign?.category || seed?.category || "Community",
       desc: campaign?.description || seed?.desc || "",
       backers: baseBackers + liveBackers,
-      daysLeft: seed?.daysLeft ?? 0,
+      daysLeft: campaign?.status === "active" ? Math.max(0, Math.ceil((campaign.createdAt.getTime() + 30 * 86400000 - Date.now()) / 86400000)) : (seed?.daysLeft ?? 0),
       verified: seed?.verified ?? true,
       status: campaign?.status || seed?.status || "active",
       type: campaign?.type || "standard",

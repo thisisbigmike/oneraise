@@ -848,49 +848,7 @@ export default function CampaignsPage() {
                 )}
               </section>
 
-              {/* Reward Tiers */}
-              <section className="m3-section">
-                <div className="m3-section-header">
-                  <span className="material-symbols-outlined">redeem</span>
-                  <h2 className="m3-headline-lg">Reward Tiers</h2>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {newRewardTiers.map((tier, index) => (
-                    <div key={index} className="s-tier-card" style={{ background: 'var(--m3-surface-bright)', borderColor: 'var(--m3-outline-variant)' }}>
-                      {newRewardTiers.length > 1 && (
-                        <button className="s-tier-remove" onClick={() => {
-                          const tiers = [...newRewardTiers];
-                          tiers.splice(index, 1);
-                          setNewRewardTiers(tiers);
-                        }}>
-                          <span className="material-symbols-outlined">close</span>
-                        </button>
-                      )}
-                      <div className="s-tier-grid">
-                        <div>
-                          <div className="m3-label">Tier Title</div>
-                          <input className="m3-input" placeholder="e.g. Supporter Badge" value={tier.title} onChange={e => {
-                            const tiers = [...newRewardTiers];
-                            tiers[index].title = e.target.value;
-                            setNewRewardTiers(tiers);
-                          }} />
-                        </div>
-                        <div>
-                          <div className="m3-label">Amount ($)</div>
-                          <input className="m3-input" type="number" placeholder="0.00" value={tier.amount} onChange={e => {
-                            const tiers = [...newRewardTiers];
-                            tiers[index].amount = e.target.value;
-                            setNewRewardTiers(tiers);
-                          }} />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  <button className="m3-btn-secondary" style={{ width: 'fit-content' }} onClick={() => setNewRewardTiers([...newRewardTiers, { title: '', amount: '' }])}>
-                    + Add Tier
-                  </button>
-                </div>
-              </section>
+
             </main>
 
             {/* Bottom Action Bar */}

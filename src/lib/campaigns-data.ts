@@ -81,6 +81,7 @@ async function getLiveCampaignsList(where?: { userId?: string }): Promise<Campai
       status: true,
       type: true,
       protectStatus: true,
+      createdAt: true,
       user: {
         select: {
           name: true,
@@ -119,6 +120,8 @@ async function getLiveCampaignsList(where?: { userId?: string }): Promise<Campai
           coverFee: true,
           provider: true,
           providerDataJson: true,
+          donorEmail: true,
+          donorName: true,
         },
       },
     },
@@ -134,6 +137,7 @@ async function getLiveCampaignsList(where?: { userId?: string }): Promise<Campai
       0,
     );
     const goal = campaign.goal;
+    const uniqueDonors = new Set(campaign.donations.map(d => (d.donorEmail || d.donorName || Math.random().toString()).toLowerCase().trim()));
 
     return {
       id: Number(campaign.slug) || getNumericCampaignId(campaign.slug),
@@ -148,8 +152,8 @@ async function getLiveCampaignsList(where?: { userId?: string }): Promise<Campai
       pct: getCampaignPct(raised, goal),
       category: campaign.category,
       desc: campaign.description || "",
-      backers: campaign._count.donations,
-      daysLeft: 30,
+      backers: uniqueDonors.size,
+      daysLeft: campaign.status === "active" ? Math.max(0, Math.ceil((campaign.createdAt.getTime() + 30 * 86400000 - Date.now()) / 86400000)) : 0,
       verified: true,
       status: campaign.status,
       type: campaign.type,
