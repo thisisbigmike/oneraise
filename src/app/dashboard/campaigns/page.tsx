@@ -616,6 +616,10 @@ export default function CampaignsPage() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   Edit
                 </button>
+                <a href={`/campaign/${c.slug}/preview`} target="_blank" rel="noreferrer" className="cmp-btn cmp-btn-outline" style={{ textDecoration: 'none' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  Preview
+                </a>
                 {c.status === 'active' && (
                   <>
                     <a href={`/campaign/${c.slug}`} target="_blank" rel="noreferrer" className="cmp-btn cmp-btn-outline">
@@ -667,205 +671,240 @@ export default function CampaignsPage() {
       </Modal>
 
       {/* NEW CAMPAIGN MODAL */}
-      <Modal
-        open={newOpen}
-        onClose={() => setNewOpen(false)}
-        title="Create New Campaign"
-        className="modal-wide"
-        footer={
-          <>
-            <button className="btn-secondary" onClick={() => setNewOpen(false)}>Cancel</button>
-            <button className="btn-primary" onClick={handleNewCampaign}>
-              Create as Draft
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </button>
-          </>
-        }
-      >
-        <div className="form-sections">
-          {/* Basic Details */}
-          <section className="form-section">
-            <h3 className="form-section-title">Basic Details</h3>
-            <div className="form-grid">
-              <div className="s-field form-grid-full">
-                <label className="s-label">Campaign Title</label>
-                <input className="s-input" placeholder="e.g. Build a School in Ibadan" value={newTitle} onChange={e => {
-                  setNewTitle(e.target.value);
-                  if (!newSlug) setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''));
-                }} />
-              </div>
-              <div className="s-field">
-                <label className="s-label">URL Slug</label>
-                <div className="s-slug-wrap">
-                  <span className="s-slug-prefix">oneraise.com/</span>
-                  <input className="s-slug-input" placeholder="build-a-school" value={newSlug} onChange={e => setNewSlug(e.target.value)} />
-                </div>
-              </div>
-              <div className="s-field">
-                <label className="s-label">Visibility</label>
-                <div className="s-select-wrap">
-                  <select className="s-select" value={newVisibility} onChange={e => setNewVisibility(e.target.value)}>
-                    <option value="public">Public</option>
-                    <option value="private">Private (Invite Only)</option>
-                    <option value="unlisted">Unlisted</option>
-                  </select>
-                  <span className="s-select-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
-                  </span>
-                </div>
-              </div>
-              <div className="s-field form-grid-full">
-                <label className="s-label">Category</label>
-                <div className="s-select-wrap">
-                  <select className="s-select" value={newCategory} onChange={e => setNewCategory(e.target.value)}>
-                    <option value="">Select a category</option>
-                    <option value="Technology">Technology</option>
-                    <option value="Social Impact">Social Impact</option>
-                    <option value="Arts & Culture">Arts & Culture</option>
-                    <option value="Education">Education</option>
-                    <option value="Health">Health</option>
-                  </select>
-                  <span className="s-select-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </section>
+      {/* NEW CAMPAIGN MODAL (M3 Redesign) */}
+      {newOpen && (
+        <div className="modal-overlay" onClick={() => setNewOpen(false)} style={{ zIndex: 9999 }}>
+          <div className="m3-modal-main" onClick={e => e.stopPropagation()} style={{
+            position: 'relative', width: '100%', maxHeight: '90vh', overflowY: 'auto', borderRadius: '16px'
+          }}>
+            {/* Header */}
+            <header className="m3-section-header" style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--m3-surface)', margin: '-24px -24px 24px -24px', padding: '16px 24px' }}>
+              <button aria-label="Close" onClick={() => setNewOpen(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--m3-on-surface-variant)', display: 'flex' }}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+              <h1 className="m3-headline-lg" style={{ fontSize: '20px', flex: 1, textAlign: 'center' }}>New Campaign</h1>
+              <div style={{ width: '24px' }}></div>
+            </header>
 
-          {/* Campaign Story */}
-          <section className="form-section">
-            <h3 className="form-section-title">Campaign Story</h3>
-            <div className="s-field">
-              <label className="s-label">Description</label>
-              <textarea className="s-textarea" rows={5} placeholder="Tell the story of why you are raising funds. Be compelling and transparent..." value={newDescription} onChange={e => setNewDescription(e.target.value)} />
-            </div>
-            <div className="s-field">
-              <label className="s-label">Cover Image</label>
-              <ImageUploadArea file={newCoverImage} setFile={setNewCoverImage} />
-            </div>
-          </section>
-
-          {/* Funding Goals */}
-          <section className="form-section">
-            <h3 className="form-section-title">Funding Goals</h3>
-            <div className="form-grid">
-              <div className="s-field">
-                <label className="s-label">Goal Amount ($)</label>
-                <input className="s-input" type="text" inputMode="decimal" placeholder="50,000" value={formatAmount(newGoal)} onChange={e => handleGoalChange(e.target.value, setNewGoal)} />
-              </div>
-              <div className="s-field">
-                <label className="s-label">End Date</label>
-                <input className="s-input" type="date" value={newEndDate} onChange={e => setNewEndDate(e.target.value)} />
-              </div>
-            </div>
-          </section>
-
-          {/* Protect Setup */}
-          <section className="form-section">
-            <h3 className="form-section-title">OneRaise Protect</h3>
-            <div className="form-grid">
-              <div className="s-field form-grid-full">
-                <label className="s-label">Campaign Protection Mode</label>
-                <div className="s-select-wrap">
-                  <select className="s-select" value={newCampaignType} onChange={e => setNewCampaignType(e.target.value as CampaignType)}>
-                    <option value="standard">Standard crowdfunding</option>
-                    <option value="protected_crowdfunding">Protected crowdfunding</option>
-                    <option value="emergency_aid">Emergency aid escrow</option>
-                    <option value="grant_distribution">Grant distribution</option>
-                  </select>
-                  <span className="s-select-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
-                  </span>
+            {/* Main Content */}
+            <main style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+              {/* Basic Details Section */}
+              <section className="m3-section">
+                <div className="m3-section-header">
+                  <span className="material-symbols-outlined">info</span>
+                  <h2 className="m3-headline-lg">Basic Details</h2>
                 </div>
-                <div className="s-hint" style={{ marginTop: 8 }}>
-                  Protected modes show a public badge and let you submit milestone proof before funds are released.
+                
+                <div className="m3-space-y">
+                  <label className="m3-label" htmlFor="campaign-title">Campaign Title</label>
+                  <input className="m3-input" id="campaign-title" placeholder="e.g. Save the Forest" value={newTitle} onChange={e => {
+                    setNewTitle(e.target.value);
+                    if (!newSlug) setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''));
+                  }} />
                 </div>
-              </div>
-            </div>
-
-            {isProtectedType(newCampaignType) && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 14 }}>
-                {newMilestones.map((milestone, index) => (
-                  <div key={index} className="s-tier-card">
-                    <div className="s-tier-grid">
-                      <div>
-                        <div className="s-tier-field-label">Milestone Title</div>
-                        <input className="s-tier-input" placeholder="e.g. Vendor deposit paid" value={milestone.title} onChange={e => {
-                          const milestones = [...newMilestones];
-                          milestones[index].title = e.target.value;
-                          setNewMilestones(milestones);
-                        }} />
-                      </div>
-                      <div>
-                        <div className="s-tier-field-label">Verification Detail</div>
-                        <input className="s-tier-input" placeholder="Receipt, photo, report, or proof required" value={milestone.description} onChange={e => {
-                          const milestones = [...newMilestones];
-                          milestones[index].description = e.target.value;
-                          setNewMilestones(milestones);
-                        }} />
+                
+                <div className="m3-space-y">
+                  <label className="m3-label" htmlFor="url-slug">URL Slug</label>
+                  <div className="m3-input-group">
+                    <span className="m3-input-prefix">impact.org/</span>
+                    <input className="m3-input" id="url-slug" placeholder="save-the-forest" value={newSlug} onChange={e => setNewSlug(e.target.value)} />
+                  </div>
+                </div>
+                
+                <div className="m3-grid">
+                  <div className="m3-space-y">
+                    <label className="m3-label" htmlFor="visibility">Visibility</label>
+                    <div className="m3-select-wrap">
+                      <select className="m3-select" id="visibility" value={newVisibility} onChange={e => setNewVisibility(e.target.value)}>
+                        <option value="public">Public</option>
+                        <option value="private">Private</option>
+                        <option value="unlisted">Unlisted</option>
+                      </select>
+                      <div className="m3-select-icon">
+                        <span className="material-symbols-outlined">expand_more</span>
                       </div>
                     </div>
-                    {newMilestones.length > 1 && (
-                      <button className="s-tier-remove" type="button" onClick={() => setNewMilestones(newMilestones.filter((_, i) => i !== index))}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                      </button>
-                    )}
                   </div>
-                ))}
-                <button className="s-add-tier-btn" type="button" onClick={() => setNewMilestones([...newMilestones, { title: '', description: '' }])}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
-                  Add milestone
-                </button>
-              </div>
-            )}
-          </section>
+                  
+                  <div className="m3-space-y">
+                    <label className="m3-label" htmlFor="category">Category</label>
+                    <div className="m3-select-wrap">
+                      <select className="m3-select" id="category" value={newCategory} onChange={e => setNewCategory(e.target.value)}>
+                        <option value="">Select a category</option>
+                        <option value="Environment">Environment</option>
+                        <option value="Education">Education</option>
+                        <option value="Health">Health</option>
+                        <option value="Community">Community</option>
+                        <option value="Technology">Technology</option>
+                        <option value="Social Impact">Social Impact</option>
+                        <option value="Arts & Culture">Arts & Culture</option>
+                      </select>
+                      <div className="m3-select-icon">
+                        <span className="material-symbols-outlined">expand_more</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
 
-          {/* Reward Tiers */}
-          <section className="form-section">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px solid rgba(245,250,247,0.05)' }}>
-              <h3 className="form-section-title" style={{ border: 'none', padding: 0 }}>Reward Tiers</h3>
-              <button className="s-add-tier-btn" onClick={() => setNewRewardTiers([...newRewardTiers, { title: '', amount: '' }])}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
-                Add Tier
+              {/* Campaign Story Section */}
+              <section className="m3-section">
+                <div className="m3-section-header">
+                  <span className="material-symbols-outlined">edit_document</span>
+                  <h2 className="m3-headline-lg">Campaign Story</h2>
+                </div>
+                <div className="m3-space-y">
+                  <label className="m3-label" htmlFor="description">Description</label>
+                  <textarea className="m3-textarea" id="description" placeholder="Tell the story behind your campaign..." rows={5} value={newDescription} onChange={e => setNewDescription(e.target.value)}></textarea>
+                </div>
+              </section>
+
+              {/* Cover Image Section */}
+              <section className="m3-section">
+                <div className="m3-section-header">
+                  <span className="material-symbols-outlined">image</span>
+                  <h2 className="m3-headline-lg">Cover Image</h2>
+                </div>
+                <ImageUploadArea file={newCoverImage} setFile={setNewCoverImage} />
+              </section>
+
+              {/* Funding Goals Section */}
+              <section className="m3-section">
+                <div className="m3-section-header">
+                  <span className="material-symbols-outlined">attach_money</span>
+                  <h2 className="m3-headline-lg">Funding Goals</h2>
+                </div>
+                <div className="m3-grid">
+                  <div className="m3-space-y">
+                    <label className="m3-label" htmlFor="goal-amount">Goal Amount</label>
+                    <div className="m3-input-group">
+                      <span className="m3-input-prefix">$</span>
+                      <input className="m3-input" id="goal-amount" placeholder="0.00" value={formatAmount(newGoal)} onChange={e => handleGoalChange(e.target.value, setNewGoal)} />
+                      <span className="m3-input-prefix" style={{ borderRadius: '0 8px 8px 0', borderLeft: 'none', borderRight: '1px solid var(--m3-outline-variant)' }}>USD</span>
+                    </div>
+                  </div>
+                  <div className="m3-space-y">
+                    <label className="m3-label" htmlFor="end-date">End Date</label>
+                    <input className="m3-input" id="end-date" type="date" value={newEndDate} onChange={e => setNewEndDate(e.target.value)} />
+                  </div>
+                </div>
+              </section>
+
+              {/* OneRaise Protect Section */}
+              <section className="m3-section m3-protect-card">
+                <div className="m3-section-header" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+                  <span className="material-symbols-outlined">shield</span>
+                  <h2 className="m3-headline-lg">OneRaise Protect</h2>
+                </div>
+                <div className="m3-space-y">
+                  <label className="m3-label" htmlFor="protection-mode">Campaign Protection Mode</label>
+                  <div className="m3-select-wrap">
+                    <select className="m3-select" id="protection-mode" value={newCampaignType} onChange={e => setNewCampaignType(e.target.value as CampaignType)}>
+                      <option value="standard">Standard Verification</option>
+                      <option value="protected_crowdfunding">Protected crowdfunding</option>
+                      <option value="emergency_aid">Emergency aid escrow</option>
+                      <option value="grant_distribution">Grant distribution</option>
+                    </select>
+                    <div className="m3-select-icon">
+                      <span className="material-symbols-outlined">expand_more</span>
+                    </div>
+                  </div>
+                  <p className="m3-hint">Enhanced transparency adds additional financial tracking and regular reporting requirements to build maximum donor trust.</p>
+                </div>
+                
+                {isProtectedType(newCampaignType) && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 14 }}>
+                    {newMilestones.map((milestone, index) => (
+                      <div key={index} className="s-tier-card" style={{ background: 'var(--m3-surface-bright)', borderColor: 'var(--m3-outline-variant)' }}>
+                        <div className="s-tier-grid">
+                          <div>
+                            <div className="m3-label">Milestone Title</div>
+                            <input className="m3-input" placeholder="e.g. Vendor deposit paid" value={milestone.title} onChange={e => {
+                              const milestones = [...newMilestones];
+                              milestones[index].title = e.target.value;
+                              setNewMilestones(milestones);
+                            }} />
+                          </div>
+                          <div>
+                            <div className="m3-label">Verification Detail</div>
+                            <input className="m3-input" placeholder="Receipt, photo, report, or proof required" value={milestone.description} onChange={e => {
+                              const milestones = [...newMilestones];
+                              milestones[index].description = e.target.value;
+                              setNewMilestones(milestones);
+                            }} />
+                          </div>
+                        </div>
+                        {newMilestones.length > 1 && (
+                          <button className="s-tier-remove" type="button" onClick={() => setNewMilestones(newMilestones.filter((_, i) => i !== index))}>
+                            <span className="material-symbols-outlined">close</span>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button className="m3-btn-secondary" style={{ width: 'fit-content' }} type="button" onClick={() => setNewMilestones([...newMilestones, { title: '', description: '' }])}>
+                      + Add milestone
+                    </button>
+                  </div>
+                )}
+              </section>
+
+              {/* Reward Tiers */}
+              <section className="m3-section">
+                <div className="m3-section-header">
+                  <span className="material-symbols-outlined">redeem</span>
+                  <h2 className="m3-headline-lg">Reward Tiers</h2>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {newRewardTiers.map((tier, index) => (
+                    <div key={index} className="s-tier-card" style={{ background: 'var(--m3-surface-bright)', borderColor: 'var(--m3-outline-variant)' }}>
+                      {newRewardTiers.length > 1 && (
+                        <button className="s-tier-remove" onClick={() => {
+                          const tiers = [...newRewardTiers];
+                          tiers.splice(index, 1);
+                          setNewRewardTiers(tiers);
+                        }}>
+                          <span className="material-symbols-outlined">close</span>
+                        </button>
+                      )}
+                      <div className="s-tier-grid">
+                        <div>
+                          <div className="m3-label">Tier Title</div>
+                          <input className="m3-input" placeholder="e.g. Supporter Badge" value={tier.title} onChange={e => {
+                            const tiers = [...newRewardTiers];
+                            tiers[index].title = e.target.value;
+                            setNewRewardTiers(tiers);
+                          }} />
+                        </div>
+                        <div>
+                          <div className="m3-label">Amount ($)</div>
+                          <input className="m3-input" type="number" placeholder="0.00" value={tier.amount} onChange={e => {
+                            const tiers = [...newRewardTiers];
+                            tiers[index].amount = e.target.value;
+                            setNewRewardTiers(tiers);
+                          }} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <button className="m3-btn-secondary" style={{ width: 'fit-content' }} onClick={() => setNewRewardTiers([...newRewardTiers, { title: '', amount: '' }])}>
+                    + Add Tier
+                  </button>
+                </div>
+              </section>
+            </main>
+
+            {/* Bottom Action Bar */}
+            <div className="m3-bottom-bar">
+              <button className="m3-btn-secondary" type="button" onClick={() => setNewOpen(false)}>
+                Cancel
+              </button>
+              <button className="m3-btn-primary" type="button" onClick={handleNewCampaign}>
+                Save as Draft
               </button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {newRewardTiers.map((tier, index) => (
-                <div key={index} className="s-tier-card">
-                  {newRewardTiers.length > 1 && (
-                    <button className="s-tier-remove" onClick={() => {
-                      const tiers = [...newRewardTiers];
-                      tiers.splice(index, 1);
-                      setNewRewardTiers(tiers);
-                    }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                    </button>
-                  )}
-                  <div className="s-tier-grid">
-                    <div>
-                      <div className="s-tier-field-label">Tier Title</div>
-                      <input className="s-tier-input" placeholder="e.g. Supporter Badge" value={tier.title} onChange={e => {
-                        const tiers = [...newRewardTiers];
-                        tiers[index].title = e.target.value;
-                        setNewRewardTiers(tiers);
-                      }} />
-                    </div>
-                    <div>
-                      <div className="s-tier-field-label">Amount ($)</div>
-                      <input className="s-tier-input" type="number" placeholder="0.00" value={tier.amount} onChange={e => {
-                        const tiers = [...newRewardTiers];
-                        tiers[index].amount = e.target.value;
-                        setNewRewardTiers(tiers);
-                      }} />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
+          </div>
         </div>
-      </Modal>
+      )}
 
       {/* CONFIRM PUBLISH MODAL */}
       <Modal open={confirmPublish !== null} onClose={() => setConfirmPublish(null)} title="Publish Campaign?">
