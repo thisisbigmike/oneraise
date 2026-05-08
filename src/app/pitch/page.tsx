@@ -4,7 +4,37 @@ import React, { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
-const SLIDES = [
+type PitchPoint = {
+  title: string;
+  desc: string;
+};
+
+type PitchStat = {
+  label: string;
+  value: string;
+  delta: string;
+};
+
+type PitchStackItem = {
+  icon: string;
+  name: string;
+  role: string;
+};
+
+type PitchSlide = {
+  id: string;
+  eyebrow: string;
+  title: string;
+  type: "hero" | "list" | "split" | "grid" | "stats" | "cta";
+  description?: string;
+  image?: string;
+  points?: PitchPoint[];
+  stats?: PitchStat[];
+  stack?: PitchStackItem[];
+  cta?: string;
+};
+
+const SLIDES: PitchSlide[] = [
   {
     id: "intro",
     eyebrow: "ONE RAISE",
@@ -85,11 +115,6 @@ const SLIDES = [
 
 export default function PitchPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   const nextSlide = useCallback(() => {
     setCurrentSlide((prev) => (prev + 1) % SLIDES.length);
@@ -107,8 +132,6 @@ export default function PitchPage() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [nextSlide, prevSlide]);
-
-  if (!isMounted) return null;
 
   const slide = SLIDES[currentSlide];
 
