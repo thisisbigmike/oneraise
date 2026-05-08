@@ -13,12 +13,15 @@ export default function DashboardError({
     console.error('[v0] Dashboard error:', error);
   }, [error]);
 
+  const msg = error?.message?.toLowerCase() ?? '';
   const isDbError =
-    error?.message?.includes('DATABASE_URL') ||
-    error?.message?.includes('database') ||
-    error?.message?.includes('prisma') ||
-    error?.message?.includes('connect') ||
-    error?.message?.includes('ECONNREFUSED');
+    msg.includes('database_url') ||
+    msg.includes('database') ||
+    msg.includes('prisma') ||
+    msg.includes('connect') ||
+    msg.includes('econnrefused') ||
+    msg.includes('nextauth_secret') ||
+    msg.includes('environment');
 
   return (
     <div

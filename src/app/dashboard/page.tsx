@@ -6,7 +6,13 @@ import { redirect } from "next/navigation";
 import { getCreatorPayoutSummary } from "@/lib/payment-records";
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
+  let session;
+  try {
+    session = await getServerSession(authOptions);
+  } catch (err) {
+    console.error('[v0] getServerSession failed:', err);
+    redirect('/auth');
+  }
 
   if (!session?.user) {
     redirect('/auth');
@@ -22,65 +28,70 @@ export default async function DashboardPage() {
   let availablePayout = 0;
   let campaignCount = 0;
 
-  if (role === 'creator') {
-    const campaigns = await prisma.campaign.findMany({
-      where: { userId },
-      include: {
-        donations: {
-          orderBy: { createdAt: 'desc' }
-        }
-      }
-    });
-
-    campaignCount = campaigns.length;
-    
-    let allDonations: any[] = [];
-    let uniqueBackers = new Set();
-    
-    campaigns.forEach(c => {
-      totalRaised += c.raised;
-      c.donations.forEach(d => {
-        allDonations.push(d);
-        if (d.userId) {
-          uniqueBackers.add(d.userId);
-        } else if (d.donorEmail) {
-          uniqueBackers.add(d.donorEmail);
-        } else if (d.donorName) {
-          uniqueBackers.add(d.donorName);
-        } else {
-          // completely anonymous
-          uniqueBackers.add(d.id); 
-        }
-      });
-    });
-
-    totalBackers = uniqueBackers.size;
-    allDonations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    recentDonations = allDonations.slice(0, 5);
-    const payoutSummary = await getCreatorPayoutSummary(userId);
-    availablePayout = payoutSummary.availableBalance;
-  } else {
-    // Backer dashboard
-    if (userId) {
-      const donations = await prisma.donation.findMany({
+  try {
+    if (role === 'creator') {
+      const campaigns = await prisma.campaign.findMany({
         where: { userId },
-        orderBy: { createdAt: 'desc' },
         include: {
-          campaign: true
+          donations: {
+            orderBy: { createdAt: 'desc' }
+          }
         }
       });
 
-      totalRaised = donations.reduce((sum, d) => sum + d.amount, 0); 
-      let uniqueCampaigns = new Set(donations.map(d => d.campaignId));
-      totalBackers = uniqueCampaigns.size; 
+      campaignCount = campaigns.length;
       
-      // format recent donations so the client handles them correctly
-      recentDonations = donations.slice(0, 5).map(d => ({
-        ...d,
-        donorName: d.campaign.title, // show campaign title as "name" for backer view
-        donorMessage: d.status === 'completed' ? 'Donation successful' : `Status: ${d.status}`
-      }));
+      let allDonations: any[] = [];
+      let uniqueBackers = new Set();
+      
+      campaigns.forEach(c => {
+        totalRaised += c.raised;
+        c.donations.forEach(d => {
+          allDonations.push(d);
+          if (d.userId) {
+            uniqueBackers.add(d.userId);
+          } else if (d.donorEmail) {
+            uniqueBackers.add(d.donorEmail);
+          } else if (d.donorName) {
+            uniqueBackers.add(d.donorName);
+          } else {
+            // completely anonymous
+            uniqueBackers.add(d.id); 
+          }
+        });
+      });
+
+      totalBackers = uniqueBackers.size;
+      allDonations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      recentDonations = allDonations.slice(0, 5);
+      const payoutSummary = await getCreatorPayoutSummary(userId);
+      availablePayout = payoutSummary.availableBalance;
+    } else {
+      // Backer dashboard
+      if (userId) {
+        const donations = await prisma.donation.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+          include: {
+            campaign: true
+          }
+        });
+
+        totalRaised = donations.reduce((sum, d) => sum + d.amount, 0); 
+        let uniqueCampaigns = new Set(donations.map(d => d.campaignId));
+        totalBackers = uniqueCampaigns.size; 
+        
+        // format recent donations so the client handles them correctly
+        recentDonations = donations.slice(0, 5).map(d => ({
+          ...d,
+          donorName: d.campaign.title, // show campaign title as "name" for backer view
+          donorMessage: d.status === 'completed' ? 'Donation successful' : `Status: ${d.status}`
+        }));
+      }
     }
+  } catch (err) {
+    console.error('[v0] Dashboard data fetch failed:', err);
+    // Render with empty data rather than crashing — DB may be temporarily unavailable
   }
 
   return (
