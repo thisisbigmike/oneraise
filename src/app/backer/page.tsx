@@ -11,39 +11,49 @@ export default async function BackerOverview() {
   const userId = (session?.user as any)?.id;
   const firstName = session?.user?.name?.split(' ')[0] || 'Backer';
 
-  // Fetch real statistics for the logged-in user
-  const userDonations = userId 
-    ? await prisma.donation.findMany({
-        where: { userId, status: 'completed' },
-        select: { amount: true, currency: true, coverFee: true, provider: true, providerDataJson: true, campaignId: true }
-      })
-    : [];
+  let userDonations: any[] = [];
+  let recentUpdates: any[] = [];
+  let allCampaigns: any[] = [];
 
-  const totalDonated = userDonations.reduce((sum, d) => sum + getStoredDonationCreditUsd(d), 0);
+  try {
+    // Fetch real statistics for the logged-in user
+    userDonations = userId 
+      ? await prisma.donation.findMany({
+          where: { userId, status: 'completed' },
+          select: { amount: true, currency: true, coverFee: true, provider: true, providerDataJson: true, campaignId: true }
+        })
+      : [];
+
+    const supportedCampaignIds = new Set(userDonations.map(d => d.campaignId));
+
+    // Fetch real milestones from supported campaigns
+    recentUpdates = supportedCampaignIds.size > 0
+      ? await prisma.milestone.findMany({
+          where: {
+            campaignId: { in: Array.from(supportedCampaignIds) },
+            status: 'completed'
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 3,
+          include: { campaign: { select: { title: true } } }
+        })
+      : [];
+
+    // Fetch live campaigns for the "Discover" section
+    allCampaigns = await getCachedCampaignsList();
+  } catch (error) {
+    console.error('Database connection error in BackerOverview:', error);
+    // Fallback data remains empty arrays from initialization
+  }
+
+  const totalDonated = userDonations.reduce((sum, d) => sum + d.amount, 0);
   const supportedCampaignIds = new Set(userDonations.map(d => d.campaignId));
   const campaignsSupportedCount = supportedCampaignIds.size;
-  
-  // Dynamic impact score logic (placeholder but based on real count)
   const impactScore = campaignsSupportedCount > 5 ? 'Top 5%' : campaignsSupportedCount > 2 ? 'Top 15%' : 'Rising Star';
 
-  // Fetch live campaigns for the "Discover" section of the overview
-  const allCampaigns = await getCachedCampaignsList();
   const liveCampaigns = allCampaigns
     .filter(c => c.status === 'active')
     .slice(0, 2);
-
-  // Fetch real milestones from supported campaigns
-  const recentUpdates = supportedCampaignIds.size > 0
-    ? await prisma.milestone.findMany({
-        where: {
-          campaignId: { in: Array.from(supportedCampaignIds) },
-          status: 'completed'
-        },
-        orderBy: { createdAt: 'desc' },
-        take: 3,
-        include: { campaign: { select: { title: true } } }
-      })
-    : [];
 
   return (
     <div className="overview-page">
