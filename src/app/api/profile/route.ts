@@ -46,7 +46,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "A valid email address is required." }, { status: 400 });
     }
 
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await (prisma.user as any).update({
       where: { id: userId },
       data: {
         name: parsedName,

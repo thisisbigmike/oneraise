@@ -14,7 +14,7 @@ export default async function SettingsPage() {
   const role = (session.user as any).role || 'creator';
   const userId = (session.user as any).id as string | undefined;
   const dbUser = userId
-    ? await prisma.user.findUnique({
+    ? await (prisma.user as any).findUnique({
         where: { id: userId },
         select: { 
           name: true, 
