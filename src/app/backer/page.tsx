@@ -68,7 +68,7 @@ export default async function BackerOverview() {
           </div>
           <div className="campaign-grid" style={{ gridTemplateColumns: '1fr', gap: 16 }}>
             {liveCampaigns.map((c) => (
-              <div key={c.slug} className="campaign-card" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 24 }}>
+              <Link key={c.slug} href={`/backer/donate/${c.slug}`} className="campaign-card" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 24, textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <h3 className="cmp-title" style={{ fontSize: 16, marginBottom: 4 }}>{c.title}</h3>
@@ -85,7 +85,7 @@ export default async function BackerOverview() {
                     <span style={{ fontWeight: 600, color: 'var(--teal-200)' }}>{c.pct}%</span>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
             {liveCampaigns.length === 0 && (
               <div className="s-hint" style={{ textAlign: 'center', padding: 20 }}>No live campaigns at the moment.</div>
