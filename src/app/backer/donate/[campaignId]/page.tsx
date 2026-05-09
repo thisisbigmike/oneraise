@@ -107,6 +107,10 @@ export default function DonatePage() {
   const [jupiterTreasuryAccount, setJupiterTreasuryAccount] = useState<string | null>(null);
   const [walletPublicKey, setWalletPublicKey] = useState<string | null>(null);
 
+  // Cloak privacy state
+  const [cloakPrivate, setCloakPrivate] = useState(false);
+  const [cloakFeeEstimate, setCloakFeeEstimate] = useState<{ gross: number; protocolFee: number; net: number; feePercent: string } | null>(null);
+
   // Crypto sub-state
   const [cryptoAsset, setCryptoAsset] = useState('USDT');
   const [jupiterInputMint, setJupiterInputMint] = useState(JUPITER_INPUT_TOKENS[0]?.mint || '');
@@ -150,9 +154,20 @@ export default function DonatePage() {
   };
 
   const getSolanaWallet = () => {
-    const provider = window.solana || window.phantom?.solana || window.solflare;
+    const phantom = window.phantom?.solana;
+    const solana = window.solana;
+    const solflare = window.solflare;
+
+    console.log('[OneRaise] Wallet detection:', {
+      'window.phantom?.solana': !!phantom,
+      'window.phantom?.solana?.isPhantom': phantom?.isPhantom,
+      'window.solana': !!solana,
+      'window.solflare': !!solflare,
+    });
+
+    const provider = phantom || solana || solflare;
     if (!provider) {
-      throw new Error('No Solana wallet found. Install Phantom or Solflare to donate with Jupiter.');
+      throw new Error('No Solana wallet found. Install Phantom (phantom.app) or Solflare to donate with Jupiter.');
     }
     if (!provider.signAndSendTransaction) {
       throw new Error('Your Solana wallet does not support transaction signing from this browser.');
@@ -234,8 +249,20 @@ export default function DonatePage() {
       try {
         if (paymentMethod === 'jupiter') {
           const wallet = getSolanaWallet();
-          const connected = await wallet.connect();
-          const publicKey = connected.publicKey?.toString() || wallet.publicKey?.toString();
+          let publicKey: string | undefined;
+          try {
+            const connected = await wallet.connect();
+            publicKey = connected.publicKey?.toString() || wallet.publicKey?.toString();
+          } catch (connectError: unknown) {
+            const msg = connectError instanceof Error ? connectError.message : '';
+            if (msg.toLowerCase().includes('reject') || msg.toLowerCase().includes('denied') || msg.toLowerCase().includes('cancel')) {
+              throw new Error('Wallet connection was rejected. Please approve the connection request in your wallet extension.');
+            }
+            throw new Error(
+              'Unable to connect to your Solana wallet. Make sure Phantom or Solflare is unlocked, then try again. ' +
+              (msg ? `(${msg})` : '')
+            );
+          }
 
           if (!publicKey) {
             throw new Error('Unable to read your Solana wallet public key.');
@@ -243,6 +270,77 @@ export default function DonatePage() {
 
           setWalletPublicKey(publicKey);
 
+          /* ── Cloak Shielded Flow ── */
+          if (cloakPrivate) {
+            const res = await fetch('/api/cloak/donate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                amount: Number(numAmount.toFixed(2)),
+                campaignId: params.campaignId,
+                userPublicKey: publicKey,
+                donorName: anonymous ? null : donorName,
+                donorEmail,
+                donorMessage: message,
+                isAnonymous: anonymous,
+              }),
+            });
+            const data = await readApiResponse(res);
+
+            if (!res.ok || !data.success || !data.donationId) {
+              throw new Error(data.error || 'Unable to prepare shielded donation.');
+            }
+
+            setCurrentDonationId(data.donationId);
+            setCloakFeeEstimate(data.cloak?.fee || null);
+            setJupiterTreasuryAccount(data.treasury?.owner || null);
+            setJupiterQuote(null);
+            setPaymentInstructions(null);
+            setStatus('pending');
+            showToast('🔒 Shielded donation recorded. Cloak privacy transaction is being processed.', 'info');
+
+            // Execute client-side shielded donation
+            try {
+              const signTx = (window.solana as any)?.signTransaction?.bind(window.solana) ||
+                (window.solflare as any)?.signTransaction?.bind(window.solflare);
+                
+              const signMsg = (window.solana as any)?.signMessage?.bind(window.solana) ||
+                (window.solflare as any)?.signMessage?.bind(window.solflare);
+                
+              if (!signTx) {
+                throw new Error("Your wallet does not support signTransaction. Try using Phantom.");
+              }
+
+              const { executeClientShieldedDonation } = await import('@/lib/cloak');
+              const { PublicKey } = await import('@solana/web3.js');
+              
+              await executeClientShieldedDonation({
+                donorPublicKey: new PublicKey(publicKey),
+                treasuryPublicKey: new PublicKey(data.treasury.owner),
+                amountRaw: BigInt(data.cloak.amountRaw),
+                signTransaction: signTx,
+                signMessage: signMsg,
+                onProgress: (statusText) => showToast(statusText, 'info'),
+              });
+              
+              showToast('🔒 Shielded donation successful! Verifying on-chain...', 'success');
+              
+              // Tell server we completed it
+              await fetch(`/api/donations/${data.donationId}/refresh`, { method: 'POST' });
+              
+              setStatus('confirmed');
+              refreshCampaignProgress();
+              showToast('Payment confirmed! Thank you for your private donation.', 'success');
+              return;
+            } catch (err: any) {
+              console.error("Cloak donation failed:", err);
+              showToast(err?.message || "Failed to complete shielded donation.", "error");
+              setStatus('failed');
+              return;
+            }
+          }
+
+          /* ── Standard Jupiter Flow ── */
           const res = await fetch('/api/jupiter/swap', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -268,7 +366,7 @@ export default function DonatePage() {
           setPaymentInstructions(null);
           setCurrentDonationId(data.donationId);
           setJupiterQuote(data.quote);
-          setJupiterTreasuryAccount(data.treasury?.usdcTokenAccount || null);
+          setJupiterTreasuryAccount(data.treasury?.owner || null);
           setStatus('pending');
           showToast('Review and approve the donation in your Solana wallet.', 'info');
 
@@ -484,6 +582,10 @@ export default function DonatePage() {
   if (status !== 'idle') {
     return (
       <div className="donate-page">
+        <Link href="/backer/discover" className="donate-back">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M10 4L6 8l4 4"/></svg>
+          Back to discover
+        </Link>
         <div className="donate-layout">
           <div className="donate-form-card">
             {status === 'processing' && (
@@ -639,6 +741,15 @@ export default function DonatePage() {
                     {jupiterSignature ? 'Confirming on Solana' : 'Ready for wallet signing'}
                   </div>
                 )}
+
+                <button 
+                  className="btn-secondary" 
+                  style={{ width: '100%', padding: '12px', marginTop: 16 }} 
+                  onClick={handleRetry}
+                  disabled={isVerifying}
+                >
+                  Cancel & go back
+                </button>
               </div>
             )}
             {status === 'confirmed' && (
@@ -905,6 +1016,46 @@ export default function DonatePage() {
                 </div>
               </div>
             </div>
+
+            {/* Cloak Privacy Toggle — shown for Jupiter method */}
+            {paymentMethod === 'jupiter' && (
+              <div className="cloak-privacy-toggle">
+                <div className="cloak-toggle-row">
+                  <div className="cloak-toggle-info">
+                    <div className="cloak-toggle-title">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                      Donate Privately
+                    </div>
+                    <div className="cloak-toggle-desc">Hide your identity and amount on-chain via Cloak shielded pool</div>
+                  </div>
+                  <label className="cloak-switch">
+                    <input type="checkbox" checked={cloakPrivate} onChange={e => setCloakPrivate(e.target.checked)} />
+                    <span className="cloak-slider" />
+                  </label>
+                </div>
+                {cloakPrivate && (
+                  <div className="cloak-info-card">
+                    <div className="cloak-info-header">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                      <strong>Powered by Cloak</strong>
+                      <span className="cloak-badge">SHIELDED</span>
+                    </div>
+                    <ul className="cloak-features">
+                      <li>Your donation amount and wallet are hidden on-chain</li>
+                      <li>Campaign creator can verify donations via viewing key</li>
+                      <li>Compliant &amp; auditable — privacy with accountability</li>
+                    </ul>
+                    {cloakFeeEstimate && (
+                      <div className="cloak-fee-display">
+                        <div className="cloak-fee-row"><span>Amount</span><strong>${cloakFeeEstimate.gross.toFixed(2)} USDC</strong></div>
+                        <div className="cloak-fee-row"><span>Privacy fee ({cloakFeeEstimate.feePercent}%)</span><span>−${cloakFeeEstimate.protocolFee.toFixed(4)} USDC</span></div>
+                        <div className="cloak-fee-row cloak-fee-total"><span>Creator receives</span><strong>${cloakFeeEstimate.net.toFixed(2)} USDC</strong></div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Crypto sub-options */}
             {paymentMethod === 'crypto' && (

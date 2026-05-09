@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useToast, Modal } from '../../components';
+import { encryptPayload } from '@/lib/umbra';
 
 type CampaignStatus = 'active' | 'completed' | 'draft';
 type CampaignType = 'standard' | 'protected_crowdfunding' | 'emergency_aid' | 'grant_distribution';
@@ -240,6 +241,8 @@ export default function CampaignsPage() {
   const [editCampaignType, setEditCampaignType] = useState<CampaignType>('standard');
   const [newManageMilestone, setNewManageMilestone] = useState({ title: '', description: '' });
   const [proofInputs, setProofInputs] = useState<Record<string, string>>({});
+  const [umbraToggles, setUmbraToggles] = useState<Record<string, boolean>>({});
+  const [isEncrypting, setIsEncrypting] = useState<Record<string, boolean>>({});
   const [editSlug, setEditSlug] = useState('');
   const [editVisibility, setEditVisibility] = useState('public');
 
@@ -488,19 +491,36 @@ export default function CampaignsPage() {
       return;
     }
 
+    const useUmbra = umbraToggles[milestoneId];
+    let finalProofUrl = proofUrl;
+
+    if (useUmbra) {
+      try {
+        setIsEncrypting((current) => ({ ...current, [milestoneId]: true }));
+        finalProofUrl = await encryptPayload(proofUrl, campaign.id);
+      } catch (err) {
+        setIsEncrypting((current) => ({ ...current, [milestoneId]: false }));
+        showToast('Umbra encryption failed.', 'error');
+        return;
+      }
+    }
+
     try {
       const res = await fetch(`/api/campaigns/${encodeURIComponent(campaign.slug)}/milestones`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ milestoneId, proofUrl, action: 'submit-proof' }),
+        body: JSON.stringify({ milestoneId, proofUrl: finalProofUrl, action: 'submit-proof' }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Unable to submit proof.');
 
       await refreshCampaigns();
       setProofInputs((current) => ({ ...current, [milestoneId]: '' }));
+      setIsEncrypting((current) => ({ ...current, [milestoneId]: false }));
+      setUmbraToggles((current) => ({ ...current, [milestoneId]: false }));
       showToast('Proof submitted for admin verification.', 'success');
     } catch (error: unknown) {
+      setIsEncrypting((current) => ({ ...current, [milestoneId]: false }));
       showToast(error instanceof Error ? error.message : 'Could not submit proof.', 'error');
     }
   };
@@ -755,7 +775,7 @@ export default function CampaignsPage() {
                 </div>
                 <div className="m3-space-y">
                   <label className="m3-label" htmlFor="description">Description</label>
-                  <textarea className="m3-textarea" id="description" placeholder="Tell the story behind your campaign..." rows={5} value={newDescription} onChange={e => setNewDescription(e.target.value)}></textarea>
+                  <input className="m3-input" id="description" placeholder="Brief summary of your campaign..." value={newDescription} onChange={e => setNewDescription(e.target.value)} />
                 </div>
               </section>
 
@@ -963,17 +983,37 @@ export default function CampaignsPage() {
                         {MILESTONE_STATUS_LABELS[milestone.status] || milestone.status}
                       </span>
                     </div>
-                    {milestone.proofUrl && <div className="s-hint" style={{ marginBottom: 8 }}>Proof: {milestone.proofUrl}</div>}
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <input
-                        className="s-input"
-                        placeholder="Paste receipt/report URL or a short proof note"
-                        value={proofInputs[milestone.id] ?? ''}
-                        onChange={e => setProofInputs(current => ({ ...current, [milestone.id]: e.target.value }))}
-                      />
-                      <button className="btn-primary" type="button" style={{ flexShrink: 0 }} onClick={() => handleSubmitProof(milestone.id)}>
-                        Submit proof
-                      </button>
+                    {milestone.proofUrl && <div className="s-hint" style={{ marginBottom: 8 }}>
+                      Proof: {milestone.proofUrl.startsWith('umbra://') ? '🔒 Encrypted via Umbra' : milestone.proofUrl}
+                    </div>}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                          className="s-input"
+                          placeholder="Paste receipt/report URL or a short proof note"
+                          value={proofInputs[milestone.id] ?? ''}
+                          onChange={e => setProofInputs(current => ({ ...current, [milestone.id]: e.target.value }))}
+                          disabled={isEncrypting[milestone.id]}
+                        />
+                        <button 
+                          className="btn-primary" 
+                          type="button" 
+                          style={{ flexShrink: 0, background: isEncrypting[milestone.id] ? '#a855f7' : '' }} 
+                          onClick={() => handleSubmitProof(milestone.id)}
+                          disabled={isEncrypting[milestone.id]}
+                        >
+                          {isEncrypting[milestone.id] ? 'Encrypting...' : 'Submit proof'}
+                        </button>
+                      </div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer', width: 'fit-content' }}>
+                        <input 
+                          type="checkbox" 
+                          style={{ accentColor: '#a855f7' }}
+                          checked={umbraToggles[milestone.id] || false}
+                          onChange={e => setUmbraToggles(current => ({ ...current, [milestone.id]: e.target.checked }))}
+                        />
+                        <span style={{ color: '#d8b4fe', fontWeight: 600 }}>Encrypt with Umbra Privacy</span>
+                      </label>
                     </div>
                   </div>
                 ))}

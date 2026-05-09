@@ -94,7 +94,17 @@ export default function PayoutsPage() {
   });
   const [methods, setMethods] = useState<PayoutMethod[]>([]);
   const [history, setHistory] = useState<PayoutRecord[]>([]);
-  const [newMethodType, setNewMethodType] = useState<'bank' | 'crypto' | ''>('');
+
+  // Cloak Scan State
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanReport, setScanReport] = useState<{
+    totalGrossUsdc: number;
+    totalFeeUsdc: number;
+    totalNetUsdc: number;
+    donationsCount: number;
+  } | null>(null);
+
+  const [newMethodType, setNewMethodType] = useState<'bank' | 'crypto' | 'raenest' | ''>('');
   const [bankName, setBankName] = useState('');
   const [bankCode, setBankCode] = useState('');
   const [accountName, setAccountName] = useState('');
@@ -206,6 +216,26 @@ export default function PayoutsPage() {
     }
   }, [showToast]);
 
+  const handleScanCloak = async () => {
+    setIsScanning(true);
+    setScanReport(null);
+    showToast("Scanning Cloak shielded pool using viewing key...", "info");
+    
+    // Simulate network delay for scan
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Mock report for hackathon demo
+    setScanReport({
+      totalGrossUsdc: 50.00,
+      totalFeeUsdc: 0.15,
+      totalNetUsdc: 49.85,
+      donationsCount: 1,
+    });
+    
+    setIsScanning(false);
+    showToast("Scan complete. Compliance report ready.", "success");
+  };
+
   useEffect(() => {
     loadData();
   }, [loadData]);
@@ -259,10 +289,11 @@ export default function PayoutsPage() {
             : {
                 type: 'crypto',
                 walletAddress,
-                network: cryptoNetwork,
-                currency: cryptoAsset,
+                network: newMethodType === 'raenest' ? 'SOL' : cryptoNetwork,
+                currency: newMethodType === 'raenest' ? 'USDC' : cryptoAsset,
                 countryCode: 'GLOBAL',
                 makePrimary: methods.length === 0,
+                label: newMethodType === 'raenest' ? 'Raenest USDC (Solana)' : undefined
               },
         ),
       });
@@ -496,7 +527,10 @@ export default function PayoutsPage() {
                 )}
               </div>
               <div className="pm-info">
-                <div style={{ fontWeight: 600 }}>{method.label}</div>
+                <div style={{ fontWeight: 600 }}>
+                  {method.label} 
+                  {method.label?.includes('Raenest') && <span className="raenest-badge">Raenest</span>}
+                </div>
                 <div className="s-hint">
                   {method.type === 'bank'
                     ? `${method.accountName || 'Account'} • ${method.currency}`
@@ -537,10 +571,11 @@ export default function PayoutsPage() {
             <div className="s-fields">
               <div className="s-field">
                 <label className="s-label">Method Type</label>
-                <select className="s-input" value={newMethodType} onChange={e => setNewMethodType(e.target.value as 'bank' | 'crypto' | '')}>
+                <select className="s-input" value={newMethodType} onChange={e => setNewMethodType(e.target.value as 'bank' | 'crypto' | 'raenest' | '')}>
                   <option value="" disabled>Select method</option>
                   <option value="bank">Bank Transfer</option>
                   <option value="crypto">Crypto Wallet</option>
+                  <option value="raenest">Raenest Virtual Account (USDC)</option>
                 </select>
               </div>
 
@@ -636,6 +671,28 @@ export default function PayoutsPage() {
                   </div>
                 </>
               )}
+
+              {newMethodType === 'raenest' && (
+                <div className="raenest-card">
+                  <div className="rc-header">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    <strong>Withdraw to Raenest</strong>
+                  </div>
+                  <p className="rc-desc">
+                    Connect your Raenest account to withdraw campaign funds instantly. You can then use your Raenest Virtual USD Card to spend globally or convert to NGN.
+                  </p>
+                  <div className="s-field s-field-full" style={{ marginTop: 16 }}>
+                    <label className="s-label" style={{ color: 'var(--white)' }}>Raenest Username or Solana Deposit Address</label>
+                    <input 
+                      className="s-input" 
+                      style={{ background: 'rgba(0,0,0,0.2)' }} 
+                      value={walletAddress} 
+                      onChange={e => setWalletAddress(e.target.value)} 
+                      placeholder="e.g. @your_raenest_username or address" 
+                    />
+                  </div>
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
               <button className="btn-primary" style={{ fontSize: 13 }} onClick={handleSaveMethod} disabled={savingMethod}>
@@ -654,6 +711,59 @@ export default function PayoutsPage() {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="content-card" style={{ marginTop: 24, border: '1px solid rgba(147, 51, 234, 0.4)' }}>
+        <div className="cc-header">
+          <div className="cc-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a855f7" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            Private Donations (Cloak)
+          </div>
+          <button 
+            className="btn-primary" 
+            style={{ fontSize: 13, padding: '8px 16px', background: '#9333ea', borderColor: '#9333ea' }} 
+            onClick={handleScanCloak}
+            disabled={isScanning}
+          >
+            {isScanning ? 'Scanning Shielded Pool...' : 'Scan History (Compliance)'}
+          </button>
+        </div>
+        <div style={{ padding: '0 24px 24px', fontSize: 13, color: 'var(--w70)' }}>
+          <p style={{ marginBottom: 16 }}>
+            Donations made via the Cloak Shielded Pool hide donor identities and amounts on-chain. As the campaign creator, you hold the <strong>Viewing Key (nk)</strong> to decrypt and audit these transactions for compliance purposes.
+          </p>
+          <div style={{ background: 'var(--bg)', padding: '12px', borderRadius: '8px', border: '1px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontWeight: 600, color: 'var(--white)', marginBottom: 4 }}>Campaign Viewing Key (nk)</div>
+              <div style={{ fontFamily: 'monospace', color: 'var(--w50)' }}>• • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • • •</div>
+            </div>
+            <span className="cloak-badge" style={{ padding: '4px 8px' }}>SECURE</span>
+          </div>
+
+          {scanReport && (
+            <div style={{ marginTop: 16, background: 'rgba(147, 51, 234, 0.1)', border: '1px solid rgba(147, 51, 234, 0.2)', padding: '16px', borderRadius: '8px', animation: 'fadeIn 0.3s ease' }}>
+              <div style={{ fontWeight: 600, color: '#d8b4fe', marginBottom: 12 }}>Compliance Report</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+                <div>
+                  <div style={{ color: 'var(--w50)', marginBottom: 4 }}>Total Shielded</div>
+                  <div style={{ fontSize: 18, color: 'var(--white)' }}>${scanReport.totalGrossUsdc.toFixed(2)}</div>
+                </div>
+                <div>
+                  <div style={{ color: 'var(--w50)', marginBottom: 4 }}>Protocol Fees</div>
+                  <div style={{ fontSize: 18, color: 'var(--white)' }}>${scanReport.totalFeeUsdc.toFixed(2)}</div>
+                </div>
+                <div>
+                  <div style={{ color: 'var(--w50)', marginBottom: 4 }}>Net Received</div>
+                  <div style={{ fontSize: 18, color: 'var(--teal-200)' }}>${scanReport.totalNetUsdc.toFixed(2)}</div>
+                </div>
+                <div>
+                  <div style={{ color: 'var(--w50)', marginBottom: 4 }}>Donations</div>
+                  <div style={{ fontSize: 18, color: 'var(--white)' }}>{scanReport.donationsCount}</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="content-card" style={{ marginTop: 24, overflow: 'hidden', padding: 0 }}>

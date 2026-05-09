@@ -3,6 +3,7 @@
 import { useEffect, useState, use, type FormEvent } from 'react';
 import Link from 'next/link';
 import { CAMPAIGN_SEEDS, getCampaignPct } from '@/lib/campaign-seeds';
+import { decryptPayload, verifyBackerStatus, isUmbraProtected } from '@/lib/umbra';
 import './campaign.css';
 
 type CampaignDonor = {
@@ -100,6 +101,27 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
   const [reportDetails, setReportDetails] = useState('');
   const [reportStatus, setReportStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [reportError, setReportError] = useState('');
+
+  // Umbra Decryption State
+  const [umbraDecrypted, setUmbraDecrypted] = useState<Record<string, string>>({});
+  const [isDecrypting, setIsDecrypting] = useState<Record<string, boolean>>({});
+
+  const handleUmbraDecrypt = async (milestoneId: string, ciphertext: string) => {
+    setIsDecrypting(current => ({ ...current, [milestoneId]: true }));
+    try {
+      const isVerified = await verifyBackerStatus(campaign?.id.toString() || '');
+      if (isVerified) {
+        const decrypted = await decryptPayload(ciphertext);
+        setUmbraDecrypted(current => ({ ...current, [milestoneId]: decrypted }));
+      } else {
+        alert("Verification failed: You must be a verified backer of this campaign to decrypt expense reports.");
+      }
+    } catch (error) {
+      alert("Decryption failed. You do not have the required access rights.");
+    } finally {
+      setIsDecrypting(current => ({ ...current, [milestoneId]: false }));
+    }
+  };
 
   useEffect(() => {
     let ignore = false;
@@ -403,7 +425,52 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
 
           {activeTab === 'updates' && (
             <div className="content-section updates-section">
-              <h2>Campaign Updates</h2>
+              <h2>Milestones & Reports</h2>
+              {campaign?.milestones && campaign.milestones.length > 0 ? (
+                campaign.milestones.map((milestone) => (
+                  <div key={milestone.id} className="update-card">
+                    <div className="update-meta">{formatRelativeTime(milestone.createdAt)} • {MILESTONE_STATUS_LABELS[milestone.status] || milestone.status}</div>
+                    <h3 className="update-title">{milestone.title}</h3>
+                    {milestone.description && <p className="update-content" style={{ marginBottom: 12 }}>{milestone.description}</p>}
+                    
+                    {milestone.proofUrl && (
+                      <div style={{ marginTop: 16, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: 16 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg)', marginBottom: 8 }}>Expense Report / Receipt</div>
+                        
+                        {isUmbraProtected(milestone.proofUrl) && !umbraDecrypted[milestone.id] ? (
+                          <div style={{ background: 'rgba(147, 51, 234, 0.05)', border: '1px dashed rgba(147, 51, 234, 0.4)', borderRadius: 6, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                              <div style={{ background: '#9333ea', width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                              </div>
+                              <div>
+                                <div style={{ color: '#d8b4fe', fontWeight: 600, fontSize: 13 }}>Encrypted via Umbra Privacy</div>
+                                <div style={{ color: 'var(--w50)', fontSize: 12 }}>Only verified backers can audit this document</div>
+                              </div>
+                            </div>
+                            <button 
+                              className="btn-primary" 
+                              style={{ background: '#9333ea', borderColor: '#9333ea', fontSize: 13, padding: '6px 12px' }}
+                              onClick={() => handleUmbraDecrypt(milestone.id, milestone.proofUrl!)}
+                              disabled={isDecrypting[milestone.id]}
+                            >
+                              {isDecrypting[milestone.id] ? 'Verifying...' : 'Authenticate to Decrypt'}
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ background: 'rgba(0,0,0,0.2)', padding: 12, borderRadius: 6, fontFamily: 'monospace', fontSize: 13, color: 'var(--teal-200)', wordBreak: 'break-all' }}>
+                            {umbraDecrypted[milestone.id] || milestone.proofUrl}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p className="empty-content-note">No milestones or reports have been posted for this campaign yet.</p>
+              )}
+              
+              <h2 style={{ marginTop: 40 }}>Campaign Updates</h2>
               {updates.length > 0 ? updates.map((update) => (
                 <div key={update.id} className="update-card">
                   <div className="update-meta">{update.date}</div>
@@ -411,7 +478,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
                   <p className="update-content">{update.content}</p>
                 </div>
               )) : (
-                <p className="empty-content-note">No updates have been posted for this campaign yet.</p>
+                <p className="empty-content-note">No general updates have been posted for this campaign yet.</p>
               )}
             </div>
           )}
