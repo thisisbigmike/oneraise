@@ -46,28 +46,37 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "A valid email address is required." }, { status: 400 });
     }
 
-    const updatedUser = await (prisma.user as any).update({
-      where: { id: userId },
-      data: {
-        name: parsedName,
-        email: parsedEmail,
-        ...(parsedImage !== undefined ? { image: parsedImage } : {}),
-        ...(emailNotifications !== undefined ? { emailNotifications: !!emailNotifications } : {}),
-        ...(pushNotifications !== undefined ? { pushNotifications: !!pushNotifications } : {}),
-        ...(campaignUpdates !== undefined ? { campaignUpdates: !!campaignUpdates } : {}),
-        ...(marketingEmails !== undefined ? { marketingEmails: !!marketingEmails } : {}),
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        image: true,
-        emailNotifications: true,
-        pushNotifications: true,
-        campaignUpdates: true,
-        marketingEmails: true,
-      },
-    });
+    let updatedUser;
+    try {
+      updatedUser = await (prisma.user as any).update({
+        where: { id: userId },
+        data: {
+          name: parsedName,
+          email: parsedEmail,
+          ...(parsedImage !== undefined ? { image: parsedImage } : {}),
+          ...(emailNotifications !== undefined ? { emailNotifications: !!emailNotifications } : {}),
+          ...(pushNotifications !== undefined ? { pushNotifications: !!pushNotifications } : {}),
+          ...(campaignUpdates !== undefined ? { campaignUpdates: !!campaignUpdates } : {}),
+          ...(marketingEmails !== undefined ? { marketingEmails: !!marketingEmails } : {}),
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+          emailNotifications: true,
+          pushNotifications: true,
+          campaignUpdates: true,
+          marketingEmails: true,
+        },
+      });
+    } catch (dbError: any) {
+      console.error("Database update error:", dbError);
+      if (dbError.code === 'P2024' || dbError.message?.includes('Can\'t reach database server')) {
+        return NextResponse.json({ error: "The database is currently busy. Please wait a few seconds and try again." }, { status: 503 });
+      }
+      throw dbError; // Let the outer catch handle other Prisma errors
+    }
 
     return NextResponse.json({
       success: true,
