@@ -9,10 +9,10 @@ export default function CampaignAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({ api: '/api/campaign-chat' }),
-  });
+    api: '/api/campaign-chat',
+  } as any);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const isLoading = status === 'streaming' || status === 'submitted';
+  const isLoading = (status as any) === 'streaming' || (status as any) === 'submitted';
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
@@ -25,7 +25,7 @@ export default function CampaignAssistant() {
     e.preventDefault();
     const trimmed = input.trim();
     if (!trimmed || isLoading) return;
-    sendMessage({ text: trimmed });
+    (sendMessage as any)({ text: trimmed });
     setInput('');
   };
 
