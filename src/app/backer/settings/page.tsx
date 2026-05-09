@@ -12,21 +12,26 @@ export default async function BackerSettingsPage() {
   }
 
   const userId = (session.user as any)?.id as string | undefined;
-  const dbUser = userId
-    ? await (prisma.user as any).findUnique({
-        where: { id: userId },
-        select: { 
-          name: true, 
-          email: true, 
-          image: true, 
-          role: true,
-          emailNotifications: true,
-          pushNotifications: true,
-          campaignUpdates: true,
-          marketingEmails: true
-        },
-      })
-    : null;
+  let dbUser: any = null;
+  try {
+    dbUser = userId
+      ? await (prisma.user as any).findUnique({
+          where: { id: userId },
+          select: { 
+            name: true, 
+            email: true, 
+            image: true, 
+            role: true,
+            emailNotifications: true,
+            pushNotifications: true,
+            campaignUpdates: true,
+            marketingEmails: true
+          },
+        })
+      : null;
+  } catch (error) {
+    console.error('Database error in BackerSettingsPage:', error);
+  }
 
   const name = dbUser?.name || session.user.name || '';
   const email = dbUser?.email || session.user.email || '';

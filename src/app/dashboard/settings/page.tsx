@@ -11,22 +11,28 @@ export default async function SettingsPage() {
     redirect('/auth');
   }
 
+  const userId = (session.user as any).id;
   const role = (session.user as any).role || 'creator';
-  const userId = (session.user as any).id as string | undefined;
-  const dbUser = userId
-    ? await (prisma.user as any).findUnique({
-        where: { id: userId },
-        select: { 
-          name: true, 
-          email: true, 
-          image: true,
-          emailNotifications: true,
-          pushNotifications: true,
-          campaignUpdates: true,
-          marketingEmails: true
-        },
-      })
-    : null;
+  let dbUser: any = null;
+  try {
+    dbUser = userId
+      ? await (prisma.user as any).findUnique({
+          where: { id: userId },
+          select: { 
+            name: true, 
+            email: true, 
+            image: true, 
+            role: true,
+            emailNotifications: true,
+            pushNotifications: true,
+            campaignUpdates: true,
+            marketingEmails: true
+          },
+        })
+      : null;
+  } catch (error) {
+    console.error('Database error in DashboardSettingsPage:', error);
+  }
   const name = dbUser?.name || session.user.name || '';
   const email = dbUser?.email || session.user.email || '';
   const image = dbUser?.image || session.user.image || '';
