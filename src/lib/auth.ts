@@ -8,7 +8,7 @@ import type { JWT } from "next-auth/jwt";
 import prisma from "./prisma";
 import bcrypt from "bcryptjs";
 
-const MAX_SESSION_IMAGE_URL_LENGTH = 3000;
+const MAX_SESSION_IMAGE_URL_LENGTH = 10000;
 
 type AuthUser = {
   id?: string | null;
