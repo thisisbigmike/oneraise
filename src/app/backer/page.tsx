@@ -63,8 +63,9 @@ export default async function BackerOverview() {
 
       <div className="content-grid">
         <div className="content-card">
-          <div className="cc-header">
+          <div className="cc-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div className="cc-title">Live Campaigns</div>
+            <Link href="/backer/discover" className="cc-link" style={{ fontSize: 13, color: 'var(--teal-200)', textDecoration: 'none', fontWeight: 500 }}>See all</Link>
           </div>
           <div className="campaign-grid" style={{ gridTemplateColumns: '1fr', gap: 16 }}>
             {liveCampaigns.map((c) => (
