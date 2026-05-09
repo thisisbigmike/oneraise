@@ -112,35 +112,13 @@ export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   providers,
-  cookies: {
-    sessionToken: {
-      name: `next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-      },
-    },
-  },
+  debug: process.env.NODE_ENV === "development",
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === "credentials") return true;
 
       const email = user.email?.trim().toLowerCase();
       if (!email) return "/auth?mode=signin&error=OAuthEmail";
-
-      const userId = (user as any).id;
-      if (userId && email) {
-        try {
-          await prisma.user.update({
-            where: { id: userId },
-            data: { email },
-          });
-        } catch (error) {
-          console.error("Error updating user email during sign-in:", error);
-        }
-      }
 
       return true;
     },
