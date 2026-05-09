@@ -8,7 +8,7 @@ import type { JWT } from "next-auth/jwt";
 import prisma from "./prisma";
 import bcrypt from "bcryptjs";
 
-const MAX_SESSION_IMAGE_URL_LENGTH = 2048;
+const MAX_SESSION_IMAGE_URL_LENGTH = 3000;
 
 type AuthUser = {
   id?: string | null;
@@ -26,7 +26,7 @@ function getCookieSafeImage(value: unknown) {
 
   const image = value.trim();
   if (!image || image.length > MAX_SESSION_IMAGE_URL_LENGTH) return undefined;
-  if (!image.startsWith("/") && !image.startsWith("https://")) return undefined;
+  if (!image.startsWith("/") && !image.startsWith("https://") && !image.startsWith("data:image/")) return undefined;
 
   return image;
 }

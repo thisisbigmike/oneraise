@@ -88,6 +88,7 @@ export default function SettingsClient(props: SettingsClientProps) {
       await updateSession({
         name: data.user.name,
         email: data.user.email,
+        image: data.user.image,
       });
       showToast('Profile settings saved successfully!', 'success');
     } catch (error) {
