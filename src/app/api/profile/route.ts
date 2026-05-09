@@ -33,7 +33,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Please sign in to update your profile." }, { status: 401 });
     }
 
-    const { name, email, image } = await req.json();
+    const { name, email, image, emailNotifications, pushNotifications, campaignUpdates, marketingEmails } = await req.json();
     const parsedImage = parseProfileImage(image);
     const parsedName = typeof name === "string" ? name.trim() : "";
     const parsedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
@@ -52,12 +52,20 @@ export async function PATCH(req: Request) {
         name: parsedName,
         email: parsedEmail,
         ...(parsedImage !== undefined ? { image: parsedImage } : {}),
+        ...(emailNotifications !== undefined ? { emailNotifications: !!emailNotifications } : {}),
+        ...(pushNotifications !== undefined ? { pushNotifications: !!pushNotifications } : {}),
+        ...(campaignUpdates !== undefined ? { campaignUpdates: !!campaignUpdates } : {}),
+        ...(marketingEmails !== undefined ? { marketingEmails: !!marketingEmails } : {}),
       },
       select: {
         id: true,
         name: true,
         email: true,
         image: true,
+        emailNotifications: true,
+        pushNotifications: true,
+        campaignUpdates: true,
+        marketingEmails: true,
       },
     });
 

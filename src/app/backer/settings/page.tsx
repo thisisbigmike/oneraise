@@ -11,11 +11,20 @@ export default async function BackerSettingsPage() {
     redirect('/auth');
   }
 
-  const userId = (session.user as any).id as string | undefined;
+  const userId = (session.user as any)?.id as string | undefined;
   const dbUser = userId
     ? await prisma.user.findUnique({
         where: { id: userId },
-        select: { name: true, email: true, image: true, role: true },
+        select: { 
+          name: true, 
+          email: true, 
+          image: true, 
+          role: true,
+          emailNotifications: true,
+          pushNotifications: true,
+          campaignUpdates: true,
+          marketingEmails: true
+        },
       })
     : null;
 
@@ -23,6 +32,10 @@ export default async function BackerSettingsPage() {
   const email = dbUser?.email || session.user.email || '';
   const image = dbUser?.image || session.user.image || '';
   const role = dbUser?.role || 'backer';
+  const emailNotifications = dbUser?.emailNotifications ?? true;
+  const pushNotifications = dbUser?.pushNotifications ?? true;
+  const campaignUpdates = dbUser?.campaignUpdates ?? true;
+  const marketingEmails = dbUser?.marketingEmails ?? false;
 
   return (
     <div style={{ padding: '32px 40px' }}>
@@ -31,6 +44,10 @@ export default async function BackerSettingsPage() {
         initialEmail={email}
         initialImage={image}
         role={role}
+        initialEmailNotif={emailNotifications}
+        initialPushNotif={pushNotifications}
+        initialCampaignNotif={campaignUpdates}
+        initialMarketingNotif={marketingEmails}
       />
     </div>
   );

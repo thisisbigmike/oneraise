@@ -9,6 +9,10 @@ type SettingsClientProps = {
   initialEmail: string;
   initialImage?: string | null;
   role: string;
+  initialEmailNotif?: boolean;
+  initialPushNotif?: boolean;
+  initialCampaignNotif?: boolean;
+  initialMarketingNotif?: boolean;
 };
 
 const MAX_PROFILE_PHOTO_SIZE = 2 * 1024 * 1024;
@@ -30,7 +34,8 @@ function readProfilePhoto(file: File): Promise<string> {
   });
 }
 
-export default function SettingsClient({ initialName, initialEmail, initialImage, role }: SettingsClientProps) {
+export default function SettingsClient(props: SettingsClientProps) {
+  const { initialName, initialEmail, initialImage, role } = props;
   const { showToast } = useToast();
   const { update: updateSession } = useSession();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -43,11 +48,11 @@ export default function SettingsClient({ initialName, initialEmail, initialImage
   const [bio, setBio] = useState('');
   const [website, setWebsite] = useState('');
   const [twoFA, setTwoFA] = useState(false);
-  const [emailNotif, setEmailNotif] = useState(true);
-  const [pushNotif, setPushNotif] = useState(true);
-  const [donationNotif, setDonationNotif] = useState(true);
-  const [milestoneNotif, setMilestoneNotif] = useState(true);
-  const [marketingNotif, setMarketingNotif] = useState(false);
+  const [emailNotif, setEmailNotif] = useState(props.initialEmailNotif ?? true);
+  const [pushNotif, setPushNotif] = useState(props.initialPushNotif ?? true);
+  const [donationNotif, setDonationNotif] = useState(props.initialCampaignNotif ?? true);
+  const [milestoneNotif, setMilestoneNotif] = useState(props.initialCampaignNotif ?? true);
+  const [marketingNotif, setMarketingNotif] = useState(props.initialMarketingNotif ?? false);
   const [currentPw, setCurrentPw] = useState('');
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
@@ -128,8 +133,26 @@ export default function SettingsClient({ initialName, initialEmail, initialImage
     showToast('Session revoked. Device has been signed out.', 'success');
   };
 
-  const handleSavePrefs = () => {
-    showToast('Notification preferences saved!', 'success');
+  const handleSavePrefs = async () => {
+    setSavingProfile(true);
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          emailNotifications: emailNotif,
+          pushNotifications: pushNotif,
+          campaignUpdates: donationNotif,
+          marketingEmails: marketingNotif,
+        }),
+      });
+      if (!res.ok) throw new Error('Could not save preferences.');
+      showToast('Notification preferences saved!', 'success');
+    } catch (error) {
+      showToast('Error saving preferences.', 'error');
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   const handleInvite = () => {

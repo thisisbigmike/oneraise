@@ -16,12 +16,24 @@ export default async function SettingsPage() {
   const dbUser = userId
     ? await prisma.user.findUnique({
         where: { id: userId },
-        select: { name: true, email: true, image: true },
+        select: { 
+          name: true, 
+          email: true, 
+          image: true,
+          emailNotifications: true,
+          pushNotifications: true,
+          campaignUpdates: true,
+          marketingEmails: true
+        },
       })
     : null;
   const name = dbUser?.name || session.user.name || '';
   const email = dbUser?.email || session.user.email || '';
   const image = dbUser?.image || session.user.image || '';
+  const emailNotifications = dbUser?.emailNotifications ?? true;
+  const pushNotifications = dbUser?.pushNotifications ?? true;
+  const campaignUpdates = dbUser?.campaignUpdates ?? true;
+  const marketingEmails = dbUser?.marketingEmails ?? false;
 
   return (
     <SettingsClient 
@@ -29,6 +41,10 @@ export default async function SettingsPage() {
       initialEmail={email}
       initialImage={image}
       role={role}
+      initialEmailNotif={emailNotifications}
+      initialPushNotif={pushNotifications}
+      initialCampaignNotif={campaignUpdates}
+      initialMarketingNotif={marketingEmails}
     />
   );
 }

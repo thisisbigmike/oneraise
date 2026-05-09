@@ -44,6 +44,13 @@ model User {
   role            String?
   bushaProfileId  String?          @unique
   bushaStatus     String?          @default("unverified")
+  
+  // Notification Preferences
+  emailNotifications Boolean       @default(true)
+  pushNotifications  Boolean       @default(true)
+  campaignUpdates    Boolean       @default(true)
+  marketingEmails    Boolean       @default(false)
+
   accounts        Account[]
   campaigns       Campaign[]
   campaignReports CampaignReport[]
