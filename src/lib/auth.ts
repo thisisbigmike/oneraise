@@ -50,6 +50,13 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       allowDangerousEmailAccountLinking: true,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     }),
   );
 }
@@ -123,12 +130,16 @@ export const authOptions: AuthOptions = {
       const email = user.email?.trim().toLowerCase();
       if (!email) return "/auth?mode=signin&error=OAuthEmail";
 
-      const userId = (user as AuthUser).id;
-      if (userId) {
-        await prisma.user.update({
-          where: { id: userId },
-          data: { email },
-        }).catch(() => null);
+      const userId = (user as any).id;
+      if (userId && email) {
+        try {
+          await prisma.user.update({
+            where: { id: userId },
+            data: { email },
+          });
+        } catch (error) {
+          console.error("Error updating user email during sign-in:", error);
+        }
       }
 
       return true;
