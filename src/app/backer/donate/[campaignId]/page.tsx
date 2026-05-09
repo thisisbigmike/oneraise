@@ -7,6 +7,7 @@ import { VersionedTransaction } from '@solana/web3.js';
 import { useToast } from '../../../components';
 import { CAMPAIGN_SEEDS } from '@/lib/campaign-seeds';
 import { JUPITER_INPUT_TOKENS, type JupiterDonationQuote } from '@/lib/jupiter';
+import CampaignAssistant from '@/components/CampaignAssistant';
 
 type CampaignView = {
   id: number; slug: string; title: string; image?: string | null; creator: string; creatorInitials: string;
@@ -188,7 +189,8 @@ export default function DonatePage() {
     if (!campaignId) return;
 
     try {
-      setIsLoadingCampaign(true);
+      // Only show loading spinner if we don't already have seed/campaign data
+      if (!campaign) setIsLoadingCampaign(true);
       const res = await fetch(`/api/campaigns/${campaignId}`, { cache: 'no-store' });
       const data = await res.json();
 
@@ -200,7 +202,7 @@ export default function DonatePage() {
     } finally {
       setIsLoadingCampaign(false);
     }
-  }, [campaignId]);
+  }, [campaignId, campaign]);
 
   useEffect(() => {
     refreshCampaignProgress();
@@ -1356,6 +1358,7 @@ function CampaignSidebar({ campaign, pct }: { campaign: CampaignView; pct: numbe
           <div className="cs-method-badge">📱 M-Pesa</div>
         </div>
       </div>
+      <CampaignAssistant />
     </div>
   );
 }

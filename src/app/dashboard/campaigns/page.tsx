@@ -497,7 +497,7 @@ export default function CampaignsPage() {
     if (useUmbra) {
       try {
         setIsEncrypting((current) => ({ ...current, [milestoneId]: true }));
-        finalProofUrl = await encryptPayload(proofUrl, campaign.id);
+        finalProofUrl = await encryptPayload(proofUrl, String(campaign.id));
       } catch (err) {
         setIsEncrypting((current) => ({ ...current, [milestoneId]: false }));
         showToast('Umbra encryption failed.', 'error');

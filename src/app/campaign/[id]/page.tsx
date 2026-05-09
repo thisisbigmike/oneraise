@@ -4,6 +4,7 @@ import { useEffect, useState, use, type FormEvent } from 'react';
 import Link from 'next/link';
 import { CAMPAIGN_SEEDS, getCampaignPct } from '@/lib/campaign-seeds';
 import { decryptPayload, verifyBackerStatus, isUmbraProtected } from '@/lib/umbra';
+import CampaignAssistant from '@/components/CampaignAssistant';
 import './campaign.css';
 
 type CampaignDonor = {
@@ -577,6 +578,8 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
           </div>
         </div>
       )}
+
+      <CampaignAssistant />
     </div>
   );
 }

@@ -2,6 +2,7 @@ export type CampaignSeed = {
   id: number;
   slug: string;
   title: string;
+  image?: string | null;
   creator: string;
   creatorInitials: string;
   raised: number;
@@ -71,6 +72,21 @@ export const CAMPAIGN_SEEDS: Record<string, CampaignSeed> = {
     category: "Health",
     desc: "Installing solar panels to keep vaccines refrigerated at our rural clinic.",
     backers: 195,
+    daysLeft: 18,
+    verified: true,
+    status: "active",
+  },
+  "help-me-abeg": {
+    id: 5,
+    slug: "help-me-abeg",
+    title: "Help me abeg",
+    creator: "Top Boy",
+    creatorInitials: "TB",
+    raised: 0,
+    goal: 1000,
+    category: "Social Impact",
+    desc: "Community support campaign — every contribution counts.",
+    backers: 0,
     daysLeft: 18,
     verified: true,
     status: "active",

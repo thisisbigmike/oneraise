@@ -75,70 +75,81 @@ export async function GET(
 ) {
   const { slug } = await context.params;
   const seed = CAMPAIGN_SEEDS[slug];
-  const campaign = await prisma.campaign.findUnique({
-    where: { slug },
-    select: {
-      id: true,
-      title: true,
-      image: true,
-      slug: true,
-      description: true,
-      goal: true,
-      raised: true,
-      category: true,
-      status: true,
-      type: true,
-      protectStatus: true,
-      createdAt: true,
-      user: {
-        select: {
-          name: true,
+
+  // Try to fetch from database with a timeout so the page never hangs
+  let campaign: Awaited<ReturnType<typeof prisma.campaign.findUnique>> | null = null;
+  try {
+    const dbPromise = prisma.campaign.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        title: true,
+        image: true,
+        slug: true,
+        description: true,
+        goal: true,
+        raised: true,
+        category: true,
+        status: true,
+        type: true,
+        protectStatus: true,
+        createdAt: true,
+        user: {
+          select: {
+            name: true,
+          },
         },
-      },
-      milestones: {
-        orderBy: {
-          createdAt: "asc",
+        milestones: {
+          orderBy: {
+            createdAt: "asc",
+          },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            status: true,
+            proofUrl: true,
+            createdAt: true,
+            updatedAt: true,
+          },
         },
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          status: true,
-          proofUrl: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      },
-      _count: {
-        select: {
-          donations: {
-            where: {
-              status: "completed",
+        _count: {
+          select: {
+            donations: {
+              where: {
+                status: "completed",
+              },
             },
           },
         },
+        donations: {
+          where: {
+            status: "completed",
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          select: {
+            amount: true,
+            currency: true,
+            coverFee: true,
+            provider: true,
+            providerDataJson: true,
+            donorName: true,
+            donorEmail: true,
+            isAnonymous: true,
+            createdAt: true,
+          },
+        },
       },
-      donations: {
-        where: {
-          status: "completed",
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-        select: {
-          amount: true,
-          currency: true,
-          coverFee: true,
-          provider: true,
-          providerDataJson: true,
-          donorName: true,
-          donorEmail: true,
-          isAnonymous: true,
-          createdAt: true,
-        },
-      },
-    },
-  });
+    });
+
+    // 5-second timeout to prevent hanging when DB is slow
+    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
+    campaign = await Promise.race([dbPromise, timeoutPromise]) as typeof campaign;
+  } catch {
+    // Database unavailable — fall through to seed data
+  }
 
   if (!campaign && !seed) {
     return NextResponse.json({ error: "Campaign not found" }, { status: 404 });

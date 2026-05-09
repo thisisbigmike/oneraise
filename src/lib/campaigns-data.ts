@@ -171,7 +171,11 @@ async function getLiveCampaignsList(where?: { userId?: string }): Promise<Campai
 
 const getCachedLiveCampaignsList = unstable_cache(
   async (): Promise<CampaignListItem[]> => {
-    return getLiveCampaignsList();
+    // Race against a 5-second timeout so pages never hang
+    const timeoutPromise = new Promise<CampaignListItem[]>((_, reject) =>
+      setTimeout(() => reject(new Error('DB timeout')), 5000)
+    );
+    return Promise.race([getLiveCampaignsList(), timeoutPromise]);
   },
   ['campaigns-list'],
   { revalidate: 60 }
@@ -182,10 +186,15 @@ export function getUserCampaignsList(userId: string) {
 }
 
 export async function getCachedCampaignsList() {
+  const seeds = getSeedCampaignsList();
   try {
-    return await getCachedLiveCampaignsList();
+    const live = await getCachedLiveCampaignsList();
+    // Merge: use live DB campaigns + any seeds that don't have a matching slug in DB
+    const liveSlugs = new Set(live.map(c => c.slug));
+    const extraSeeds = seeds.filter(s => !liveSlugs.has(s.slug));
+    return [...live, ...extraSeeds];
   } catch (error) {
     console.warn("Unable to load live campaigns; using seed campaigns.", error);
-    return getSeedCampaignsList();
+    return seeds;
   }
 }

@@ -9,20 +9,19 @@ datasource db {
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?
-  access_token       String?
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?
-  session_state      String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -36,23 +35,22 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  role          String?   // "creator", "backer", "admin"
-  bushaProfileId String?  @unique
-  bushaStatus    String?  @default("unverified")
-  
-  accounts      Account[]
-  sessions      Session[]
-  campaigns     Campaign[]
-  donations     Donation[]
-  payoutMethods PayoutMethod[]
-  payouts       Payout[]
+  id              String           @id @default(cuid())
+  name            String?
+  email           String?          @unique
+  emailVerified   DateTime?
+  image           String?
+  password        String?
+  role            String?
+  bushaProfileId  String?          @unique
+  bushaStatus     String?          @default("unverified")
+  accounts        Account[]
+  campaigns       Campaign[]
   campaignReports CampaignReport[]
+  donations       Donation[]
+  payouts         Payout[]
+  payoutMethods   PayoutMethod[]
+  sessions        Session[]
 }
 
 model VerificationToken {
@@ -64,47 +62,43 @@ model VerificationToken {
 }
 
 model Campaign {
-  id          String     @id @default(cuid())
-  title       String
-  slug        String     @unique
-  description String?
-  goal        Float
-  raised      Float      @default(0)
-  image       String?
-  category    String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  status      String     @default("active") // active, completed, draft
-  type        String     @default("standard") // standard, protected_crowdfunding, emergency_aid, grant_distribution
-  protectStatus String   @default("funding") // funding, locked, pending_verification, unlocked, refunded
-  verifierId  String?
+  id                   String           @id @default(cuid())
+  title                String
+  slug                 String           @unique
+  description          String?
+  goal                 Float
+  raised               Float            @default(0)
+  image                String?
+  category             String
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  status               String           @default("active")
+  userId               String?
+  protectStatus        String           @default("funding")
+  type                 String           @default("standard")
   vendorPayoutMethodId String?
-
-  userId      String?
-  user        User?      @relation(fields: [userId], references: [id])
-  
-  donations   Donation[]
-  payouts     Payout[]
-  reports     CampaignReport[]
-  milestones  Milestone[]
+  verifierId           String?
+  user                 User?            @relation(fields: [userId], references: [id])
+  reports              CampaignReport[]
+  donations            Donation[]
+  milestones           Milestone[]
+  payouts              Payout[]
 }
 
 model CampaignReport {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   campaignSlug   String
   campaignTitle  String
   reason         String
   details        String?
-  status         String   @default("open") // open, reviewing, resolved
+  status         String    @default("open")
   reporterEmail  String?
   reporterUserId String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  campaignId String?
-  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-
-  reporter User? @relation(fields: [reporterUserId], references: [id], onDelete: SetNull)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  campaignId     String?
+  campaign       Campaign? @relation(fields: [campaignId], references: [id])
+  reporter       User?     @relation(fields: [reporterUserId], references: [id])
 
   @@index([campaignSlug])
   @@index([status])
@@ -112,96 +106,88 @@ model CampaignReport {
 }
 
 model Donation {
-  id            String   @id @default(cuid())
-  amount        Float
-  currency      String   @default("USD")
-  status        String   @default("pending") // pending, completed, failed
-  provider      String   // moonpay, busha_crypto, busha_ng, busha_ke, solana_usdt, raenest
-  paymentId     String?  @unique // Busha Event ID / Payment ID
-  solanaTxSignature String? @unique
-  quoteId       String?
-  checkoutUrl   String?
-  providerRef   String?
-  providerStatus String?
-  asset         String?
-  network       String?
-  instructionsJson String?
-  providerDataJson String?
-  expiresAt     DateTime?
-  completedAt   DateTime?
-  creditedAt    DateTime?
-  createdAt     DateTime @default(now())
-  donorName     String?  
-  donorEmail    String?
-  donorMessage  String?
-  isAnonymous   Boolean  @default(false)
-  coverFee      Boolean  @default(false)
-
-  userId        String?
-  user          User?    @relation(fields: [userId], references: [id])
-
-  campaignId    String
-  campaign      Campaign @relation(fields: [campaignId], references: [id])
+  id                String    @id @default(cuid())
+  amount            Float
+  currency          String    @default("USD")
+  status            String    @default("pending")
+  provider          String
+  paymentId         String?   @unique
+  quoteId           String?
+  checkoutUrl       String?
+  providerRef       String?
+  providerStatus    String?
+  asset             String?
+  network           String?
+  instructionsJson  String?
+  providerDataJson  String?
+  expiresAt         DateTime?
+  completedAt       DateTime?
+  creditedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  donorName         String?
+  donorEmail        String?
+  donorMessage      String?
+  isAnonymous       Boolean   @default(false)
+  coverFee          Boolean   @default(false)
+  userId            String?
+  campaignId        String
+  solanaTxSignature String?   @unique
+  campaign          Campaign  @relation(fields: [campaignId], references: [id])
+  user              User?     @relation(fields: [userId], references: [id])
 }
 
 model PayoutMethod {
-  id              String   @id @default(cuid())
-  type            String   // bank, crypto
-  provider        String   @default("busha")
-  label           String
-  accountName     String?
-  accountNumber   String?
-  bankName        String?
-  bankCode        String?
-  walletAddress   String?
-  network         String?
-  currency        String
-  countryCode     String?
-  bushaRecipientId String? @unique
-  metaJson        String?
-  isPrimary       Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  payouts         Payout[]
+  id               String   @id @default(cuid())
+  type             String
+  provider         String   @default("busha")
+  label            String
+  accountName      String?
+  accountNumber    String?
+  bankName         String?
+  bankCode         String?
+  walletAddress    String?
+  network          String?
+  currency         String
+  countryCode      String?
+  bushaRecipientId String?  @unique
+  metaJson         String?
+  isPrimary        Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  userId           String
+  payouts          Payout[]
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Payout {
-  id              String   @id @default(cuid())
-  amount          Float
-  sourceCurrency  String
-  targetCurrency  String
-  status          String   @default("pending")
-  provider        String   @default("busha")
-  paymentId       String?  @unique
-  quoteId         String?
+  id               String        @id @default(cuid())
+  amount           Float
+  sourceCurrency   String
+  targetCurrency   String
+  status           String        @default("pending")
+  provider         String        @default("busha")
+  paymentId        String?       @unique
+  quoteId          String?
   providerDataJson String?
-  completedAt     DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  campaignId      String?
-  campaign        Campaign? @relation(fields: [campaignId], references: [id])
-
-  payoutMethodId  String?
-  payoutMethod    PayoutMethod? @relation(fields: [payoutMethodId], references: [id], onDelete: SetNull)
+  completedAt      DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  userId           String
+  campaignId       String?
+  payoutMethodId   String?
+  campaign         Campaign?     @relation(fields: [campaignId], references: [id])
+  payoutMethod     PayoutMethod? @relation(fields: [payoutMethodId], references: [id])
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Milestone {
   id          String   @id @default(cuid())
   title       String
   description String?
-  status      String   @default("pending") // pending, submitted, approved, rejected
+  status      String   @default("pending")
   proofUrl    String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
   campaignId  String
   campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 }
