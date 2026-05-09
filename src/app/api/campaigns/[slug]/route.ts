@@ -77,7 +77,7 @@ export async function GET(
   const seed = CAMPAIGN_SEEDS[slug];
 
   // Try to fetch from database with a timeout so the page never hangs
-  let campaign: Awaited<ReturnType<typeof prisma.campaign.findUnique>> | null = null;
+  let campaign: any = null;
   try {
     const dbPromise = prisma.campaign.findUnique({
       where: { slug },
@@ -146,7 +146,7 @@ export async function GET(
 
     // 5-second timeout to prevent hanging when DB is slow
     const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
-    campaign = await Promise.race([dbPromise, timeoutPromise]) as typeof campaign;
+    campaign = await Promise.race([dbPromise, timeoutPromise]);
   } catch {
     // Database unavailable — fall through to seed data
   }
@@ -157,17 +157,17 @@ export async function GET(
 
   const baseRaised = campaign ? 0 : seed ? seed.raised : 0;
   const liveRaised = campaign?.donations.reduce(
-    (sum, donation) => sum + getStoredDonationCreditUsd(donation),
+    (sum: number, donation: any) => sum + getStoredDonationCreditUsd(donation),
     0,
   ) ?? 0;
   const baseBackers = campaign ? 0 : seed ? seed.backers : 0;
-  const uniqueDonors = campaign ? new Set(campaign.donations.map(d => (d.donorEmail || d.donorName || Math.random().toString()).toLowerCase().trim())) : new Set();
+  const uniqueDonors = campaign ? new Set(campaign.donations.map((d: any) => (d.donorEmail || d.donorName || Math.random().toString()).toLowerCase().trim())) : new Set();
   const liveBackers = uniqueDonors.size;
   const goal = campaign?.goal || seed?.goal || 0;
   const raised = baseRaised + liveRaised;
   const pct = getCampaignPct(raised, goal);
   const creatorName = campaign?.user?.name || seed?.creator || "OneRaise Creator";
-  const recentDonors = campaign?.donations.slice(0, 8).map((donation, index) => {
+  const recentDonors = campaign?.donations.slice(0, 8).map((donation: any, index: number) => {
     const donorName = donation.isAnonymous
       ? "Anonymous"
       : donation.donorName?.trim() || donation.donorEmail?.split("@")[0] || "Supporter";
@@ -194,7 +194,7 @@ export async function GET(
         seed?.creatorInitials ||
         creatorName
           .split(" ")
-          .map((part) => part[0])
+          .map((part: string) => part[0])
           .join("")
           .slice(0, 2)
           .toUpperCase() ||
@@ -210,7 +210,7 @@ export async function GET(
       status: campaign?.status || seed?.status || "active",
       type: campaign?.type || "standard",
       protectStatus: campaign?.protectStatus || "funding",
-      milestones: campaign?.milestones.map((milestone) => ({
+      milestones: campaign?.milestones.map((milestone: any) => ({
         ...milestone,
         createdAt: milestone.createdAt.toISOString(),
         updatedAt: milestone.updatedAt.toISOString(),
