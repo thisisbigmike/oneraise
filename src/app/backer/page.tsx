@@ -136,4 +136,3 @@ export default async function BackerOverview() {
     </div>
   );
 }
-}
