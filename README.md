@@ -1,5 +1,7 @@
 # OneRaise: The World's First Borderless Trust Protocol
 
+[![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/thisisbigmike/oneraise?utm_source=oss&utm_medium=github&utm_campaign=thisisbigmike%2Foneraise&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)](https://coderabbit.ai)
+
 OneRaise is a next-generation crowdfunding platform designed to bridge the gap between global capital and local impact. We go beyond moving money; we move trust. By leveraging blockchain technology and milestone-based disbursement, OneRaise ensures that every donation is protected and every outcome is verifiable.
 
 **One Goal. One Platform. OneRaise.**
