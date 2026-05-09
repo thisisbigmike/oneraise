@@ -32,6 +32,19 @@ export default async function BackerOverview() {
     .filter(c => c.status === 'active')
     .slice(0, 2);
 
+  // Fetch real milestones from supported campaigns
+  const recentUpdates = supportedCampaignIds.size > 0
+    ? await prisma.milestone.findMany({
+        where: {
+          campaignId: { in: Array.from(supportedCampaignIds) },
+          status: 'completed'
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 3,
+        include: { campaign: { select: { title: true } } }
+      })
+    : [];
+
   return (
     <div className="overview-page">
       <div className="page-header">
@@ -100,20 +113,27 @@ export default async function BackerOverview() {
               <div className="cc-title">Recent Updates</div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {[
-                { camp: 'SolarPack Mini', date: '2 days ago', msg: 'We just secured a new manufacturing partner in Lagos! This means faster delivery relative to...' },
-                { camp: 'CodeBridge', date: '1 week ago', msg: 'The first cohort of 50 students has officially graduated. Thank you to all our backers!' }
-              ].map((u, i) => (
-                <div key={i} style={{ borderBottom: i === 0 ? '1px solid rgba(245,250,247,0.06)' : 'none', paddingBottom: i === 0 ? 16 : 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{u.camp}</div>
-                  <div className="s-hint" style={{ fontSize: 12, marginBottom: 8 }}>{u.date}</div>
-                  <div style={{ fontSize: 14, color: 'var(--w50)', lineHeight: 1.5 }}>&quot;{u.msg}&quot;</div>
+              {recentUpdates.length > 0 ? (
+                recentUpdates.map((u, i) => (
+                  <div key={u.id} style={{ borderBottom: i < recentUpdates.length - 1 ? '1px solid rgba(245,250,247,0.06)' : 'none', paddingBottom: i < recentUpdates.length - 1 ? 16 : 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{u.campaign.title}</div>
+                    <div className="s-hint" style={{ fontSize: 12, marginBottom: 8 }}>
+                      {new Date(u.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </div>
+                    <div style={{ fontWeight: 500, fontSize: 14, color: 'var(--white)', marginBottom: 4 }}>{u.title}</div>
+                    <div style={{ fontSize: 13, color: 'var(--w50)', lineHeight: 1.5 }}>{u.description}</div>
+                  </div>
+                ))
+              ) : (
+                <div className="s-hint" style={{ fontSize: 13, textAlign: 'center', padding: '20px 0' }}>
+                  No updates from your campaigns yet. When creators post milestones, they will appear here.
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
       </div>
     </div>
   );
+}
 }
