@@ -51,6 +51,7 @@ model User {
   payouts         Payout[]
   payoutMethods   PayoutMethod[]
   sessions        Session[]
+  bookmarks       Bookmark[]
 }
 
 model VerificationToken {
@@ -83,6 +84,7 @@ model Campaign {
   donations            Donation[]
   milestones           Milestone[]
   payouts              Payout[]
+  bookmarks            Bookmark[]
 }
 
 model CampaignReport {
@@ -190,4 +192,15 @@ model Milestone {
   updatedAt   DateTime @updatedAt
   campaignId  String
   campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+}
+
+model Bookmark {
+  id         String   @id @default(cuid())
+  userId     String
+  campaignId String
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, campaignId])
 }
