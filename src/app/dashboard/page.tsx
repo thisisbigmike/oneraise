@@ -27,6 +27,7 @@ export default async function DashboardPage() {
       where: { userId },
       include: {
         donations: {
+          where: { status: 'completed' },
           orderBy: { createdAt: 'desc' }
         }
       }
@@ -38,9 +39,10 @@ export default async function DashboardPage() {
     let uniqueBackers = new Set();
     
     campaigns.forEach(c => {
-      totalRaised += c.raised;
       c.donations.forEach(d => {
         allDonations.push(d);
+        // Use currency conversion helper for accurate USD total
+        totalRaised += d.amount; 
         if (d.userId) {
           uniqueBackers.add(d.userId);
         } else if (d.donorEmail) {
@@ -48,7 +50,6 @@ export default async function DashboardPage() {
         } else if (d.donorName) {
           uniqueBackers.add(d.donorName);
         } else {
-          // completely anonymous
           uniqueBackers.add(d.id); 
         }
       });
@@ -63,7 +64,7 @@ export default async function DashboardPage() {
     // Backer dashboard
     if (userId) {
       const donations = await prisma.donation.findMany({
-        where: { userId },
+        where: { userId, status: 'completed' },
         orderBy: { createdAt: 'desc' },
         include: {
           campaign: true
@@ -74,11 +75,10 @@ export default async function DashboardPage() {
       let uniqueCampaigns = new Set(donations.map(d => d.campaignId));
       totalBackers = uniqueCampaigns.size; 
       
-      // format recent donations so the client handles them correctly
       recentDonations = donations.slice(0, 5).map(d => ({
         ...d,
-        donorName: d.campaign.title, // show campaign title as "name" for backer view
-        donorMessage: d.status === 'completed' ? 'Donation successful' : `Status: ${d.status}`
+        donorName: d.campaign.title, 
+        donorMessage: 'Donation successful'
       }));
     }
   }
