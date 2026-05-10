@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { getCampaignPct } from '@/lib/campaign-seeds';
+import CampaignCard from '@/components/ui/CampaignCard';
 
 type ExploreCampaign = {
   id: number;
@@ -12,6 +13,7 @@ type ExploreCampaign = {
   creator: string;
   raised: number;
   goal: number;
+  backers?: number;
   pct?: number;
   category: string;
   desc: string;
@@ -56,8 +58,6 @@ export default function ExploreClient({ initialQuery, campaigns }: { initialQuer
     return result;
   }, [searchQuery, category, sortOrder, campaigns]);
 
-  const formatCompactGoal = (value: number) => (value >= 1000 && value % 1000 === 0 ? `$${value / 1000}k goal` : `$${value.toLocaleString()} goal`);
-
   return (
     <main className="explore-container">
       <div className="explore-header">
@@ -93,35 +93,24 @@ export default function ExploreClient({ initialQuery, campaigns }: { initialQuer
       <div className="campaigns-grid" style={{ marginTop: '40px' }}>
         {filteredCampaigns.length > 0 ? (
           filteredCampaigns.map((campaign, i) => (
-            <Link href={`/backer/donate/${campaign.slug || campaign.id}`} key={campaign.id} className={`c-card reveal visible`} style={{ animationDelay: `${i * 0.1}s` }}>
-              <div className={`c-card-img c${(i % 3) + 1}`}>
-                {campaign.image && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={campaign.image} alt={`${campaign.title} cover`} />
-                )}
-              </div>
-              <div className="c-card-body">
-                <div className="c-card-top">
-                  <span className="c-tag">{campaign.category}</span>
-                  <span className="c-flag">🌍 Global</span>
-                </div>
-                <div className="c-title">{campaign.title}</div>
-                <div className="c-desc">{campaign.desc}</div>
-                <div className="c-progress-track">
-                  <div className="c-progress-fill" style={{ width: `${getCampaignPct(campaign.raised, campaign.goal)}%` }}></div>
-                </div>
-                <div className="c-stats">
-                  <div>
-                    <div className="c-raised">${campaign.raised.toLocaleString()}</div>
-                    <div className="c-raised-sub">of {formatCompactGoal(campaign.goal)}</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div className="c-pct">{getCampaignPct(campaign.raised, campaign.goal)}%</div>
-                    <div className="c-days">{campaign.daysLeft} days left</div>
-                  </div>
-                </div>
-              </div>
-            </Link>
+            <div key={campaign.id} className="reveal visible" style={{ animationDelay: `${i * 0.1}s` }}>
+              <CampaignCard
+                title={campaign.title}
+                goal={campaign.goal}
+                raised={campaign.raised}
+                backers={campaign.backers || 0}
+                daysLeft={campaign.daysLeft}
+                status={campaign.status || 'active'}
+                category={campaign.category}
+                image={campaign.image}
+                pct={campaign.pct ?? getCampaignPct(campaign.raised, campaign.goal)}
+                actions={
+                  <Link href={`/backer/donate/${campaign.slug || campaign.id}`} className="ucc-btn ucc-btn-primary">
+                    Support this campaign
+                  </Link>
+                }
+              />
+            </div>
           ))
         ) : (
           <div className="no-results">

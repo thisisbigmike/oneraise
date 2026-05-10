@@ -306,7 +306,7 @@ export default async function Home() {
   {landingCampaigns.length > 0 ? (
     <div className="campaigns-grid">
       {landingCampaigns.map((campaign, index) => (
-        <div key={campaign.id} className={`c-card ${index === 0 ? 'featured reveal' : `reveal reveal-delay-${index}`}`}>
+        <div key={campaign.id} className={index === 0 ? 'featured reveal' : `reveal reveal-delay-${index}`}>
           <CampaignCard
             title={campaign.title}
             goal={campaign.goal}
