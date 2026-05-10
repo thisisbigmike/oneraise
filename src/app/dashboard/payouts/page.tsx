@@ -221,19 +221,24 @@ export default function PayoutsPage() {
     setScanReport(null);
     showToast("Scanning Cloak shielded pool using viewing key...", "info");
     
-    // Simulate network delay for scan
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Mock report for hackathon demo
-    setScanReport({
-      totalGrossUsdc: 50.00,
-      totalFeeUsdc: 0.15,
-      totalNetUsdc: 49.85,
-      donationsCount: 1,
-    });
-    
-    setIsScanning(false);
-    showToast("Scan complete. Compliance report ready.", "success");
+    try {
+      const res = await fetch('/api/cloak/scan');
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to scan history");
+      }
+      
+      // Simulate slight network delay for scan UX
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      setScanReport(data.report);
+      showToast("Scan complete. Compliance report ready.", "success");
+    } catch (err: any) {
+      showToast(err.message || "Failed to scan history", "error");
+    } finally {
+      setIsScanning(false);
+    }
   };
 
   useEffect(() => {
