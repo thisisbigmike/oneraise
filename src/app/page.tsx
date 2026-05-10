@@ -5,6 +5,7 @@ import AnimatedButton from '@/components/ui/AnimatedButton';
 import CampaignCard from '@/components/ui/CampaignCard';
 import prisma from "@/lib/prisma";
 import { CAMPAIGN_SEED_LIST } from "@/lib/campaign-seeds";
+import { getDonationBackerKey } from "@/lib/backers";
 import { getStoredDonationCreditUsd } from "@/lib/currency";
 
 type HomeDonation = {
@@ -15,6 +16,7 @@ type HomeDonation = {
   provider: string | null;
   providerDataJson: string | null;
   donorEmail: string | null;
+  userId?: string | null;
   createdAt: Date;
   donorName: string | null;
   isAnonymous: boolean;
@@ -29,13 +31,13 @@ async function getHomeStats() {
       prisma.campaign.count({ where: { status: 'active' } }),
       prisma.donation.findMany({
         where: { status: 'completed' },
-        select: { amount: true, currency: true, coverFee: true, provider: true, providerDataJson: true, donorEmail: true, id: true, createdAt: true, donorName: true, isAnonymous: true, campaign: { select: { title: true } } },
+        select: { amount: true, currency: true, coverFee: true, provider: true, providerDataJson: true, donorEmail: true, userId: true, id: true, createdAt: true, donorName: true, isAnonymous: true, campaign: { select: { title: true } } },
         orderBy: { createdAt: 'desc' }
       }),
     ]);
 
     const totalRaisedUsd = allCompletedDonations.reduce((sum, d) => sum + getStoredDonationCreditUsd(d), 0);
-    const uniqueBackers = new Set(allCompletedDonations.map(d => d.donorEmail || d.id)).size;
+    const uniqueBackers = new Set(allCompletedDonations.map(getDonationBackerKey).filter(Boolean)).size;
 
     return {
       activeCampaignsCount,

@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { CAMPAIGN_SEEDS, getCampaignPct } from "@/lib/campaign-seeds";
 import { getStoredDonationCreditUsd } from "@/lib/currency";
 import { isPublicCampaign } from "@/lib/campaigns-data";
+import { getUniqueBackerCount } from "@/lib/backers";
 
 const MAX_IMAGE_DATA_URL_LENGTH = 7 * 1024 * 1024;
 const PROTECTED_CAMPAIGN_TYPES = new Set([
@@ -131,11 +132,13 @@ export async function GET(
             createdAt: "desc",
           },
           select: {
+            id: true,
             amount: true,
             currency: true,
             coverFee: true,
             provider: true,
             providerDataJson: true,
+            userId: true,
             donorName: true,
             donorEmail: true,
             isAnonymous: true,
@@ -170,8 +173,7 @@ export async function GET(
     0,
   ) ?? 0;
   const baseBackers = campaign ? 0 : seed ? seed.backers : 0;
-  const uniqueDonors = campaign ? new Set(campaign.donations.map((d: any) => (d.donorEmail || d.donorName || Math.random().toString()).toLowerCase().trim())) : new Set();
-  const liveBackers = uniqueDonors.size;
+  const liveBackers = campaign ? getUniqueBackerCount(campaign.donations) : 0;
   const goal = campaign?.goal || seed?.goal || 0;
   const raised = baseRaised + liveRaised;
   const pct = getCampaignPct(raised, goal);

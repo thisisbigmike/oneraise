@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { getCampaignPct } from '@/lib/campaign-seeds';
 
+import { getUniqueBackerCount } from '@/lib/backers';
 import { getStoredDonationCreditUsd } from '@/lib/currency';
 import CampaignCard from '@/components/ui/CampaignCard';
 
@@ -37,7 +38,6 @@ export default async function SavedCampaignsPage() {
   const savedCampaigns = bookmarks.map(b => {
     const c = b.campaign;
     const raised = c.donations.reduce((sum, d) => sum + getStoredDonationCreditUsd(d as any), 0);
-    const uniqueDonors = new Set(c.donations.map(d => (d.donorEmail || d.donorName || d.id).toLowerCase()));
     const daysLeft = c.status === "active" ? Math.max(0, Math.ceil((c.createdAt.getTime() + 30 * 86400000 - Date.now()) / 86400000)) : 0;
     
     return {
@@ -45,7 +45,7 @@ export default async function SavedCampaignsPage() {
       raised,
       pct: getCampaignPct(raised, c.goal),
       creator: c.user?.name || 'OneRaise Creator',
-      backers: uniqueDonors.size,
+      backers: getUniqueBackerCount(c.donations),
       daysLeft
     };
   });

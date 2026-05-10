@@ -1,6 +1,7 @@
 import { unstable_cache } from 'next/cache';
 import prisma from "@/lib/prisma";
 import { CAMPAIGN_SEED_LIST } from "@/lib/campaign-seeds";
+import { getUniqueBackerCount } from "@/lib/backers";
 import { getStoredDonationCreditUsd } from "@/lib/currency";
 
 export type CampaignListItem = {
@@ -119,11 +120,13 @@ async function getLiveCampaignsList(where?: { userId?: string }): Promise<Campai
           status: "completed",
         },
         select: {
+          id: true,
           amount: true,
           currency: true,
           coverFee: true,
           provider: true,
           providerDataJson: true,
+          userId: true,
           donorEmail: true,
           donorName: true,
         },
@@ -141,7 +144,6 @@ async function getLiveCampaignsList(where?: { userId?: string }): Promise<Campai
       0,
     );
     const goal = campaign.goal;
-    const uniqueDonors = new Set(campaign.donations.map(d => (d.donorEmail || d.donorName || Math.random().toString()).toLowerCase().trim()));
 
     return {
       id: Number(campaign.slug) || getNumericCampaignId(campaign.slug),
@@ -156,7 +158,7 @@ async function getLiveCampaignsList(where?: { userId?: string }): Promise<Campai
       pct: getCampaignPct(raised, goal),
       category: campaign.category,
       desc: campaign.description || "",
-      backers: uniqueDonors.size,
+      backers: getUniqueBackerCount(campaign.donations),
       daysLeft: campaign.status === "active" ? Math.max(0, Math.ceil((campaign.createdAt.getTime() + 30 * 86400000 - Date.now()) / 86400000)) : 0,
       verified: true,
       status: campaign.status,

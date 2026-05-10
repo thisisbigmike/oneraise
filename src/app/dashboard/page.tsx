@@ -4,6 +4,7 @@ import prisma from "../../lib/prisma";
 import DashboardClient from "./DashboardClient";
 import { redirect } from "next/navigation";
 import { getCreatorPayoutSummary } from "@/lib/payment-records";
+import { getDonationBackerKey } from "@/lib/backers";
 import { getStoredDonationCreditUsd } from "@/lib/currency";
 
 export default async function DashboardPage() {
@@ -44,15 +45,8 @@ export default async function DashboardPage() {
         allDonations.push(d);
         // Use currency conversion helper for accurate USD total
         totalRaised += getStoredDonationCreditUsd(d as any);
-        if (d.userId) {
-          uniqueBackers.add(d.userId);
-        } else if (d.donorEmail) {
-          uniqueBackers.add(d.donorEmail);
-        } else if (d.donorName) {
-          uniqueBackers.add(d.donorName);
-        } else {
-          uniqueBackers.add(d.id); 
-        }
+        const backerKey = getDonationBackerKey(d);
+        if (backerKey) uniqueBackers.add(backerKey);
       });
     });
 
