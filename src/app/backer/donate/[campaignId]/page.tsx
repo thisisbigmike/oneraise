@@ -38,11 +38,7 @@ function isProtectedType(type?: string) {
 
 const PRESETS = [25, 50, 100, 250];
 const CURRENCIES = [
-  { code: 'USD', symbol: '$', label: 'USD' },
-  { code: 'EUR', symbol: '€', label: 'EUR' },
-  { code: 'GBP', symbol: '£', label: 'GBP' },
-  { code: 'NGN', symbol: '₦', label: 'NGN' },
-  { code: 'KES', symbol: 'KSh', label: 'KES' },
+  { code: 'USDT', symbol: '$', label: 'USDT' },
 ];
 
 type PaymentMethod = 'card' | 'crypto' | 'jupiter' | 'local';
@@ -90,7 +86,7 @@ export default function DonatePage() {
   // Form state
   const [amount, setAmount] = useState('50');
   const [presetActive, setPresetActive] = useState(50);
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState('USDT');
   const [donorName, setDonorName] = useState('');
   const [donorEmail, setDonorEmail] = useState('');
   const [message, setMessage] = useState('');
@@ -863,16 +859,12 @@ export default function DonatePage() {
               </div>
               <div>
                 <label className="s-label" style={{ marginBottom: 8 }}>Currency</label>
-                <select
+                <div
                   className="currency-select"
-                  value={currency}
-                  onChange={e => setCurrency(e.target.value)}
-                  id="donate-currency"
+                  style={{ display: 'flex', alignItems: 'center', pointerEvents: 'none' }}
                 >
-                  {CURRENCIES.map(c => (
-                    <option key={c.code} value={c.code}>{c.label}</option>
-                  ))}
-                </select>
+                  USDT
+                </div>
               </div>
             </div>
           </div>
