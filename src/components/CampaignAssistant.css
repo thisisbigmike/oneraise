@@ -298,3 +298,42 @@
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
+/* Markdown Code Blocks */
+.ca-text-part pre {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-top: 8px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(245, 250, 247, 0.08);
+}
+
+.ca-text-part code {
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-size: 13px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: var(--teal-100, #a7f3d0);
+}
+
+.ca-text-part pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+  white-space: pre;
+}
+
+.ca-text-part pre::-webkit-scrollbar {
+  height: 6px;
+}
+.ca-text-part pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ca-text-part pre::-webkit-scrollbar-thumb {
+  background: rgba(245, 250, 247, 0.2);
+  border-radius: 4px;
+}
+
