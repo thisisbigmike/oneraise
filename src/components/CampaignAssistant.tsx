@@ -9,11 +9,12 @@ export default function CampaignAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const { messages, sendMessage, status } = useChat({
-    api: '/api/campaign-chat',
-    maxSteps: 3,
-  } as any);
+    transport: new DefaultChatTransport({
+      api: '/api/campaign-chat',
+    }),
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const isLoading = (status as any) === 'streaming' || (status as any) === 'submitted';
+  const isLoading = status === 'streaming' || status === 'submitted';
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
@@ -26,7 +27,7 @@ export default function CampaignAssistant() {
     e.preventDefault();
     const trimmed = input.trim();
     if (!trimmed || isLoading) return;
-    (sendMessage as any)({ text: trimmed });
+    sendMessage({ text: trimmed });
     setInput('');
   };
 
@@ -65,11 +66,12 @@ export default function CampaignAssistant() {
                         return <span key={i}>{part.text}</span>;
                       }
                       if (part.type.startsWith('tool-')) {
-                        const toolPart = part as { type: string; toolCallId: string; toolName: string; state: string };
-                        const toolName = toolPart.toolName;
+                        const toolPart = part as any;
+                        const toolName = toolPart.toolName || part.type.replace('tool-', '');
+                        const isFinished = toolPart.state === 'output-available' || toolPart.state === 'result';
                         return (
                           <div key={i} className="ca-tool-call">
-                            {toolPart.state === 'result' ? (
+                            {isFinished ? (
                               <span className="ca-tool-success">✓ Checked {toolName === 'getSwapQuote' ? 'Jupiter Swap Rate' : 'Token Price'}</span>
                             ) : (
                               <span className="ca-tool-loading">

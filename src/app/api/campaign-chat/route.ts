@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google';
-import { tool, streamText } from 'ai';
+import { tool, streamText, convertToModelMessages } from 'ai';
 import { z } from 'zod';
 
 // Allow streaming responses up to 30 seconds
@@ -28,7 +28,7 @@ Common token mints on Solana:
   const result = streamText({
     model: google('gemini-2.5-flash'),
     system: systemPrompt,
-    messages,
+    messages: await convertToModelMessages(messages),
     tools: {
       getTokenPrice: tool({
         description: 'Get the current USD price of a Solana token by its mint address or symbol (like SOL, USDC).',
