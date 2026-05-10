@@ -8,7 +8,7 @@
 }
 
 .how-nav {
-  background: rgba(10,24,18,0.96);
+  background: color-mix(in srgb, var(--ink) 96%, transparent);
 }
 
 .how-hero {
@@ -105,9 +105,9 @@
 }
 
 .how-summary-panel {
-  border: 1px solid rgba(245,250,247,0.1);
+  border: 1px solid var(--white-10);
   border-radius: 20px;
-  background: rgba(13,26,22,0.84);
+  background: var(--ink-card);
   box-shadow: 0 28px 80px rgba(0,0,0,0.28);
   padding: 24px;
 }
@@ -117,7 +117,7 @@
   justify-content: space-between;
   gap: 18px;
   padding-bottom: 18px;
-  border-bottom: 1px solid rgba(245,250,247,0.08);
+  border-bottom: 1px solid var(--white-10);
 }
 
 .summary-header span,
@@ -146,7 +146,7 @@
   gap: 5px;
   padding: 14px;
   border-radius: 12px;
-  background: rgba(245,250,247,0.035);
+  background: color-mix(in srgb, var(--white) 3.5%, transparent);
 }
 
 .route-stack strong {
@@ -159,7 +159,7 @@
   height: 8px;
   border-radius: 999px;
   overflow: hidden;
-  background: rgba(245,250,247,0.08);
+  background: var(--white-10);
 }
 
 .summary-meter span {
@@ -196,16 +196,16 @@
 .creator-flow {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  border: 1px solid rgba(245,250,247,0.08);
+  border: 1px solid var(--white-10);
   border-radius: 20px;
   overflow: hidden;
-  background: rgba(245,250,247,0.025);
+  background: color-mix(in srgb, var(--white) 2.5%, transparent);
 }
 
 .creator-step {
   min-height: 300px;
   padding: 28px;
-  border-right: 1px solid rgba(245,250,247,0.08);
+  border-right: 1px solid var(--white-10);
 }
 
 .creator-step:last-child {
@@ -265,9 +265,9 @@
   gap: 14px;
   align-items: flex-start;
   padding: 16px;
-  border: 1px solid rgba(245,250,247,0.08);
+  border: 1px solid var(--white-10);
   border-radius: 14px;
-  background: rgba(245,250,247,0.03);
+  background: color-mix(in srgb, var(--white) 3%, transparent);
 }
 
 .check-row span {
@@ -293,9 +293,9 @@
 .rail-card {
   min-height: 210px;
   padding: 24px;
-  border: 1px solid rgba(245,250,247,0.08);
+  border: 1px solid var(--white-10);
   border-radius: 16px;
-  background: rgba(245,250,247,0.025);
+  background: color-mix(in srgb, var(--white) 2.5%, transparent);
 }
 
 .trust-band {
@@ -318,7 +318,7 @@
   padding: 12px 14px;
   border-radius: 999px;
   border: 1px solid rgba(29,158,117,0.18);
-  background: rgba(10,24,18,0.5);
+  background: color-mix(in srgb, var(--ink) 50%, transparent);
   color: var(--white-60);
   font-size: 13px;
   font-weight: 600;
@@ -379,7 +379,7 @@
   .creator-step {
     min-height: auto;
     border-right: 0;
-    border-bottom: 1px solid rgba(245,250,247,0.08);
+    border-bottom: 1px solid var(--white-10);
   }
 
   .creator-step:last-child {
