@@ -26,7 +26,7 @@ Common token mints on Solana:
 `;
 
   const result = streamText({
-    model: google('gemini-1.5-flash'),
+    model: google('gemini-2.5-flash'),
     system: systemPrompt,
     messages,
     tools: {
@@ -59,7 +59,7 @@ Common token mints on Solana:
         execute: async ({ inputMint, outputMint, amount, slippageBps }: { inputMint: string; outputMint: string; amount: number; slippageBps?: number }) => {
           const slip = slippageBps ?? 50;
           try {
-            const url = `https://quote-api.jup.ag/v6/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}&slippageBps=${slip}`;
+            const url = `https://api.jup.ag/swap/v1/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amount}&slippageBps=${slip}`;
             const res = await fetch(url);
             const quote = await res.json();
             if (quote.error) {
@@ -80,5 +80,5 @@ Common token mints on Solana:
     },
   });
 
-  return (result as any).toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }

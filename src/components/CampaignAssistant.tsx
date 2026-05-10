@@ -10,6 +10,7 @@ export default function CampaignAssistant() {
   const [input, setInput] = useState('');
   const { messages, sendMessage, status } = useChat({
     api: '/api/campaign-chat',
+    maxSteps: 3,
   } as any);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isLoading = (status as any) === 'streaming' || (status as any) === 'submitted';
