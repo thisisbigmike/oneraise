@@ -12,9 +12,9 @@ function jupHeaders(): Record<string, string> {
   if (JUP_API_KEY) h['x-api-key'] = JUP_API_KEY;
   return h;
 }
-
 export async function POST(req: Request) {
   const { messages } = await req.json();
+  console.log("INCOMING BODY:", JSON.stringify(messages, null, 2));
 
   const systemPrompt = `You are the OneRaise AI Support Assistant. 
 Your goal is to help donors calculate their donations, understand exchange rates, and see how their tokens will be routed using Jupiter on the Solana blockchain.
@@ -37,7 +37,7 @@ Common token mints on Solana:
 `;
 
   const result = streamText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-3.1-pro'),
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
     stopWhen: stepCountIs(5),

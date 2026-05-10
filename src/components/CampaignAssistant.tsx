@@ -10,7 +10,7 @@ import './CampaignAssistant.css';
 export default function CampaignAssistant() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, error } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/campaign-chat',
     }),
@@ -102,10 +102,19 @@ export default function CampaignAssistant() {
                 </div>
               ))
             )}
+            
             {isLoading && messages[messages.length - 1]?.role === 'user' && (
               <div className="ca-message assistant">
                 <div className="ca-message-bubble loading-dots">
                   <span>.</span><span>.</span><span>.</span>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="ca-message assistant">
+                <div className="ca-message-bubble error-message">
+                  An error occurred: {error.message || 'Failed to fetch response.'}
                 </div>
               </div>
             )}
