@@ -1153,8 +1153,8 @@ export default function DonatePage() {
 
           <div className="donate-divider" />
 
-          {/* Cover fee */}
-          {paymentMethod !== 'jupiter' && (
+          {/* Extra options: Cover fee or Donate Privately */}
+          {paymentMethod !== 'jupiter' ? (
             <div
               className={`donate-checkbox-row ${coverFee ? 'checked' : ''}`}
               onClick={() => setCoverFee(!coverFee)}
@@ -1170,6 +1170,43 @@ export default function DonatePage() {
                   Add {currencyObj.symbol}{feeAmount.toFixed(2)} ({(feeRate * 100).toFixed(1)}%) so 100% of your donation reaches the organizer
                 </div>
               </div>
+            </div>
+          ) : (
+            <div className="cloak-privacy-toggle" style={{ marginTop: 0 }}>
+              <div className="cloak-toggle-row">
+                <div className="cloak-toggle-info">
+                  <div className="cloak-toggle-title">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                    Donate Privately
+                  </div>
+                  <div className="cloak-toggle-desc">Hide your identity and amount on-chain via Cloak shielded pool</div>
+                </div>
+                <label className="cloak-switch">
+                  <input type="checkbox" checked={cloakPrivate} onChange={e => setCloakPrivate(e.target.checked)} />
+                  <span className="cloak-slider" />
+                </label>
+              </div>
+              {cloakPrivate && (
+                <div className="cloak-info-card">
+                  <div className="cloak-info-header">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <strong>Powered by Cloak</strong>
+                    <span className="cloak-badge">SHIELDED</span>
+                  </div>
+                  <ul className="cloak-features">
+                    <li>Your donation amount and wallet are hidden on-chain</li>
+                    <li>Campaign creator can verify donations via viewing key</li>
+                    <li>Compliant &amp; auditable — privacy with accountability</li>
+                  </ul>
+                  {cloakFeeEstimate && (
+                    <div className="cloak-fee-display">
+                      <div className="cloak-fee-row"><span>Amount</span><strong>${cloakFeeEstimate.gross.toFixed(2)} USDC</strong></div>
+                      <div className="cloak-fee-row"><span>Privacy fee ({cloakFeeEstimate.feePercent}%)</span><span>−${cloakFeeEstimate.protocolFee.toFixed(4)} USDC</span></div>
+                      <div className="cloak-fee-row cloak-fee-total"><span>Creator receives</span><strong>${cloakFeeEstimate.net.toFixed(2)} USDC</strong></div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
