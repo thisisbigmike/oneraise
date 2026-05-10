@@ -1,6 +1,7 @@
 # Jupiter DX Report — OneRaise
 
 **Author:** OneRaise Team  
+**Email:** greasemike2000@gmail.com  
 **Date:** May 2026  
 **Project:** [OneRaise](https://github.com/thisisbigmike/oneraise) — A borderless fundraising protocol on Solana  
 **Jupiter APIs Used:** Swap V1 (Quote + Swap-Instructions), Price V3, Tokens V2, Portfolio V1  
