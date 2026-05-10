@@ -3,6 +3,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import './CampaignAssistant.css';
 
 export default function CampaignAssistant() {
@@ -37,7 +39,7 @@ export default function CampaignAssistant() {
         <div className="ca-window">
           <div className="ca-header">
             <div className="ca-header-title">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5DCAA5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--teal-400)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
               </svg>
               OneRaise Assistant
@@ -71,7 +73,9 @@ export default function CampaignAssistant() {
                       if (part.type === 'text') {
                         return (
                           <div key={i} className="ca-text-part">
-                            {part.text}
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {part.text}
+                            </ReactMarkdown>
                           </div>
                         );
                       }
@@ -79,21 +83,16 @@ export default function CampaignAssistant() {
                         const toolPart = part as any;
                         const toolName = toolPart.toolName || part.type.replace('tool-', '');
                         const isFinished = toolPart.state === 'output-available' || toolPart.state === 'result';
+                        
+                        // Hide finished tool calls to keep UX clean
+                        if (isFinished) return null;
+
                         return (
                           <div key={i} className="ca-tool-call">
-                            {isFinished ? (
-                              <div className="ca-tool-badge success">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                  <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                                <span>Checked {toolName === 'getSwapQuote' ? 'Jupiter Swap Rate' : 'Token Price'}</span>
-                              </div>
-                            ) : (
-                              <div className="ca-tool-badge loading">
-                                <div className="ca-spinner-small"></div>
-                                <span>Checking {toolName === 'getSwapQuote' ? 'Jupiter...' : 'Price...'}</span>
-                              </div>
-                            )}
+                            <div className="ca-tool-badge loading">
+                              <div className="ca-spinner-small"></div>
+                              <span>Checking {toolName === 'getSwapQuote' ? 'Jupiter...' : 'Price...'}</span>
+                            </div>
                           </div>
                         );
                       }
