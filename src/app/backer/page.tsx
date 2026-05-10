@@ -46,7 +46,7 @@ export default async function BackerOverview() {
     // Fallback data remains empty arrays from initialization
   }
 
-  const totalDonated = userDonations.reduce((sum, d) => sum + d.amount, 0);
+  const totalDonated = userDonations.reduce((sum, d) => sum + getStoredDonationCreditUsd(d), 0);
   const supportedCampaignIds = new Set(userDonations.map(d => d.campaignId));
   const campaignsSupportedCount = supportedCampaignIds.size;
   const impactScore = campaignsSupportedCount > 5 ? 'Top 5%' : campaignsSupportedCount > 2 ? 'Top 15%' : 'Rising Star';

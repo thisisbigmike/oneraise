@@ -4,6 +4,7 @@ import prisma from "../../lib/prisma";
 import DashboardClient from "./DashboardClient";
 import { redirect } from "next/navigation";
 import { getCreatorPayoutSummary } from "@/lib/payment-records";
+import { getStoredDonationCreditUsd } from "@/lib/currency";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -42,7 +43,7 @@ export default async function DashboardPage() {
       c.donations.forEach(d => {
         allDonations.push(d);
         // Use currency conversion helper for accurate USD total
-        totalRaised += d.amount; 
+        totalRaised += getStoredDonationCreditUsd(d as any);
         if (d.userId) {
           uniqueBackers.add(d.userId);
         } else if (d.donorEmail) {
@@ -57,7 +58,10 @@ export default async function DashboardPage() {
 
     totalBackers = uniqueBackers.size;
     allDonations.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    recentDonations = allDonations.slice(0, 5);
+    recentDonations = allDonations.slice(0, 5).map(d => ({
+      ...d,
+      amount: getStoredDonationCreditUsd(d as any)
+    }));
     const payoutSummary = await getCreatorPayoutSummary(userId);
     availablePayout = payoutSummary.availableBalance;
   } else {
@@ -71,12 +75,13 @@ export default async function DashboardPage() {
         }
       });
 
-      totalRaised = donations.reduce((sum, d) => sum + d.amount, 0); 
+      totalRaised = donations.reduce((sum, d) => sum + getStoredDonationCreditUsd(d as any), 0); 
       let uniqueCampaigns = new Set(donations.map(d => d.campaignId));
       totalBackers = uniqueCampaigns.size; 
       
       recentDonations = donations.slice(0, 5).map(d => ({
         ...d,
+        amount: getStoredDonationCreditUsd(d as any),
         donorName: d.campaign.title, 
         donorMessage: 'Donation successful'
       }));
