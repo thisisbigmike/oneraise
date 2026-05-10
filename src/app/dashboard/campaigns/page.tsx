@@ -295,7 +295,8 @@ export default function CampaignsPage() {
     setter(finalizedVal);
   };
 
-  const filtered = filter === 'all' ? campaigns : campaigns.filter(c => c.status === filter);
+  const publicCreatorCampaigns = campaigns.filter(c => c.status !== 'draft');
+  const filtered = filter === 'all' ? publicCreatorCampaigns : campaigns.filter(c => c.status === filter);
 
   const handleShare = (title: string) => {
     setShareTitle(title);
@@ -541,7 +542,7 @@ export default function CampaignsPage() {
       <div className="settings-tabs" style={{ marginBottom: 28 }}>
         {['all', 'active', 'draft', 'completed'].map(f => (
           <button key={f} className={`stab ${filter === f ? 'active' : ''}`} onClick={() => setFilter(f)}>
-            {f.charAt(0).toUpperCase() + f.slice(1)} ({f === 'all' ? campaigns.length : campaigns.filter(c => c.status === f).length})
+            {f.charAt(0).toUpperCase() + f.slice(1)} ({f === 'all' ? publicCreatorCampaigns.length : campaigns.filter(c => c.status === f).length})
           </button>
         ))}
       </div>

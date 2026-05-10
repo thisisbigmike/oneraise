@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getCachedCampaignsList, type CampaignListItem } from '@/lib/campaigns-data';
+import { getCachedPublicCampaignsList, type CampaignListItem } from '@/lib/campaigns-data';
 import HomeScripts from './HomeScripts';
 import AnimatedButton from '@/components/ui/AnimatedButton';
 import CampaignCard from '@/components/ui/CampaignCard';
@@ -56,10 +56,10 @@ async function getHomeStats() {
 
 export default async function Home() {
   const [allCampaigns, homeStats] = await Promise.all([
-    getCachedCampaignsList(),
+    getCachedPublicCampaignsList(),
     getHomeStats(),
   ]);
-  const landingCampaigns = allCampaigns.filter((campaign) => campaign.status !== 'draft').slice(0, 3);
+  const landingCampaigns = allCampaigns.slice(0, 3);
 
   const formatStat = (num: number) => {
     if (num >= 1000000000) return { count: (num / 1000000000).toFixed(1), suffix: 'B' };

@@ -93,7 +93,8 @@ function formatRelativeTime(value: string) {
 
 export default function CampaignPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const initialCampaign = CAMPAIGN_SEEDS[resolvedParams.id] as CampaignView | undefined;
+  const seedCampaign = CAMPAIGN_SEEDS[resolvedParams.id] as CampaignView | undefined;
+  const initialCampaign = seedCampaign?.status === 'draft' ? undefined : seedCampaign;
   const [campaign, setCampaign] = useState<CampaignView | undefined>(initialCampaign);
   const [isLoadingCampaign, setIsLoadingCampaign] = useState(!initialCampaign);
   const [activeTab, setActiveTab] = useState<'story' | 'protect' | 'updates' | 'donors'>('story');
@@ -135,6 +136,8 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
 
         if (!ignore && response.ok && result.campaign) {
           setCampaign(result.campaign);
+        } else if (!ignore && response.status === 404) {
+          setCampaign(undefined);
         }
       } catch {
         // Keep the seed fallback if live data is unavailable.

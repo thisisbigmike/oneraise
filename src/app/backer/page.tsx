@@ -4,7 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { getStoredDonationCreditUsd } from '@/lib/currency';
-import { getCachedCampaignsList } from '@/lib/campaigns-data';
+import { getCachedPublicCampaignsList } from '@/lib/campaigns-data';
 import CampaignCard from '@/components/ui/CampaignCard';
 
 export default async function BackerOverview() {
@@ -41,7 +41,7 @@ export default async function BackerOverview() {
       : [];
 
     // Fetch live campaigns for the "Discover" section
-    allCampaigns = await getCachedCampaignsList();
+    allCampaigns = await getCachedPublicCampaignsList();
   } catch (error) {
     console.error('Database connection error in BackerOverview:', error);
     // Fallback data remains empty arrays from initialization

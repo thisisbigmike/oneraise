@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
-import { getCachedCampaignsList, getNumericCampaignId, getUserCampaignsList } from "@/lib/campaigns-data";
+import { getCachedPublicCampaignsList, getNumericCampaignId, getUserCampaignsList } from "@/lib/campaigns-data";
 
 const MAX_IMAGE_DATA_URL_LENGTH = 7 * 1024 * 1024;
 
@@ -117,7 +117,7 @@ export async function GET(req: Request) {
     });
   }
 
-  const campaigns = await getCachedCampaignsList();
+  const campaigns = await getCachedPublicCampaignsList();
 
   return NextResponse.json({
     success: true,
@@ -140,7 +140,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Only creator accounts can create campaigns." }, { status: 403 });
     }
 
-    const { title, goal, category, description, status, image, type, milestones } = await req.json();
+    const { title, goal, category, description, image, type, milestones } = await req.json();
     const parsedTitle = String(title || "").trim();
     const parsedGoal = Number(goal);
     const parsedImage = parseCampaignImage(image);
@@ -160,7 +160,7 @@ export async function POST(req: Request) {
         image: parsedImage ?? null,
         goal: parsedGoal,
         category: String(category || "General").trim() || "General",
-        status: status === "active" ? "active" : "draft",
+        status: "draft",
         type: parsedType,
         protectStatus: "funding",
         milestones: parsedMilestones.length
@@ -191,7 +191,7 @@ export async function POST(req: Request) {
         goal: campaign.goal,
         pct: 0,
         backers: 0,
-        daysLeft: campaign.status === "active" ? 30 : 0,
+        daysLeft: 0,
         category: campaign.category,
         type: campaign.type,
         protectStatus: campaign.protectStatus,

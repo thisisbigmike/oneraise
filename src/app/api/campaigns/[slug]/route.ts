@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { CAMPAIGN_SEEDS, getCampaignPct } from "@/lib/campaign-seeds";
 import { getStoredDonationCreditUsd } from "@/lib/currency";
+import { isPublicCampaign } from "@/lib/campaigns-data";
 
 const MAX_IMAGE_DATA_URL_LENGTH = 7 * 1024 * 1024;
 const PROTECTED_CAMPAIGN_TYPES = new Set([
@@ -149,6 +150,14 @@ export async function GET(
     campaign = await Promise.race([dbPromise, timeoutPromise]);
   } catch {
     // Database unavailable — fall through to seed data
+  }
+
+  if (campaign && !isPublicCampaign(campaign)) {
+    return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+  }
+
+  if (!campaign && seed && !isPublicCampaign(seed)) {
+    return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
   }
 
   if (!campaign && !seed) {

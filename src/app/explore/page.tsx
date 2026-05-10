@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import './explore.css';
-import { getCachedCampaignsList } from '@/lib/campaigns-data';
+import { getCachedPublicCampaignsList } from '@/lib/campaigns-data';
 import ExploreClient from './ExploreClient';
 
 export default async function ExplorePage(props: { searchParams?: Promise<{ q?: string }> }) {
   const searchParams = await props.searchParams;
   const initialQuery = searchParams?.q || '';
-  const allCampaigns = await getCachedCampaignsList();
+  const allCampaigns = await getCachedPublicCampaignsList();
   
   // Cast campaigns to the type expected by ExploreClient
   const campaigns = allCampaigns.map(c => ({

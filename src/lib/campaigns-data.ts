@@ -35,6 +35,10 @@ export type CampaignMilestoneItem = {
   updatedAt: string;
 };
 
+export function isPublicCampaign(campaign: { status?: string | null }) {
+  return campaign.status !== "draft";
+}
+
 function getCampaignPct(raised: number, goal: number) {
   if (goal === 0) return 0;
   return Math.min(Math.floor((raised / goal) * 100), 100);
@@ -197,4 +201,9 @@ export async function getCachedCampaignsList() {
     console.warn("Unable to load live campaigns; using seed campaigns.", error);
     return seeds;
   }
+}
+
+export async function getCachedPublicCampaignsList() {
+  const campaigns = await getCachedCampaignsList();
+  return campaigns.filter(isPublicCampaign);
 }

@@ -1,25 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
 import { getCampaignPct } from '@/lib/campaign-seeds';
-import { getCachedCampaignsList } from '@/lib/campaigns-data';
+import { getCachedPublicCampaignsList } from '@/lib/campaigns-data';
 import CampaignCard from '@/components/ui/CampaignCard';
 
-type CampaignCardType = {
-  id: number;
-  slug: string;
-  title: string;
-  creator: string;
-  raised: number;
-  goal: number;
-  pct?: number;
-  category: string;
-  desc: string;
-  status?: string;
-};
-
 export default async function DiscoverPage() {
-  const allCampaigns = await getCachedCampaignsList();
-  const campaigns = allCampaigns.filter((campaign) => campaign.status !== 'draft');
+  const campaigns = await getCachedPublicCampaignsList();
 
   return (
     <div className="overview-page">

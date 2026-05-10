@@ -78,7 +78,8 @@ declare global {
 export default function DonatePage() {
   const params = useParams();
   const campaignId = params.campaignId as string;
-  const initialCampaign = CAMPAIGN_SEEDS[campaignId] as CampaignView | undefined;
+  const seedCampaign = CAMPAIGN_SEEDS[campaignId] as (CampaignView & { status?: string }) | undefined;
+  const initialCampaign = seedCampaign?.status === 'draft' ? undefined : seedCampaign;
   const [campaign, setCampaign] = useState<CampaignView | undefined>(initialCampaign);
   const [isLoadingCampaign, setIsLoadingCampaign] = useState(!initialCampaign);
   const { showToast } = useToast();
@@ -192,6 +193,8 @@ export default function DonatePage() {
 
       if (res.ok && data.campaign) {
         setCampaign(data.campaign);
+      } else if (res.status === 404) {
+        setCampaign(undefined);
       }
     } catch {
       // Keep the seeded campaign view if the live progress endpoint is unavailable.
