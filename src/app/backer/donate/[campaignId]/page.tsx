@@ -980,7 +980,7 @@ export default function DonatePage() {
                 </div>
                 <div className="pm-text">
                   <div className="pm-text-title">Donate with Crypto</div>
-                  <div className="pm-text-sub">Use USDT, SOL, BTC, ETH, or supported assets</div>
+                  <div className="pm-text-sub">Use USDT or USDC</div>
                 </div>
                 <span className="pm-text-badge pm-badge-popular">LOW FEES</span>
               </div>
@@ -1064,7 +1064,7 @@ export default function DonatePage() {
               <div className="crypto-details">
                 <label className="s-label" style={{ marginBottom: 10 }}>Select Asset</label>
                 <div className="crypto-assets">
-                  {['USDT', 'SOL', 'BTC', 'ETH', 'USDC'].map(a => (
+                  {['USDT', 'USDC'].map(a => (
                     <button
                       key={a}
                       className={`crypto-asset ${cryptoAsset === a ? 'active' : ''}`}
