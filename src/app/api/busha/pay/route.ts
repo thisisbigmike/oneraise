@@ -12,57 +12,19 @@ import {
   toNumber,
 } from "@/lib/payments";
 
-const CAMPAIGN_SEEDS: Record<
-  string,
-  { title: string; category: string; goal: number; description: string }
-> = {
-  "1": {
-    title: "SolarPack Mini — Off-grid power for remote communities",
-    category: "Technology",
-    goal: 100000,
-    description:
-      "A portable, affordable solar generator for small businesses in West Africa.",
-  },
-  "2": {
-    title: "Clean Water for Kano",
-    category: "Social Impact",
-    goal: 50000,
-    description: "Building 50 solar-powered boreholes to provide clean drinking water.",
-  },
-  "3": {
-    title: "Tech Start: Lagos",
-    category: "Education",
-    goal: 100000,
-    description: "Funding laptops and coding bootcamps for underserved youths.",
-  },
-  "4": {
-    title: "Rural Clinic Solar",
-    category: "Health",
-    goal: 15000,
-    description: "Installing solar panels to keep vaccines refrigerated.",
-  },
-};
+
 
 async function ensureCampaign(campaignSlug: string) {
-  const seed = CAMPAIGN_SEEDS[campaignSlug] || {
-    title: `Campaign ${campaignSlug}`,
-    category: "Community",
-    goal: 50000,
-    description: "Creator campaign created from donation checkout.",
-  };
-
-  return prisma.campaign.upsert({
+  const existing = await prisma.campaign.findUnique({
     where: { slug: campaignSlug },
-    update: {},
-    create: {
-      slug: campaignSlug,
-      title: seed.title,
-      category: seed.category,
-      goal: seed.goal,
-      description: seed.description,
-      status: "active",
-    },
+    select: { id: true },
   });
+
+  if (existing) {
+    return existing;
+  }
+
+  throw new Error("Campaign not found.");
 }
 
 function parseMethod(method: string) {

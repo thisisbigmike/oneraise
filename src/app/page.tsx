@@ -4,7 +4,7 @@ import HomeScripts from './HomeScripts';
 import AnimatedButton from '@/components/ui/AnimatedButton';
 import CampaignCard from '@/components/ui/CampaignCard';
 import prisma from "@/lib/prisma";
-import { CAMPAIGN_SEED_LIST } from "@/lib/campaign-seeds";
+
 import { getDonationBackerKey } from "@/lib/backers";
 import { getStoredDonationCreditUsd } from "@/lib/currency";
 
@@ -46,11 +46,11 @@ async function getHomeStats() {
       recentDonations: allCompletedDonations.slice(0, 5),
     };
   } catch (error) {
-    console.warn("Unable to load live home stats; using seed campaign totals.", error);
+    console.warn("Unable to load live home stats", error);
     return {
-      activeCampaignsCount: CAMPAIGN_SEED_LIST.filter((campaign) => campaign.status === 'active').length,
-      totalRaisedUsd: CAMPAIGN_SEED_LIST.reduce((sum, campaign) => sum + campaign.raised, 0),
-      uniqueBackers: CAMPAIGN_SEED_LIST.reduce((sum, campaign) => sum + campaign.backers, 0),
+      activeCampaignsCount: 0,
+      totalRaisedUsd: 0,
+      uniqueBackers: 0,
       recentDonations: [] as HomeDonation[],
     };
   }

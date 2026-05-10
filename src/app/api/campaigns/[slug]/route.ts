@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
-import { CAMPAIGN_SEEDS, getCampaignPct } from "@/lib/campaign-seeds";
+import { getCampaignPct } from "@/lib/campaign-seeds";
 import { getStoredDonationCreditUsd } from "@/lib/currency";
 import { isPublicCampaign } from "@/lib/campaigns-data";
 import { getUniqueBackerCount } from "@/lib/backers";
@@ -76,7 +76,7 @@ export async function GET(
   context: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await context.params;
-  const seed = CAMPAIGN_SEEDS[slug];
+
 
   // Try to fetch from database with a timeout so the page never hangs
   let campaign: any = null;
@@ -155,30 +155,20 @@ export async function GET(
     // Database unavailable — fall through to seed data
   }
 
-  if (campaign && !isPublicCampaign(campaign)) {
+  if (!campaign || !isPublicCampaign(campaign)) {
     return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
   }
 
-  if (!campaign && seed && !isPublicCampaign(seed)) {
-    return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
-  }
-
-  if (!campaign && !seed) {
-    return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
-  }
-
-  const baseRaised = campaign ? 0 : seed ? seed.raised : 0;
-  const liveRaised = campaign?.donations.reduce(
+  const liveRaised = campaign.donations.reduce(
     (sum: number, donation: any) => sum + getStoredDonationCreditUsd(donation),
     0,
-  ) ?? 0;
-  const baseBackers = campaign ? 0 : seed ? seed.backers : 0;
-  const liveBackers = campaign ? getUniqueBackerCount(campaign.donations) : 0;
-  const goal = campaign?.goal || seed?.goal || 0;
-  const raised = baseRaised + liveRaised;
+  );
+  const liveBackers = getUniqueBackerCount(campaign.donations);
+  const goal = campaign.goal || 0;
+  const raised = liveRaised;
   const pct = getCampaignPct(raised, goal);
-  const creatorName = campaign?.user?.name || seed?.creator || "OneRaise Creator";
-  const recentDonors = campaign?.donations.slice(0, 8).map((donation: any, index: number) => {
+  const creatorName = campaign.user?.name || "OneRaise Creator";
+  const recentDonors = campaign.donations.slice(0, 8).map((donation: any, index: number) => {
     const donorName = donation.isAnonymous
       ? "Anonymous"
       : donation.donorName?.trim() || donation.donorEmail?.split("@")[0] || "Supporter";
@@ -195,14 +185,13 @@ export async function GET(
   return NextResponse.json({
     success: true,
     campaign: {
-      id: seed?.id ?? (campaign?.slug ? Number(campaign.slug) || getNumericCampaignId(campaign.slug) : 0),
-      dbId: campaign?.id,
-      slug: campaign?.slug || slug,
-      title: campaign?.title || seed?.title || `Campaign ${slug}`,
-      image: campaign?.image || null,
+      id: campaign.slug ? Number(campaign.slug) || getNumericCampaignId(campaign.slug) : 0,
+      dbId: campaign.id,
+      slug: campaign.slug,
+      title: campaign.title,
+      image: campaign.image,
       creator: creatorName,
       creatorInitials:
-        seed?.creatorInitials ||
         creatorName
           .split(" ")
           .map((part: string) => part[0])
@@ -213,19 +202,19 @@ export async function GET(
       raised,
       goal,
       pct,
-      category: campaign?.category || seed?.category || "Community",
-      desc: campaign?.description || seed?.desc || "",
-      backers: baseBackers + liveBackers,
-      daysLeft: campaign?.status === "active" ? Math.max(0, Math.ceil((campaign.createdAt.getTime() + 30 * 86400000 - Date.now()) / 86400000)) : (seed?.daysLeft ?? 0),
-      verified: seed?.verified ?? true,
-      status: campaign?.status || seed?.status || "active",
-      type: campaign?.type || "standard",
-      protectStatus: campaign?.protectStatus || "funding",
-      milestones: campaign?.milestones.map((milestone: any) => ({
+      category: campaign.category,
+      desc: campaign.description || "",
+      backers: liveBackers,
+      daysLeft: campaign.status === "active" ? Math.max(0, Math.ceil((campaign.createdAt.getTime() + 30 * 86400000 - Date.now()) / 86400000)) : 0,
+      verified: true,
+      status: campaign.status,
+      type: campaign.type || "standard",
+      protectStatus: campaign.protectStatus || "funding",
+      milestones: campaign.milestones.map((milestone: any) => ({
         ...milestone,
         createdAt: milestone.createdAt.toISOString(),
         updatedAt: milestone.updatedAt.toISOString(),
-      })) ?? [],
+      })),
       recentDonors,
     },
   });

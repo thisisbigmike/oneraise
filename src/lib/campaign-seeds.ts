@@ -76,21 +76,6 @@ export const CAMPAIGN_SEEDS: Record<string, CampaignSeed> = {
     verified: true,
     status: "active",
   },
-  "help-me-abeg": {
-    id: 5,
-    slug: "help-me-abeg",
-    title: "Help me abeg",
-    creator: "Top Boy",
-    creatorInitials: "TB",
-    raised: 0,
-    goal: 1000,
-    category: "Social Impact",
-    desc: "Community support campaign — every contribution counts.",
-    backers: 0,
-    daysLeft: 18,
-    verified: true,
-    status: "active",
-  },
 };
 
 export const CAMPAIGN_SEED_LIST = Object.values(CAMPAIGN_SEEDS);

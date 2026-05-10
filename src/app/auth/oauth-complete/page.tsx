@@ -109,9 +109,9 @@ export default function OAuthCompletePage() {
           width: '100%',
           maxWidth: '460px',
           borderRadius: '24px',
-          border: '1px solid rgba(245,250,247,0.08)',
-          background: 'linear-gradient(180deg, rgba(11,27,21,0.98), rgba(8,22,17,0.98))',
-          boxShadow: '0 30px 80px rgba(0,0,0,0.35)',
+          border: '1px solid var(--white-10)',
+          background: 'var(--ink-card)',
+          boxShadow: '0 30px 80px rgba(0,0,0,0.1)',
           padding: '32px',
         }}
       >
@@ -121,7 +121,7 @@ export default function OAuthCompletePage() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '8px',
-            color: 'var(--w80)',
+            color: 'var(--white-60)',
             textDecoration: 'none',
             fontSize: '14px',
             marginBottom: '24px',
@@ -171,7 +171,7 @@ export default function OAuthCompletePage() {
         </div>
         <p
           style={{
-            color: 'var(--w50)',
+            color: 'var(--white-60)',
             fontSize: '15px',
             lineHeight: 1.7,
             margin: 0,

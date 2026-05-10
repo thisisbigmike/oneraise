@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use, type FormEvent } from 'react';
 import Link from 'next/link';
-import { CAMPAIGN_SEEDS, getCampaignPct } from '@/lib/campaign-seeds';
+import { getCampaignPct } from '@/lib/campaign-seeds';
 import { decryptPayload, verifyBackerStatus, isUmbraProtected } from '@/lib/umbra';
 import CampaignAssistant from '@/components/CampaignAssistant';
 import './campaign.css';
@@ -93,10 +93,8 @@ function formatRelativeTime(value: string) {
 
 export default function CampaignPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const seedCampaign = CAMPAIGN_SEEDS[resolvedParams.id] as CampaignView | undefined;
-  const initialCampaign = seedCampaign?.status === 'draft' ? undefined : seedCampaign;
-  const [campaign, setCampaign] = useState<CampaignView | undefined>(initialCampaign);
-  const [isLoadingCampaign, setIsLoadingCampaign] = useState(!initialCampaign);
+  const [campaign, setCampaign] = useState<CampaignView | undefined>(undefined);
+  const [isLoadingCampaign, setIsLoadingCampaign] = useState(true);
   const [activeTab, setActiveTab] = useState<'story' | 'protect' | 'updates' | 'donors'>('story');
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('fake');

@@ -1,6 +1,6 @@
 import { unstable_cache } from 'next/cache';
 import prisma from "@/lib/prisma";
-import { CAMPAIGN_SEED_LIST } from "@/lib/campaign-seeds";
+
 import { getUniqueBackerCount } from "@/lib/backers";
 import { getStoredDonationCreditUsd } from "@/lib/currency";
 
@@ -60,15 +60,7 @@ export function getNumericCampaignId(slug: string) {
   return slug.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
 }
 
-function getSeedCampaignsList(): CampaignListItem[] {
-  return CAMPAIGN_SEED_LIST.map((campaign) => ({
-    ...campaign,
-    pct: getCampaignPct(campaign.raised, campaign.goal),
-    type: "standard",
-    protectStatus: "funding",
-    milestones: [],
-  }));
-}
+
 
 
 async function getLiveCampaignsList(where?: { userId?: string }): Promise<CampaignListItem[]> {
@@ -192,16 +184,12 @@ export function getUserCampaignsList(userId: string) {
 }
 
 export async function getCachedCampaignsList() {
-  const seeds = getSeedCampaignsList();
   try {
     const live = await getCachedLiveCampaignsList();
-    // Merge: use live DB campaigns + any seeds that don't have a matching slug in DB
-    const liveSlugs = new Set(live.map(c => c.slug));
-    const extraSeeds = seeds.filter(s => !liveSlugs.has(s.slug));
-    return [...live, ...extraSeeds];
+    return live;
   } catch (error) {
-    console.warn("Unable to load live campaigns; using seed campaigns.", error);
-    return seeds;
+    console.warn("Unable to load live campaigns", error);
+    return [];
   }
 }
 

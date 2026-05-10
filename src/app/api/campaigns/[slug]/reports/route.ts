@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
-import { CAMPAIGN_SEEDS } from "@/lib/campaign-seeds";
 
 const REPORT_REASONS = new Set([
   "fake",
@@ -48,9 +47,7 @@ export async function POST(
         slug: true,
       },
     });
-    const seed = CAMPAIGN_SEEDS[slug];
-
-    if (!campaign && !seed) {
+    if (!campaign) {
       return NextResponse.json({ error: "Campaign not found." }, { status: 404 });
     }
 
@@ -60,9 +57,8 @@ export async function POST(
     const reporterEmail =
       sessionUser?.email || getTrimmedString(body.reporterEmail, 160) || null;
     const reportId = crypto.randomUUID();
-    const campaignSlug = campaign?.slug || seed?.slug || slug;
-    const campaignTitle =
-      campaign?.title || seed?.title || getTrimmedString(body.campaignTitle, 180) || "Untitled campaign";
+    const campaignSlug = campaign.slug;
+    const campaignTitle = campaign.title || getTrimmedString(body.campaignTitle, 180) || "Untitled campaign";
     const details = getTrimmedString(body.details, 800) || null;
 
     await prisma.$executeRaw`
@@ -88,7 +84,7 @@ export async function POST(
         ${"open"},
         ${reporterEmail},
         ${userId || null},
-        ${campaign?.id || null},
+        ${campaign.id},
         NOW(),
         NOW()
       )

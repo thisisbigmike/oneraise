@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { VersionedTransaction } from '@solana/web3.js';
 import { useToast } from '../../../components';
-import { CAMPAIGN_SEEDS } from '@/lib/campaign-seeds';
+
 import { JUPITER_INPUT_TOKENS, type JupiterDonationQuote } from '@/lib/jupiter';
 import CampaignAssistant from '@/components/CampaignAssistant';
 
@@ -78,10 +78,8 @@ declare global {
 export default function DonatePage() {
   const params = useParams();
   const campaignId = params.campaignId as string;
-  const seedCampaign = CAMPAIGN_SEEDS[campaignId] as (CampaignView & { status?: string }) | undefined;
-  const initialCampaign = seedCampaign?.status === 'draft' ? undefined : seedCampaign;
-  const [campaign, setCampaign] = useState<CampaignView | undefined>(initialCampaign);
-  const [isLoadingCampaign, setIsLoadingCampaign] = useState(!initialCampaign);
+  const [campaign, setCampaign] = useState<CampaignView | undefined>(undefined);
+  const [isLoadingCampaign, setIsLoadingCampaign] = useState(true);
   const { showToast } = useToast();
 
   // Form state
