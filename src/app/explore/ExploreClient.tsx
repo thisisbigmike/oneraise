@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { getCampaignPct } from '@/lib/campaign-seeds';
 import CampaignCard from '@/components/ui/CampaignCard';
+import CustomSelect from '@/components/ui/CustomSelect';
 
 type ExploreCampaign = {
   id: number;
@@ -77,16 +78,20 @@ export default function ExploreClient({ initialQuery, campaigns }: { initialQuer
           />
         </div>
 
-        <div className="filter-group">
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className="explore-select">
-            {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-          </select>
+        <div className="filter-group filter-select-group">
+          <CustomSelect
+            value={category}
+            onChange={setCategory}
+            options={categories.map(cat => ({ value: cat, label: cat }))}
+          />
         </div>
 
-        <div className="filter-group">
-          <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className="explore-select">
-            {sortOptions.map(sort => <option key={sort} value={sort}>{sort}</option>)}
-          </select>
+        <div className="filter-group filter-select-group">
+          <CustomSelect
+            value={sortOrder}
+            onChange={setSortOrder}
+            options={sortOptions.map(sort => ({ value: sort, label: sort }))}
+          />
         </div>
       </div>
 

@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, Modal } from '../../components';
+import CustomSelect from '@/components/ui/CustomSelect';
 
 type SettingsClientProps = {
   initialName: string;
@@ -16,6 +17,10 @@ type SettingsClientProps = {
 };
 
 const MAX_PROFILE_PHOTO_SIZE = 2 * 1024 * 1024;
+const INVITE_ROLE_OPTIONS = [
+  { value: 'editor', label: 'Editor' },
+  { value: 'viewer', label: 'Viewer' },
+];
 
 function readProfilePhoto(file: File): Promise<string> {
   if (!file.type.startsWith('image/')) {
@@ -409,10 +414,11 @@ export default function SettingsClient(props: SettingsClientProps) {
           </div>
           <div className="s-field s-field-full">
             <label className="s-label">Role</label>
-            <select className="s-input" value={inviteRole} onChange={e => setInviteRole(e.target.value)}>
-              <option value="editor">Editor</option>
-              <option value="viewer">Viewer</option>
-            </select>
+            <CustomSelect
+              value={inviteRole}
+              onChange={setInviteRole}
+              options={INVITE_ROLE_OPTIONS}
+            />
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>

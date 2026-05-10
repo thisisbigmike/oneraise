@@ -121,6 +121,13 @@
   display: none;
 }
 
+.filter-select-group::after {
+  display: none;
+}
+.filter-select-group {
+  flex: 0 0 min(220px, 100%);
+}
+
 .no-results {
   grid-column: 1 / -1;
   text-align: center;

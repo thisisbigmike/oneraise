@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useToast, Modal } from '../../components';
 import { encryptPayload } from '@/lib/umbra';
 import CampaignCard from '@/components/ui/CampaignCard';
+import CustomSelect from '@/components/ui/CustomSelect';
 
 type CampaignStatus = 'active' | 'completed' | 'draft';
 type CampaignType = 'standard' | 'protected_crowdfunding' | 'emergency_aid' | 'grant_distribution';
@@ -81,6 +82,44 @@ const PROTECT_STATUS_LABELS: Record<string, string> = {
   unlocked: 'Released',
   refunded: 'Refunded',
 };
+
+const VISIBILITY_OPTIONS = [
+  { value: 'public', label: 'Public' },
+  { value: 'private', label: 'Private' },
+  { value: 'unlisted', label: 'Unlisted' },
+];
+
+const EDIT_VISIBILITY_OPTIONS = [
+  { value: 'public', label: 'Public (Visible to everyone)' },
+  { value: 'private', label: 'Private (Only with link)' },
+];
+
+const CATEGORY_OPTIONS = [
+  { value: '', label: 'Select a category' },
+  { value: 'Environment', label: 'Environment' },
+  { value: 'Education', label: 'Education' },
+  { value: 'Health', label: 'Health' },
+  { value: 'Community', label: 'Community' },
+  { value: 'Technology', label: 'Technology' },
+  { value: 'Social Impact', label: 'Social Impact' },
+  { value: 'Arts & Culture', label: 'Arts & Culture' },
+];
+
+const EDIT_CATEGORY_OPTIONS = [
+  { value: '', label: 'Select category' },
+  { value: 'Technology', label: 'Technology' },
+  { value: 'Social Impact', label: 'Social Impact' },
+  { value: 'Arts & Culture', label: 'Arts & Culture' },
+  { value: 'Education', label: 'Education' },
+  { value: 'Health', label: 'Health' },
+];
+
+const CAMPAIGN_TYPE_OPTIONS = [
+  { value: 'standard', label: 'Standard crowdfunding' },
+  { value: 'protected_crowdfunding', label: 'Protected crowdfunding' },
+  { value: 'emergency_aid', label: 'Emergency aid escrow' },
+  { value: 'grant_distribution', label: 'Grant distribution' },
+];
 
 const MILESTONE_STATUS_LABELS: Record<string, string> = {
   pending: 'Pending',
@@ -671,35 +710,22 @@ export default function CampaignsPage() {
                 <div className="m3-grid">
                   <div className="m3-space-y">
                     <label className="m3-label" htmlFor="visibility">Visibility</label>
-                    <div className="m3-select-wrap">
-                      <select className="m3-select" id="visibility" value={newVisibility} onChange={e => setNewVisibility(e.target.value)}>
-                        <option value="public">Public</option>
-                        <option value="private">Private</option>
-                        <option value="unlisted">Unlisted</option>
-                      </select>
-                      <div className="m3-select-icon">
-                        <span className="material-symbols-outlined">expand_more</span>
-                      </div>
-                    </div>
+                    <CustomSelect
+                      id="visibility"
+                      value={newVisibility}
+                      onChange={setNewVisibility}
+                      options={VISIBILITY_OPTIONS}
+                    />
                   </div>
                   
                   <div className="m3-space-y">
                     <label className="m3-label" htmlFor="category">Category</label>
-                    <div className="m3-select-wrap">
-                      <select className="m3-select" id="category" value={newCategory} onChange={e => setNewCategory(e.target.value)}>
-                        <option value="">Select a category</option>
-                        <option value="Environment">Environment</option>
-                        <option value="Education">Education</option>
-                        <option value="Health">Health</option>
-                        <option value="Community">Community</option>
-                        <option value="Technology">Technology</option>
-                        <option value="Social Impact">Social Impact</option>
-                        <option value="Arts & Culture">Arts & Culture</option>
-                      </select>
-                      <div className="m3-select-icon">
-                        <span className="material-symbols-outlined">expand_more</span>
-                      </div>
-                    </div>
+                    <CustomSelect
+                      id="category"
+                      value={newCategory}
+                      onChange={setNewCategory}
+                      options={CATEGORY_OPTIONS}
+                    />
                   </div>
                 </div>
               </section>
@@ -755,17 +781,12 @@ export default function CampaignsPage() {
                 </div>
                 <div className="m3-space-y">
                   <label className="m3-label" htmlFor="protection-mode">Campaign Protection Mode</label>
-                  <div className="m3-select-wrap">
-                    <select className="m3-select" id="protection-mode" value={newCampaignType} onChange={e => setNewCampaignType(e.target.value as CampaignType)}>
-                      <option value="standard">Standard Verification</option>
-                      <option value="protected_crowdfunding">Protected crowdfunding</option>
-                      <option value="emergency_aid">Emergency aid escrow</option>
-                      <option value="grant_distribution">Grant distribution</option>
-                    </select>
-                    <div className="m3-select-icon">
-                      <span className="material-symbols-outlined">expand_more</span>
-                    </div>
-                  </div>
+                  <CustomSelect
+                    id="protection-mode"
+                    value={newCampaignType}
+                    onChange={(next) => setNewCampaignType(next as CampaignType)}
+                    options={CAMPAIGN_TYPE_OPTIONS}
+                  />
                   <p className="m3-hint">Enhanced transparency adds additional financial tracking and regular reporting requirements to build maximum donor trust.</p>
                 </div>
                 
@@ -848,10 +869,11 @@ export default function CampaignsPage() {
           </div>
           <div className="s-field">
             <label className="s-label">Visibility</label>
-            <select className="s-input" value={editVisibility} onChange={e => setEditVisibility(e.target.value)}>
-              <option value="public">Public (Visible to everyone)</option>
-              <option value="private">Private (Only with link)</option>
-            </select>
+            <CustomSelect
+              value={editVisibility}
+              onChange={setEditVisibility}
+              options={EDIT_VISIBILITY_OPTIONS}
+            />
           </div>
           <div className="s-field s-field-full">
             <label className="s-label">Campaign Story / Description</label>
@@ -867,23 +889,19 @@ export default function CampaignsPage() {
           </div>
           <div className="s-field">
             <label className="s-label">Category</label>
-            <select className="s-input" value={editCategory} onChange={e => setEditCategory(e.target.value)}>
-              <option value="">Select category</option>
-              <option value="Technology">Technology</option>
-              <option value="Social Impact">Social Impact</option>
-              <option value="Arts & Culture">Arts & Culture</option>
-              <option value="Education">Education</option>
-              <option value="Health">Health</option>
-            </select>
+            <CustomSelect
+              value={editCategory}
+              onChange={setEditCategory}
+              options={EDIT_CATEGORY_OPTIONS}
+            />
           </div>
           <div className="s-field s-field-full">
             <label className="s-label">OneRaise Protect Mode</label>
-            <select className="s-input" value={editCampaignType} onChange={e => setEditCampaignType(e.target.value as CampaignType)}>
-              <option value="standard">Standard crowdfunding</option>
-              <option value="protected_crowdfunding">Protected crowdfunding</option>
-              <option value="emergency_aid">Emergency aid escrow</option>
-              <option value="grant_distribution">Grant distribution</option>
-            </select>
+            <CustomSelect
+              value={editCampaignType}
+              onChange={(next) => setEditCampaignType(next as CampaignType)}
+              options={CAMPAIGN_TYPE_OPTIONS}
+            />
             <div className="s-hint" style={{ marginTop: 8 }}>
               Protected modes show a public badge and enable milestone proof submissions.
             </div>

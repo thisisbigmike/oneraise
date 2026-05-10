@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useToast, Modal } from '../../components';
+import CustomSelect from '@/components/ui/CustomSelect';
 
 type PayoutMethod = {
   id: string;
@@ -54,6 +55,12 @@ const BANK_CURRENCY_OPTIONS = [
 ];
 
 const CRYPTO_ASSET_OPTIONS = ['USDT', 'USDC', 'BTC', 'ETH', 'SOL'];
+const METHOD_TYPE_OPTIONS = [
+  { value: '', label: 'Select method', disabled: true },
+  { value: 'bank', label: 'Bank Transfer' },
+  { value: 'crypto', label: 'Crypto Wallet' },
+  { value: 'raenest', label: 'Raenest Virtual Account (USDC)' },
+];
 
 const NIGERIAN_BANKS = [
   { name: 'Access Bank', code: '044' },
@@ -576,52 +583,44 @@ export default function PayoutsPage() {
             <div className="s-fields">
               <div className="s-field">
                 <label className="s-label">Method Type</label>
-                <select className="s-input" value={newMethodType} onChange={e => setNewMethodType(e.target.value as 'bank' | 'crypto' | 'raenest' | '')}>
-                  <option value="" disabled>Select method</option>
-                  <option value="bank">Bank Transfer</option>
-                  <option value="crypto">Crypto Wallet</option>
-                  <option value="raenest">Raenest Virtual Account (USDC)</option>
-                </select>
+                <CustomSelect
+                  value={newMethodType}
+                  onChange={(next) => setNewMethodType(next as 'bank' | 'crypto' | 'raenest' | '')}
+                  options={METHOD_TYPE_OPTIONS}
+                />
               </div>
 
               {newMethodType === 'bank' && (
                 <>
                   <div className="s-field">
                     <label className="s-label">Payout Currency</label>
-                    <select
-                      className="s-input"
+                    <CustomSelect
                       value={bankCurrency}
-                      onChange={e => {
-                        const nextCurrency = e.target.value;
+                      onChange={(nextCurrency) => {
                         setBankCurrency(nextCurrency);
                         const next = BANK_CURRENCY_OPTIONS.find(option => option.code === nextCurrency);
                         setCountryCode(next?.countryCode || 'NG');
                       }}
-                    >
-                      {BANK_CURRENCY_OPTIONS.map(option => (
-                        <option key={option.code} value={option.code}>{option.label}</option>
-                      ))}
-                    </select>
+                      options={BANK_CURRENCY_OPTIONS.map(option => ({ value: option.code, label: option.label }))}
+                    />
                   </div>
                   {countryCode === 'NG' ? (
                     <div className="s-field">
                       <label className="s-label">Bank Name</label>
-                      <select 
-                        className="s-input" 
+                      <CustomSelect
                         value={bankCode} 
-                        onChange={e => {
-                          const selectedBank = NIGERIAN_BANKS.find(b => b.code === e.target.value);
+                        onChange={(nextBankCode) => {
+                          const selectedBank = NIGERIAN_BANKS.find(b => b.code === nextBankCode);
                           if (selectedBank) {
                             setBankName(selectedBank.name);
                             setBankCode(selectedBank.code);
                           }
                         }}
-                      >
-                        <option value="" disabled>Select your bank</option>
-                        {NIGERIAN_BANKS.map(bank => (
-                          <option key={bank.code} value={bank.code}>{bank.name}</option>
-                        ))}
-                      </select>
+                        options={[
+                          { value: '', label: 'Select your bank', disabled: true },
+                          ...NIGERIAN_BANKS.map(bank => ({ value: bank.code, label: bank.name })),
+                        ]}
+                      />
                     </div>
                   ) : (
                     <>
@@ -660,11 +659,11 @@ export default function PayoutsPage() {
                 <>
                   <div className="s-field">
                     <label className="s-label">Asset</label>
-                    <select className="s-input" value={cryptoAsset} onChange={e => setCryptoAsset(e.target.value)}>
-                      {CRYPTO_ASSET_OPTIONS.map(asset => (
-                        <option key={asset} value={asset}>{asset}</option>
-                      ))}
-                    </select>
+                    <CustomSelect
+                      value={cryptoAsset}
+                      onChange={setCryptoAsset}
+                      options={CRYPTO_ASSET_OPTIONS.map(asset => ({ value: asset, label: asset }))}
+                    />
                   </div>
                   <div className="s-field">
                     <label className="s-label">Network</label>
