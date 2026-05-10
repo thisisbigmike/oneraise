@@ -37,7 +37,7 @@ Common token mints on Solana:
 `;
 
   const result = streamText({
-    model: google('gemini-3.1-pro'),
+    model: google('gemini-3.1-pro-preview'),
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
     stopWhen: stepCountIs(5),
