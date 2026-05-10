@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useToast, Modal } from '../../components';
 import { encryptPayload } from '@/lib/umbra';
+import CampaignCard from '@/components/ui/CampaignCard';
 
 type CampaignStatus = 'active' | 'completed' | 'draft';
 type CampaignType = 'standard' | 'protected_crowdfunding' | 'emergency_aid' | 'grant_distribution';
@@ -550,103 +551,38 @@ export default function CampaignsPage() {
           const pct = c.pct ?? getCampaignPct(c.raised, c.goal);
           const endDate = new Date(Date.now() + c.daysLeft * 86400000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
           return (
-          <div key={c.id} className="campaign-card">
-            {/* Image Hero */}
-            <div className="cmp-image">
-              {c.image ? (
-                <img src={c.image} alt={`${c.title} cover`} />
-              ) : (
-                <div className="cmp-image-placeholder">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-                </div>
-              )}
-              {/* Overlay Badges */}
-              <div className="cmp-badges">
-                <div className="cmp-badge-status">
-                  <span className={`cmp-badge-dot ${c.status === 'active' ? 'live' : c.status}`}></span>
-                  {c.status === 'active' ? 'LIVE' : c.status === 'draft' ? 'DRAFT' : 'COMPLETED'}
-                </div>
-                {isProtectedType(c.type) && (
-                  <div
-                    className="cmp-badge-status"
-                    style={{
-                      borderColor: `${getProtectTone(c.protectStatus)}55`,
-                      color: getProtectTone(c.protectStatus),
-                      background: `${getProtectTone(c.protectStatus)}18`,
-                    }}
-                  >
-                    <span className="cmp-badge-dot" style={{ background: getProtectTone(c.protectStatus) }}></span>
-                    PROTECT
-                  </div>
-                )}
-                <div className="cmp-badge-category">{c.category}</div>
-              </div>
-            </div>
-
-            {/* Card Content */}
-            <div className="cmp-content">
-              <div>
-                <h3 className="cmp-title">{c.title}</h3>
-                <p className="cmp-description">Goal: ${c.goal.toLocaleString()} {c.daysLeft > 0 ? `• Ends ${endDate}` : ''}</p>
-                {isProtectedType(c.type) && (
-                  <p className="cmp-description" style={{ color: getProtectTone(c.protectStatus), marginTop: 8 }}>
-                    {CAMPAIGN_TYPE_LABELS[c.type]} · {PROTECT_STATUS_LABELS[c.protectStatus] || c.protectStatus}
-                  </p>
-                )}
-              </div>
-
-              {c.status !== 'draft' && (
-                <>
-                  {/* Progress */}
-                  <div className="cmp-progress-section">
-                    <div className="cmp-progress-header">
-                      <span className="cmp-progress-pct">{pct}% Complete</span>
-                      <span className="cmp-progress-target">Target: ${c.goal.toLocaleString()}</span>
-                    </div>
-                    <div className="cmp-progress-track">
-                      <div className="cmp-progress-fill" style={{ width: `${pct}%` }}></div>
-                    </div>
-                  </div>
-
-                  {/* Stats Grid */}
-                  <div className="cmp-stats-grid">
-                    <div className="cmp-stat-item">
-                      <span className="cmp-stat-label">Raised</span>
-                      <span className="cmp-stat-value">${c.raised.toLocaleString()}</span>
-                    </div>
-                    <div className="cmp-stat-item">
-                      <span className="cmp-stat-label">Backers</span>
-                      <span className="cmp-stat-value">{c.backers}</span>
-                    </div>
-                    <div className="cmp-stat-item">
-                      <span className="cmp-stat-label">Days Left</span>
-                      <span className="cmp-stat-value">{c.daysLeft}</span>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {c.status === 'draft' && (
-                <div className="cmp-draft-msg">This campaign hasn&apos;t been published yet. Complete setup and go live.</div>
-              )}
-
-              {/* Actions */}
-              <div className="cmp-actions">
-                <button className="cmp-btn cmp-btn-outline" onClick={() => openManage(c.id)}>
+          <CampaignCard
+            key={c.id}
+            title={c.title}
+            goal={c.goal}
+            raised={c.raised}
+            backers={c.backers}
+            daysLeft={c.daysLeft}
+            status={c.status}
+            category={c.category}
+            endDate={endDate}
+            image={c.image}
+            pct={pct}
+            isProtected={isProtectedType(c.type)}
+            protectStatus={PROTECT_STATUS_LABELS[c.protectStatus] || c.protectStatus}
+            protectTypeLabel={CAMPAIGN_TYPE_LABELS[c.type]}
+            actions={
+              <>
+                <button className="ucc-btn ucc-btn-outline" onClick={() => openManage(c.id)}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   Edit
                 </button>
-                <a href={`/campaign/${c.slug}/preview`} target="_blank" rel="noreferrer" className="cmp-btn cmp-btn-outline" style={{ textDecoration: 'none' }}>
+                <a href={`/campaign/${c.slug}/preview`} target="_blank" rel="noreferrer" className="ucc-btn ucc-btn-outline">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   Preview
                 </a>
                 {c.status === 'active' && (
                   <>
-                    <a href={`/campaign/${c.slug}`} target="_blank" rel="noreferrer" className="cmp-btn cmp-btn-outline">
+                    <a href={`/campaign/${c.slug}`} target="_blank" rel="noreferrer" className="ucc-btn ucc-btn-outline">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                       View
                     </a>
-                    <button className="cmp-btn cmp-btn-primary" onClick={() => handleShare(c.title)}>
+                    <button className="ucc-btn ucc-btn-primary" onClick={() => handleShare(c.title)}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
                       Share
                     </button>
@@ -654,29 +590,29 @@ export default function CampaignsPage() {
                 )}
                 {c.status === 'draft' && (
                   <>
-                    <button className="cmp-btn cmp-btn-danger" onClick={() => handleDeleteCampaign(c.id)}>
+                    <button className="ucc-btn ucc-btn-danger" onClick={() => handleDeleteCampaign(c.id)}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                       Delete
                     </button>
-                    <button className="cmp-btn cmp-btn-primary" onClick={() => setConfirmPublish(c.id)}>
+                    <button className="ucc-btn ucc-btn-primary" onClick={() => setConfirmPublish(c.id)}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
                       Publish
                     </button>
                   </>
                 )}
-              </div>
-            </div>
-          </div>
+              </>
+            }
+          />
           );
         })}
 
-        <div className="campaign-card cmp-new" onClick={() => setNewOpen(true)}>
-          <div className="cmp-new-inner">
-            <div className="cmp-new-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 5v14M5 12h14"/></svg>
+        <div className="uni-camp-card cmp-new" onClick={() => setNewOpen(true)} style={{ alignItems: 'center', justifyContent: 'center', cursor: 'pointer', minHeight: 320 }}>
+          <div className="cmp-new-inner" style={{ textAlign: 'center' }}>
+            <div className="cmp-new-icon" style={{ width: 48, height: 48, background: 'rgba(245,250,247,0.05)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 5v14M5 12h14"/></svg>
             </div>
-            <div className="cmp-new-text">Create new campaign</div>
-            <div className="s-hint">Start raising funds for your next big idea.</div>
+            <div className="cmp-new-text" style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>Create new campaign</div>
+            <div className="s-hint" style={{ fontSize: 13, color: 'var(--w50)' }}>Start raising funds for your next big idea.</div>
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getCachedCampaignsList, type CampaignListItem } from '@/lib/campaigns-data';
 import HomeScripts from './HomeScripts';
 import AnimatedButton from '@/components/ui/AnimatedButton';
+import CampaignCard from '@/components/ui/CampaignCard';
 import prisma from "@/lib/prisma";
 import { CAMPAIGN_SEED_LIST } from "@/lib/campaign-seeds";
 import { getStoredDonationCreditUsd } from "@/lib/currency";
@@ -306,50 +307,22 @@ export default async function Home() {
     <div className="campaigns-grid">
       {landingCampaigns.map((campaign, index) => (
         <div key={campaign.id} className={`c-card ${index === 0 ? 'featured reveal' : `reveal reveal-delay-${index}`}`}>
-          <div className={`c-card-img c${index + 1}`}>
-            {campaign.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={campaign.image} alt={`${campaign.title} cover`} />
-            ) : index === 0 && (
-              <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-                <circle cx="40" cy="40" r="32" stroke="#1D9E75" strokeWidth="1.5" strokeOpacity="0.4"/>
-                <circle cx="40" cy="40" r="20" stroke="#5DCAA5" strokeWidth="1" strokeOpacity="0.3"/>
-                <path d="M40 20v28M40 20l-8 8M40 20l8 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <circle cx="40" cy="52" r="4" fill="#1D9E75" opacity="0.8"/>
-              </svg>
-            )}
-            {!campaign.image && index === 1 && (
-              <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
-                <path d="M10 50L30 10l20 40H10z" stroke="#5DCAA5" strokeWidth="1.5" strokeOpacity="0.5"/>
-                <path d="M20 50L30 30l10 20H20z" fill="#1D9E75" opacity="0.4"/>
-              </svg>
-            )}
-            {!campaign.image && index === 2 && (
-              <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
-                <circle cx="30" cy="24" r="12" stroke="#EF9F27" strokeWidth="1.5" strokeOpacity="0.5"/>
-                <path d="M18 50c0-6.627 5.373-12 12-12s12 5.373 12 12" stroke="#EF9F27" strokeWidth="1.5" strokeOpacity="0.4" strokeLinecap="round"/>
-              </svg>
-            )}
-          </div>
-          <div className="c-card-body">
-            <div className="c-card-top">
-              <span className="c-tag">{campaign.category}</span>
-              <span className="c-flag">🌍 Global</span>
-            </div>
-            <div className="c-title">{campaign.title}</div>
-            <div className="c-desc">{campaign.desc}</div>
-            <div className="c-progress-track"><div className="c-progress-fill" style={{width: `${campaignPct(campaign)}%`}}></div></div>
-            <div className="c-stats">
-              <div>
-                <div className="c-raised">${campaign.raised.toLocaleString()}</div>
-                <div className="c-raised-sub">raised of {formatCompactGoal(campaign.goal)}</div>
-              </div>
-              <div style={{textAlign: 'right'}}>
-                <div className="c-pct">{campaignPct(campaign)}%</div>
-                <div className="c-days">{campaign.daysLeft} days left</div>
-              </div>
-            </div>
-          </div>
+          <CampaignCard
+            title={campaign.title}
+            goal={campaign.goal}
+            raised={campaign.raised}
+            backers={campaign.backers || 0}
+            daysLeft={campaign.daysLeft || 0}
+            status={campaign.status}
+            category={campaign.category}
+            image={campaign.image}
+            pct={campaignPct(campaign)}
+            actions={
+              <Link href={`/backer/donate/${campaign.slug}`} className="ucc-btn ucc-btn-primary">
+                View Campaign
+              </Link>
+            }
+          />
         </div>
       ))}
     </div>

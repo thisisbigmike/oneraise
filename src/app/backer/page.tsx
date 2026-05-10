@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { getStoredDonationCreditUsd } from '@/lib/currency';
 import { getCachedCampaignsList } from '@/lib/campaigns-data';
+import CampaignCard from '@/components/ui/CampaignCard';
 
 export default async function BackerOverview() {
   const session = await getServerSession(authOptions);
@@ -92,24 +93,24 @@ export default async function BackerOverview() {
           </div>
           <div className="campaign-grid" style={{ gridTemplateColumns: '1fr', gap: 16 }}>
             {liveCampaigns.map((c) => (
-              <Link key={c.slug} href={`/backer/donate/${c.slug}`} className="campaign-card" style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 24, textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <h3 className="cmp-title" style={{ fontSize: 16, marginBottom: 4 }}>{c.title}</h3>
-                    <div className="s-hint">by {c.creator}</div>
-                  </div>
-                  <div style={{ background: 'rgba(29,158,117,0.1)', color: 'var(--teal-200)', padding: '4px 10px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
-                    ${c.goal.toLocaleString()} goal
-                  </div>
-                </div>
-                <div className="cmp-progress-wrap" style={{ marginTop: 8 }}>
-                  <div className="sc-progress-bar"><div className="sc-progress-fill" style={{ width: `${c.pct}%` }}></div></div>
-                  <div className="cmp-progress-nums" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'var(--white)', marginTop: 8 }}>
-                    <span>Funding progress</span>
-                    <span style={{ fontWeight: 600, color: 'var(--teal-200)' }}>{c.pct}%</span>
-                  </div>
-                </div>
-              </Link>
+              <div key={c.slug} style={{ marginBottom: 16 }}>
+                <CampaignCard
+                  title={c.title}
+                  goal={c.goal}
+                  raised={c.raised}
+                  backers={c.backers || 0}
+                  daysLeft={c.daysLeft || 0}
+                  status={c.status || 'active'}
+                  category={c.category}
+                  image={c.image}
+                  pct={c.pct}
+                  actions={
+                    <Link href={`/backer/donate/${c.slug}`} className="ucc-btn ucc-btn-primary">
+                      Support Campaign
+                    </Link>
+                  }
+                />
+              </div>
             ))}
             {liveCampaigns.length === 0 && (
               <div className="s-hint" style={{ textAlign: 'center', padding: 20 }}>No live campaigns at the moment.</div>

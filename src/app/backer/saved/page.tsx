@@ -6,6 +6,9 @@ import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { getCampaignPct } from '@/lib/campaign-seeds';
 
+import { getStoredDonationCreditUsd } from '@/lib/currency';
+import CampaignCard from '@/components/ui/CampaignCard';
+
 export default async function SavedCampaignsPage() {
   const session = await getServerSession(authOptions);
   const userId = (session?.user as any)?.id;
@@ -33,12 +36,17 @@ export default async function SavedCampaignsPage() {
 
   const savedCampaigns = bookmarks.map(b => {
     const c = b.campaign;
-    const raised = c.donations.reduce((sum, d) => sum + d.amount, 0);
+    const raised = c.donations.reduce((sum, d) => sum + getStoredDonationCreditUsd(d as any), 0);
+    const uniqueDonors = new Set(c.donations.map(d => (d.donorEmail || d.donorName || d.id).toLowerCase()));
+    const daysLeft = c.status === "active" ? Math.max(0, Math.ceil((c.createdAt.getTime() + 30 * 86400000 - Date.now()) / 86400000)) : 0;
+    
     return {
       ...c,
       raised,
       pct: getCampaignPct(raised, c.goal),
-      creator: c.user?.name || 'OneRaise Creator'
+      creator: c.user?.name || 'OneRaise Creator',
+      backers: uniqueDonors.size,
+      daysLeft
     };
   });
 
@@ -61,30 +69,23 @@ export default async function SavedCampaignsPage() {
       ) : (
         <div className="campaign-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 }}>
           {savedCampaigns.map((c) => (
-            <Link key={c.id} href={`/backer/donate/${c.slug}`} className="campaign-card" style={{ display: 'flex', flexDirection: 'column', textDecoration: 'none', color: 'inherit' }}>
-              <div style={{ position: 'relative', height: 200, overflow: 'hidden', borderTopLeftRadius: 16, borderTopRightRadius: 16 }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={c.image || '/placeholder-campaign.jpg'} alt={c.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', padding: '4px 10px', borderRadius: 20, fontSize: 12, color: 'white' }}>
-                  {c.category}
-                </div>
-              </div>
-              <div style={{ padding: 20, flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <h3 style={{ fontSize: 18, marginBottom: 4, fontWeight: 600 }}>{c.title}</h3>
-                <div className="s-hint" style={{ marginBottom: 16 }}>by {c.creator}</div>
-                
-                <div style={{ marginTop: 'auto' }}>
-                  <div className="sc-progress-bar" style={{ height: 6 }}><div className="sc-progress-fill" style={{ width: `${c.pct}%` }}></div></div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontSize: 14 }}>
-                    <div>
-                      <span style={{ fontWeight: 700, color: 'var(--teal-200)' }}>${c.raised.toLocaleString()}</span>
-                      <span style={{ color: 'var(--w50)' }}> raised</span>
-                    </div>
-                    <div style={{ fontWeight: 600 }}>{c.pct}%</div>
-                  </div>
-                </div>
-              </div>
-            </Link>
+            <CampaignCard
+              key={c.id}
+              title={c.title}
+              goal={c.goal}
+              raised={c.raised}
+              backers={c.backers}
+              daysLeft={c.daysLeft}
+              status={c.status}
+              category={c.category}
+              image={c.image}
+              pct={c.pct}
+              actions={
+                <Link href={`/backer/donate/${c.slug}`} className="ucc-btn ucc-btn-primary">
+                  View Campaign
+                </Link>
+              }
+            />
           ))}
         </div>
       )}
