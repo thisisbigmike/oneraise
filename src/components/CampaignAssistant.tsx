@@ -60,10 +60,20 @@ export default function CampaignAssistant() {
               messages.map((m) => (
                 <div key={m.id} className={`ca-message ${m.role}`}>
                   <div className="ca-message-bubble">
-                    {/* Render text content from parts */}
                     {m.parts?.map((part, i) => {
+                      if (part.type === 'reasoning') {
+                        return (
+                          <div key={i} className="ca-reasoning">
+                            {(part as any).reasoning}
+                          </div>
+                        );
+                      }
                       if (part.type === 'text') {
-                        return <span key={i}>{part.text}</span>;
+                        return (
+                          <div key={i} className="ca-text-part">
+                            {part.text}
+                          </div>
+                        );
                       }
                       if (part.type.startsWith('tool-')) {
                         const toolPart = part as any;
@@ -72,11 +82,17 @@ export default function CampaignAssistant() {
                         return (
                           <div key={i} className="ca-tool-call">
                             {isFinished ? (
-                              <span className="ca-tool-success">✓ Checked {toolName === 'getSwapQuote' ? 'Jupiter Swap Rate' : 'Token Price'}</span>
+                              <div className="ca-tool-badge success">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                                <span>Checked {toolName === 'getSwapQuote' ? 'Jupiter Swap Rate' : 'Token Price'}</span>
+                              </div>
                             ) : (
-                              <span className="ca-tool-loading">
-                                <span className="ca-spinner"></span> Checking {toolName === 'getSwapQuote' ? 'Jupiter...' : 'Price...'}
-                              </span>
+                              <div className="ca-tool-badge loading">
+                                <div className="ca-spinner-small"></div>
+                                <span>Checking {toolName === 'getSwapQuote' ? 'Jupiter...' : 'Price...'}</span>
+                              </div>
                             )}
                           </div>
                         );
