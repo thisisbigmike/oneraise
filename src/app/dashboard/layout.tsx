@@ -7,6 +7,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { ToastProvider, ThemeProvider, useTheme } from '../components';
 import '../shared-dashboard.css';
 import AnimatedButton from '@/components/ui/AnimatedButton';
+import CampaignAssistant from '@/components/CampaignAssistant';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -142,6 +143,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="dash-main">
         {children}
       </main>
+      <CampaignAssistant />
     </div>
     </ToastProvider>
     </ThemeProvider>
