@@ -13,6 +13,27 @@ OneRaise is a next-generation crowdfunding platform designed to bridge the gap b
 - **Radical Transparency**: Real-time tracking of donations and proof-of-impact through verifiable milestones.
 - **Collective Impact**: Tools for community-led campaigns, emergency aid, and grant distribution.
 
+## 🛡️ OneRaise Shield (Cloak Integration)
+
+**The Problem:** High-trust fundraising needs privacy. Donors may want to support sensitive campaigns (political, emergency, local aid) without broadcasting their wealth, wallet address, or specific donations to the public blockchain. However, the campaign still needs an auditable trail for compliance.
+**Who it's for:** Whales, anonymous philanthropists, and donors supporting sensitive causes who need privacy from the public, but accountability from the platform.
+
+**How the Cloak SDK is used:** We use `@cloak.dev/sdk` to power "Private Donations." When a user chooses to donate privately:
+1. We generate a unique viewing key (`nk`) for the donation.
+2. We create a shielded UTXO deposit using `createUtxo` and `transact`, effectively mixing the donor's USDC into the Cloak shielded pool.
+3. We immediately execute a `fullWithdraw` to pull the funds from the shielded pool into the campaign's treasury.
+**Why it's central:** This breaks the on-chain link between the donor's wallet and the campaign's treasury, providing total privacy. The generated viewing key is stored so the campaign creator can still scan the history and generate compliance reports using `scanTransactions` and `toComplianceReport`—giving us privacy without sacrificing accountability.
+
+**Setup and Run Instructions:**
+1. Clone the repo and install dependencies: `npm install`
+2. Connect your Supabase database in `.env` and run `npm run db:push`
+3. Run the development server: `npm run dev`
+4. To test the shielded donation, navigate to any campaign page and select the "Donate Privately (Cloak)" option.
+
+**Deployed Links & Programs:**
+- **Cloak Program ID:** `CLOAK_PROGRAM_ID` (as imported from `@cloak.dev/sdk`)
+- **Frontend Link:** [oneraise.vercel.app](https://oneraise.vercel.app)
+
 ---
 
 ## Technical Setup
