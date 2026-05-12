@@ -16,7 +16,7 @@
 }
 
 .explore-title {
-  font-size: 3.5rem;
+  font-size: clamp(2rem, 8vw, 3.5rem);
   font-weight: 700;
   letter-spacing: -0.03em;
   margin-bottom: 16px;
@@ -26,19 +26,28 @@
 }
 
 .explore-subtitle {
-  font-size: 1.25rem;
+  font-size: clamp(1rem, 3vw, 1.25rem);
   color: var(--white-60);
+}
+
+@media (max-width: 600px) {
+  .explore-container { padding: 60px 16px 40px; }
+  .explore-header { margin-bottom: 36px; }
 }
 
 .explore-filters {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
   align-items: center;
   background: rgba(255, 255, 255, 0.03);
   padding: 16px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.05);
+}
+@media (max-width: 600px) {
+  .explore-filters { flex-direction: column; gap: 10px; }
+  .explore-filters > * { width: 100%; }
 }
 
 .filter-group {
@@ -49,7 +58,7 @@
 
 .search-group {
   flex: 1;
-  min-width: 300px;
+  min-width: min(300px, 100%);
   background: rgba(0, 0, 0, 0.2);
   border-radius: 12px;
   padding: 0 16px;

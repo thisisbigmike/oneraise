@@ -1,6 +1,6 @@
 .campaign-assistant-wrapper {
   position: fixed;
-  bottom: 24px;
+  bottom: max(24px, env(safe-area-inset-bottom));
   right: 24px;
   z-index: 9999;
   font-family: 'Instrument Sans', sans-serif;
@@ -27,9 +27,9 @@
 }
 
 .ca-window {
-  width: 360px;
-  height: 540px;
-  max-height: calc(100vh - 48px);
+  width: min(360px, calc(100vw - 32px));
+  height: min(540px, calc(100dvh - 120px));
+  max-height: calc(100dvh - 80px);
   background: var(--ink-card);
   backdrop-filter: blur(24px);
   border: 1px solid rgba(245, 250, 247, 0.08);
@@ -39,6 +39,17 @@
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
   overflow: hidden;
   animation: caSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@media (max-width: 480px) {
+  .campaign-assistant-wrapper {
+    right: 16px;
+    bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  .ca-window {
+    width: calc(100vw - 32px);
+    height: calc(100dvh - 100px);
+    border-radius: 16px;
+  }
 }
 
 @keyframes caSlideUp {

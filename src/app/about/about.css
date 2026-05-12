@@ -9,6 +9,9 @@
   margin: 0 auto;
   padding: 80px 20px;
 }
+@media (max-width: 600px) {
+  .about-container { padding: 56px 16px 40px; }
+}
 
 .text-center {
   text-align: center;
@@ -22,7 +25,7 @@
 }
 
 .about-title {
-  font-size: 4rem;
+  font-size: clamp(2rem, 8vw, 4rem);
   font-weight: 700;
   line-height: 1.1;
   margin: 16px 0 24px;
@@ -33,7 +36,7 @@
 }
 
 .about-subtitle {
-  font-size: 1.25rem;
+  font-size: clamp(1rem, 3vw, 1.25rem);
   color: rgba(255, 255, 255, 0.7);
   line-height: 1.6;
 }
@@ -198,7 +201,7 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 24px;
-  padding: 48px;
+  padding: clamp(28px, 5vw, 48px);
   position: relative;
 }
 
@@ -221,7 +224,7 @@
 }
 
 .fee-amount {
-  font-size: 4rem;
+  font-size: clamp(2.5rem, 8vw, 4rem);
   font-weight: 800;
   color: #1D9E75;
   line-height: 1;

@@ -12,6 +12,12 @@ const instrument = Instrument_Sans({
   subsets: ["latin"],
 });
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
+
 export const metadata: Metadata = {
   title: "OneRaise",
   description: "OneRaise connects creators, entrepreneurs, and changemakers with a global community.",

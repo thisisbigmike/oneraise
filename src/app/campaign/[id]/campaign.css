@@ -9,6 +9,9 @@
   margin: 0 auto;
   padding: 60px 20px;
 }
+@media (max-width: 600px) {
+  .campaign-container { padding: 24px 16px; }
+}
 
 /* Hero Section */
 .campaign-hero {
@@ -54,7 +57,7 @@
 }
 
 .campaign-title {
-  font-size: 3rem;
+  font-size: clamp(1.75rem, 6vw, 3rem);
   font-weight: 700;
   line-height: 1.1;
   margin-bottom: 20px;
@@ -120,9 +123,13 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 24px;
-  padding: 32px;
+  padding: 28px;
   position: sticky;
   top: 100px;
+}
+@media (max-width: 480px) {
+  .funding-card { padding: 20px; border-radius: 18px; }
+  .funding-raised { font-size: 2rem; }
 }
 
 .protect-summary-card {
@@ -422,23 +429,29 @@
 .campaign-tabs-wrapper {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   margin-bottom: 40px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.campaign-tabs-wrapper::-webkit-scrollbar { display: none; }
 
 .campaign-tabs {
   display: flex;
-  gap: 32px;
+  gap: 28px;
+  min-width: max-content;
 }
 
 .tab-btn {
   background: transparent;
   border: none;
   color: rgba(255, 255, 255, 0.5);
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 500;
-  padding: 16px 0;
+  padding: 14px 0;
   cursor: pointer;
   position: relative;
   transition: color 0.2s;
+  white-space: nowrap;
 }
 
 .tab-btn:hover {
