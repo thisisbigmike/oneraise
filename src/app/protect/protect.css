@@ -26,6 +26,15 @@
   margin: 0 auto;
   padding: clamp(92px, 13vw, 150px) 0 clamp(64px, 10vw, 104px);
 }
+.protect-hero > *,
+.protect-section > *,
+.protect-proof > *,
+.flow-grid > *,
+.protect-modes > *,
+.console-stats > *,
+.ledger-row > * {
+  min-width: 0;
+}
 
 .protect-grid-bg {
   position: absolute;
@@ -517,6 +526,36 @@
   .flow-step,
   .proof-item {
     padding: 18px;
+  }
+}
+
+@media (max-width: 420px) {
+  .protect-hero,
+  .protect-section,
+  .protect-cta {
+    width: auto;
+    max-width: none;
+    margin-left: 14px;
+    margin-right: 14px;
+  }
+  .protect-hero h1 {
+    font-size: clamp(28px, 10vw, 34px);
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .protect-actions {
+    width: 100%;
+  }
+  .protect-console,
+  .protect-cta {
+    padding: 18px;
+  }
+  .console-header strong {
+    font-size: clamp(26px, 10vw, 34px);
+  }
+  .ledger-pill,
+  .console-status {
+    align-self: flex-start;
   }
 }
 

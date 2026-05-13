@@ -3,6 +3,7 @@
   display: inline-flex;
   height: 40px;
   min-width: 130px;
+  max-width: 100%;
   align-items: center;
   justify-content: center;
   gap: 10px;
@@ -15,6 +16,7 @@
   cursor: pointer;
   text-decoration: none;
   font-size: 14px;
+  white-space: nowrap;
 }
 
 .animata-btn:hover {
@@ -88,4 +90,22 @@
 
 .animata-btn:hover .animata-icon-right {
   opacity: 0;
+}
+
+@media (max-width: 380px) {
+  .animata-btn {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animata-btn,
+  .animata-btn-text,
+  .animata-icon-wrapper,
+  .animata-icon-inner,
+  .animata-icon-left,
+  .animata-icon-right {
+    transition: none;
+  }
 }

@@ -2,12 +2,14 @@
   min-height: 100vh;
   background-color: #0a0a0a;
   color: #fff;
+  overflow-x: clip;
 }
 
 .campaign-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 60px 20px;
+  width: 100%;
 }
 @media (max-width: 600px) {
   .campaign-container { padding: 24px 16px; }
@@ -16,9 +18,15 @@
 /* Hero Section */
 .campaign-hero {
   display: grid;
-  grid-template-columns: 1fr 400px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
   gap: 60px;
   margin-bottom: 60px;
+}
+.campaign-hero > *,
+.campaign-content,
+.funding-card,
+.protect-timeline-body {
+  min-width: 0;
 }
 
 @media (max-width: 900px) {
@@ -130,6 +138,20 @@
 @media (max-width: 480px) {
   .funding-card { padding: 20px; border-radius: 18px; }
   .funding-raised { font-size: 2rem; }
+  .funding-stats,
+  .protect-summary-top,
+  .protect-timeline-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .campaign-creator,
+  .protect-timeline-item,
+  .donor-card {
+    align-items: flex-start;
+  }
+  .protect-status-strip {
+    grid-template-columns: 1fr;
+  }
 }
 
 .protect-summary-card {
@@ -422,6 +444,31 @@
   .report-cancel-btn,
   .report-submit-btn {
     width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .campaign-container {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+  .campaign-subtitle,
+  .content-section p {
+    font-size: 1rem;
+  }
+  .campaign-tabs {
+    gap: 20px;
+  }
+  .tab-btn {
+    font-size: 0.92rem;
+  }
+  .update-card,
+  .report-modal,
+  .protect-timeline-item {
+    padding: 18px;
+  }
+  .report-modal-header {
+    align-items: flex-start;
   }
 }
 

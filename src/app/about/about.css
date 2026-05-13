@@ -2,12 +2,14 @@
   min-height: 100vh;
   background-color: #0a0a0a;
   color: #fff;
+  overflow-x: clip;
 }
 
 .about-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 80px 20px;
+  width: 100%;
 }
 @media (max-width: 600px) {
   .about-container { padding: 56px 16px 40px; }
@@ -158,8 +160,9 @@
 }
 
 .shield-graphic {
-  width: 300px;
-  height: 300px;
+  width: min(300px, 100%);
+  aspect-ratio: 1;
+  height: auto;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(29, 158, 117, 0.2) 0%, rgba(0,0,0,0) 70%);
   display: flex;
@@ -194,6 +197,30 @@
 @media (max-width: 768px) {
   .fees-cards {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .about-header,
+  .about-steps,
+  .about-trust,
+  .about-fees,
+  .about-faq {
+    margin-bottom: 64px;
+  }
+  .step-card,
+  .about-trust,
+  .fee-card,
+  .faq-question {
+    padding: 22px;
+  }
+  .about-trust h2,
+  .about-fees h2,
+  .faq-header h2 {
+    font-size: clamp(1.8rem, 10vw, 2.25rem);
+  }
+  .faq-question h3 {
+    font-size: 1rem;
   }
 }
 

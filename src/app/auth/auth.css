@@ -4,8 +4,8 @@
   color: var(--white);
   display: flex;
   -webkit-font-smoothing: antialiased;
-  height: 100vh;
-  width: 100vw;
+  min-height: 100dvh;
+  width: 100%;
   overflow: hidden;
 }
 
@@ -135,6 +135,7 @@
 .auth-wrapper .right{
   flex:1;display:flex;align-items:flex-start;justify-content:center;
   padding:40px 48px;overflow-y:auto;position:relative;
+  min-width:0;
 }
 
 /* subtle teal glow behind form */
@@ -148,6 +149,7 @@
 
 .auth-wrapper .form-wrap{
   width:100%;max-width:400px;position:relative;z-index:2;
+  min-width:0;
 }
 
 /* MODE TOGGLE */
@@ -402,7 +404,7 @@
 
 .auth-wrapper .otp-row{display:flex;gap:10px;justify-content:center;margin-bottom:8px;}
 .auth-wrapper .otp-input{
-  width:52px;height:56px;text-align:center;
+  width:clamp(40px, 11vw, 52px);height:56px;text-align:center;
   font-family:'Bricolage Grotesque',sans-serif;font-size:22px;font-weight:700;
   background:var(--ink-card);border:1px solid var(--border);
   border-radius:12px;color:var(--white);outline:none;
@@ -555,7 +557,7 @@
   .auth-wrapper .left{ display:none; }
   .auth-wrapper .right{
     width:100%;
-    max-width:100vw;
+    max-width:100%;
     min-height:100dvh;
     align-items:flex-start;
     justify-content:center;
@@ -565,7 +567,7 @@
   }
   .auth-wrapper .right::before{display:none;}
   .auth-wrapper .form-wrap{
-    width:calc(100vw - 32px);
+    width:100%;
     max-width:420px;
     min-width:0;
     margin:0 auto;
@@ -657,19 +659,20 @@
 }
 @media(max-width:520px){
   .auth-wrapper .form-wrap{
-    width:min(calc(100vw - 32px), 358px);
-    max-width:358px;
-    margin-left:16px;
+    width:100%;
+    max-width:420px;
+    margin-left:auto;
     margin-right:auto;
   }
+  .auth-wrapper .otp-row{gap:6px;}
 }
 @media(max-width:400px){
   .auth-wrapper .right{
     padding:20px max(14px, env(safe-area-inset-left)) calc(32px + env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-right));
   }
   .auth-wrapper .form-wrap{
-    width:calc(100vw - 28px);
-    max-width:calc(100vw - 28px);
+    width:100%;
+    max-width:100%;
   }
   .auth-wrapper .form-title{
     font-size:34px;
@@ -687,6 +690,9 @@
   }
 }
 @media(max-width:340px){
+  .auth-wrapper .oauth-row{
+    grid-template-columns:1fr;
+  }
   .auth-wrapper .oauth-btn{
     gap:0;
   }

@@ -1,16 +1,18 @@
 .dash-wrapper {
   display: flex;
-  height: 100vh;
-  width: 100vw;
+  height: 100dvh;
+  width: 100%;
   background: var(--ink);
   color: var(--white);
   font-family: 'Instrument Sans', sans-serif;
   overflow: hidden;
+  min-width: 0;
 }
 
 /* ── SIDEBAR ── */
 .sidebar {
   width: 260px;
+  max-width: calc(100vw - 32px);
   background: var(--ink-mid);
   border-right: 1px solid rgba(245,250,247,0.06);
   display: flex;
@@ -204,6 +206,7 @@
 /* ── MAIN LAYOUT ── */
 .dash-main {
   flex: 1;
+  min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
   background: var(--ink);
@@ -349,8 +352,10 @@
 
 /* ── OVERVIEW PAGE ── */
 .overview-page {
+  width: 100%;
   max-width: 1040px;
   margin: 0 auto;
+  min-width: 0;
 }
 
 .page-header {
@@ -375,6 +380,7 @@
 .header-actions {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .btn-primary, .btn-secondary {
@@ -479,6 +485,7 @@
   border: 1px solid rgba(245,250,247,0.06);
   border-radius: 16px;
   padding: 24px;
+  min-width: 0;
 }
 .cc-header {
   display: flex;
@@ -529,6 +536,24 @@
   flex-shrink: 0;
 }
 .d-info { flex: 1; }
+.d-info,
+.pm-info,
+.notif-info,
+.up-info,
+.nl-left,
+.sc-label,
+.cc-title {
+  min-width: 0;
+}
+.d-name,
+.d-time,
+.notif-title,
+.notif-desc,
+.up-name,
+.up-role,
+.nl-text {
+  overflow-wrap: anywhere;
+}
 .d-name { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
 .d-time { font-size: 12px; color: var(--w30); margin-bottom: 6px; }
 .d-msg { 
@@ -1613,8 +1638,8 @@ select.s-input option,
   background: var(--ink-card);
   border: 1px solid rgba(245,250,247,0.1);
   border-radius: 20px;
-  width: 90%; max-width: 480px;
-  max-height: 90vh;
+  width: min(90vw, 480px);
+  max-height: min(90dvh, 760px);
   display: flex;
   flex-direction: column;
   box-shadow: 0 24px 80px rgba(0,0,0,0.5);
@@ -1643,7 +1668,7 @@ select.s-input option,
 /* ── Wide Modal Variant ── */
 .modal-wide {
   max-width: 720px;
-  width: 95%;
+  width: min(95vw, 720px);
 }
 .modal-wide .modal-header {
   padding: 20px 28px;
@@ -1778,6 +1803,7 @@ select.s-input option,
 }
 .s-slug-input {
   flex: 1;
+  min-width: 0;
   background: transparent;
   border: none;
   padding: 12px 14px 12px 10px;
@@ -1962,6 +1988,15 @@ select.s-input option,
   grid-template-columns: 1fr 380px;
   gap: 32px;
   align-items: start;
+}
+.donate-layout > *,
+.donate-form-card,
+.campaign-sidebar,
+.campaign-sidebar-card,
+.jq-grid > *,
+.payment-method-card > *,
+.jupiter-info-row > * {
+  min-width: 0;
 }
 .donate-form-card {
   background: var(--ink-card);
@@ -2925,6 +2960,122 @@ select.s-input option,
   .amount-input {
     font-size: 22px;
     padding: 14px 14px 14px 32px;
+  }
+}
+
+@media(max-width: 600px) {
+  .content-card,
+  .stat-card,
+  .donate-form-card,
+  .campaign-sidebar-card,
+  .cs-info-card,
+  .pm-add-form {
+    padding: 18px;
+    border-radius: 14px;
+  }
+  .page-header {
+    margin-bottom: 24px;
+  }
+  .header-actions {
+    width: 100%;
+  }
+  .header-actions > * {
+    flex: 1 1 100%;
+  }
+  .donation-item,
+  .pm-item,
+  .notif-item {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    align-items: start;
+    padding: 14px;
+  }
+  .d-amount,
+  .notif-meta {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .s-toggle-row,
+  .s-session,
+  .s-team-item,
+  .s-danger-row,
+  .country-item,
+  .payment-method-card,
+  .jq-header,
+  .jupiter-info-row,
+  .fee-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .country-info,
+  .country-amount {
+    width: auto;
+    text-align: left;
+  }
+  .txn-search-wrap {
+    width: 100%;
+  }
+  .modal-content {
+    width: calc(100vw - 28px);
+    max-height: calc(100dvh - 28px);
+    border-radius: 16px;
+  }
+  .modal-header,
+  .modal-wide .modal-header,
+  .modal-footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  .modal-body,
+  .modal-wide .modal-body {
+    padding: 0 18px 18px;
+  }
+  .modal-footer,
+  .m3-bottom-bar,
+  .share-link-row,
+  .ps-actions {
+    flex-direction: column;
+  }
+  .m3-modal-main {
+    padding: 18px;
+  }
+  .m3-bottom-bar {
+    margin: 0 -18px -18px;
+    padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
+  }
+  .s-tier-grid,
+  .jq-grid,
+  .donate-fields {
+    grid-template-columns: 1fr;
+  }
+  .payment-method-card {
+    gap: 12px;
+  }
+  .pm-text-badge {
+    align-self: flex-start;
+  }
+  .preview-mobile-bar {
+    padding: 12px max(12px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  }
+}
+
+@media(max-width: 380px) {
+  .dash-main {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+  .mobile-topbar {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+  .amount-presets,
+  .preview-mb-actions {
+    flex-direction: column;
+  }
+  .amount-preset,
+  .preview-mb-btn,
+  .preview-mb-donate {
+    width: 100%;
   }
 }
 

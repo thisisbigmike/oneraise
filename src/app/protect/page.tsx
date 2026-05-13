@@ -79,11 +79,11 @@ export default function ProtectPage() {
             OneRaise Protect
           </div>
           <h1>
-            Backer-protected
+            Backer-<wbr />protected
             <br />
             funding for
             <br />
-            high-trust
+            high-<wbr />trust
             <br />
             campaigns.
           </h1>
