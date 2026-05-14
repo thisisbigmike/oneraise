@@ -1,0 +1,19 @@
+[features]
+seeds = false
+skip-lint = false
+
+[programs.localnet]
+oneraise_escrow = "2hjqQzTXa5HGqS4zwe8Q89NXkdTrfdPVhmAkVmNHBCTb"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
+
+[test]
+startup_wait = 15000
+
+[scripts]
+test = "npm run anchor:test"
