@@ -11,6 +11,7 @@ import CampaignAssistant from '@/components/CampaignAssistant';
 
 type CampaignView = {
   id: number; slug: string; title: string; image?: string | null; creator: string; creatorInitials: string;
+  creatorImage?: string | null;
   raised: number; goal: number; category: string; desc: string;
   backers: number; daysLeft: number; verified: boolean;
   endDate?: string;
@@ -1329,7 +1330,14 @@ function CampaignSidebar({ campaign, pct }: { campaign: CampaignView; pct: numbe
         )}
 
         <div className="cs-organizer">
-          <div className="cs-organizer-avatar">{campaign.creatorInitials}</div>
+          <div className="cs-organizer-avatar">
+            {campaign.creatorImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={campaign.creatorImage} alt={campaign.creator} />
+            ) : (
+              campaign.creatorInitials
+            )}
+          </div>
           <span className="cs-organizer-name">by {campaign.creator}</span>
           {campaign.verified && (
             <span className="cs-verified">

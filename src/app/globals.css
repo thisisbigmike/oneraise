@@ -1026,6 +1026,8 @@ canvas#globe {
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .ucc-creator-avatar {
@@ -1049,6 +1051,11 @@ canvas#globe {
 }
 
 .ucc-creator-name {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 13px;
   color: var(--ucc-text-soft);
   font-weight: 500;
