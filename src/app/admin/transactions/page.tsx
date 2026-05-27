@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { Suspense, useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 type DonationItem = {
   id: string;
@@ -55,17 +56,37 @@ const PROVIDER_COLORS: Record<string, string> = {
   jupiter: '#9945FF',
 };
 
+function isDonationItem(item: DonationItem | PayoutItem): item is DonationItem {
+  return 'amountUsd' in item;
+}
+
+function isPayoutItem(item: DonationItem | PayoutItem): item is PayoutItem {
+  return 'sourceCurrency' in item;
+}
+
+function formatAmount(value: number | null | undefined) {
+  return Number.isFinite(value) ? Number(value).toFixed(2) : '0.00';
+}
+
 export default function AdminTransactionsPage() {
-  const [tab, setTab] = useState<'donations' | 'payouts'>('donations');
+  return <Suspense><AdminTransactionsContent /></Suspense>;
+}
+
+function AdminTransactionsContent() {
+  const searchParams = useSearchParams();
+  const initialType = searchParams.get('type') === 'payouts' ? 'payouts' : 'donations';
+  const initialStatus = searchParams.get('status') || 'all';
+  const [tab, setTab] = useState<'donations' | 'payouts'>(initialType);
   const [items, setItems] = useState<(DonationItem | PayoutItem)[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
 
   const load = useCallback(async () => {
     setLoadStatus('loading');
+    setItems([]);
     try {
       const params = new URLSearchParams({ type: tab, page: String(page) });
       if (statusFilter !== 'all') params.set('status', statusFilter);
@@ -85,12 +106,17 @@ export default function AdminTransactionsPage() {
 
   const switchTab = (t: 'donations' | 'payouts') => {
     setTab(t);
+    setItems([]);
+    setTotal(0);
+    setPages(1);
     setPage(1);
     setStatusFilter('all');
   };
 
   const donationStatuses = ['all', 'completed', 'pending', 'failed', 'expired'];
   const payoutStatuses = ['all', 'completed', 'pending', 'processing', 'failed'];
+  const donationRows = tab === 'donations' ? items.filter(isDonationItem) : [];
+  const payoutRows = tab === 'payouts' ? items.filter(isPayoutItem) : [];
 
   return (
     <div className="overview-page">
@@ -98,6 +124,11 @@ export default function AdminTransactionsPage() {
         <div>
           <h1 className="page-title">Transactions</h1>
           <div className="page-sub">{total.toLocaleString()} {tab} total</div>
+        </div>
+        <div className="header-actions">
+          <a href={`/api/admin/exports?kind=${tab === 'donations' ? 'donations' : 'payouts'}`} className="btn-secondary" style={{ padding: '8px 16px', fontSize: 13 }}>
+            Export CSV
+          </a>
         </div>
       </div>
 
@@ -126,7 +157,7 @@ export default function AdminTransactionsPage() {
         {(tab === 'donations' ? donationStatuses : payoutStatuses).map(s => (
           <button
             key={s}
-            onClick={() => { setStatusFilter(s); setPage(1); }}
+            onClick={() => { setItems([]); setStatusFilter(s); setPage(1); }}
             style={{
               padding: '5px 10px', fontSize: 12, borderRadius: 6, border: '1px solid', cursor: 'pointer',
               borderColor: statusFilter === s ? (STATUS_COLORS[s] ?? 'var(--teal-200)') : 'rgba(245,250,247,0.1)',
@@ -148,7 +179,7 @@ export default function AdminTransactionsPage() {
         )}
 
         {/* Donations table */}
-        {tab === 'donations' && items.length > 0 && (
+        {tab === 'donations' && donationRows.length > 0 && (
           <div className="txn-table-wrap">
             <table className="txn-table">
               <thead>
@@ -163,19 +194,19 @@ export default function AdminTransactionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {(items as DonationItem[]).map(d => (
+                {donationRows.map(d => (
                   <tr key={d.id}>
                     <td>
                       <div style={{ fontWeight: 600, fontSize: 13 }}>{d.donorName}</div>
                       {d.donorEmail && <div style={{ fontSize: 11, color: 'var(--w30)' }}>{d.donorEmail}</div>}
-                      {d.donorMessage && <div style={{ fontSize: 11, color: 'var(--w50)', marginTop: 2, fontStyle: 'italic' }}>"{d.donorMessage}"</div>}
+                      {d.donorMessage && <div style={{ fontSize: 11, color: 'var(--w50)', marginTop: 2, fontStyle: 'italic' }}>&quot;{d.donorMessage}&quot;</div>}
                     </td>
                     <td>
                       <Link href={`/campaign/${d.campaignSlug}`} target="_blank" style={{ color: 'var(--teal-200)', textDecoration: 'none', fontSize: 13 }}>
                         {d.campaignTitle}
                       </Link>
                     </td>
-                    <td style={{ fontWeight: 700, color: 'var(--teal-200)' }}>${d.amountUsd.toFixed(2)}</td>
+                    <td style={{ fontWeight: 700, color: 'var(--teal-200)' }}>${formatAmount(d.amountUsd)}</td>
                     <td>
                       <span style={{ fontSize: 12, textTransform: 'uppercase', color: PROVIDER_COLORS[d.provider] || 'var(--w50)', fontWeight: 600 }}>
                         {d.provider}
@@ -206,7 +237,7 @@ export default function AdminTransactionsPage() {
         )}
 
         {/* Payouts table */}
-        {tab === 'payouts' && items.length > 0 && (
+        {tab === 'payouts' && payoutRows.length > 0 && (
           <div className="txn-table-wrap">
             <table className="txn-table">
               <thead>
@@ -221,7 +252,7 @@ export default function AdminTransactionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {(items as PayoutItem[]).map(p => (
+                {payoutRows.map(p => (
                   <tr key={p.id}>
                     <td style={{ fontWeight: 600, fontSize: 13 }}>{p.creatorName}</td>
                     <td>
@@ -230,7 +261,7 @@ export default function AdminTransactionsPage() {
                         : <span style={{ fontSize: 13, color: 'var(--w50)' }}>{p.campaignTitle}</span>
                       }
                     </td>
-                    <td style={{ fontWeight: 700, color: 'var(--teal-200)' }}>{p.amount.toFixed(2)}</td>
+                    <td style={{ fontWeight: 700, color: 'var(--teal-200)' }}>{formatAmount(p.amount)}</td>
                     <td style={{ fontSize: 12, color: 'var(--w50)' }}>{p.sourceCurrency} → {p.targetCurrency}</td>
                     <td>
                       <div style={{ fontSize: 13 }}>{p.methodLabel}</div>

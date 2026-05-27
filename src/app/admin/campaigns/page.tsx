@@ -26,6 +26,7 @@ const STATUS_COLORS: Record<string, string> = {
   active: 'var(--teal-200)',
   draft: 'var(--amber)',
   completed: 'var(--w50)',
+  paused: '#85B7EB',
   suspended: '#F09595',
 };
 
@@ -83,10 +84,19 @@ function AdminCampaignsContent() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      showToast(`Campaign ${action}d.`, 'success');
+      const actionLabel: Record<string, string> = {
+        approve: 'approved',
+        reject: 'rejected',
+        pause: 'paused',
+        resume: 'resumed',
+        suspend: 'suspended',
+        unsuspend: 'restored',
+        complete: 'ended',
+      };
+      showToast(`Campaign ${actionLabel[action] || 'updated'}.`, 'success');
       await load();
-    } catch (e: any) {
-      showToast(e.message || 'Failed.', 'error');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Failed.', 'error');
     } finally {
       setBusy('');
     }
@@ -98,6 +108,9 @@ function AdminCampaignsContent() {
         <div>
           <h1 className="page-title">Campaigns</h1>
           <div className="page-sub">{total.toLocaleString()} total campaigns</div>
+        </div>
+        <div className="header-actions">
+          <a href="/api/admin/exports?kind=campaigns" className="btn-secondary" style={{ padding: '8px 16px', fontSize: 13 }}>Export CSV</a>
         </div>
       </div>
 
@@ -115,7 +128,7 @@ function AdminCampaignsContent() {
           {search && <button type="button" className="btn-secondary" style={{ padding: '8px 12px', fontSize: 13 }} onClick={() => { setSearch(''); setSearchInput(''); setPage(1); }}>Clear</button>}
         </form>
         <div style={{ display: 'flex', gap: 6 }}>
-          {['all', 'active', 'draft', 'completed', 'suspended'].map(s => (
+          {['all', 'active', 'draft', 'paused', 'completed', 'suspended'].map(s => (
             <button
               key={s}
               onClick={() => { setStatusFilter(s); setPage(1); }}
@@ -160,10 +173,12 @@ function AdminCampaignsContent() {
                   <tr key={c.id}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        {c.image
-                          ? <img src={c.image} alt={c.title} style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
-                          : <div style={{ width: 36, height: 36, borderRadius: 6, background: 'rgba(245,250,247,0.06)', flexShrink: 0 }} />
-                        }
+                        {c.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={c.image} alt={c.title} style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <div style={{ width: 36, height: 36, borderRadius: 6, background: 'rgba(245,250,247,0.06)', flexShrink: 0 }} />
+                        )}
                         <div>
                           <div style={{ fontWeight: 600, fontSize: 13 }}>{c.title}</div>
                           <div style={{ fontSize: 11, color: 'var(--w30)' }}>{c.category} · {new Date(c.createdAt).toLocaleDateString()}</div>
@@ -191,18 +206,28 @@ function AdminCampaignsContent() {
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         <Link href={`/campaign/${c.slug}`} target="_blank" className="btn-secondary" style={{ padding: '4px 8px', fontSize: 11 }}>View</Link>
                         {c.status === 'draft' && (
-                          <button className="btn-primary" style={{ padding: '4px 8px', fontSize: 11 }} disabled={busy === `approve:${c.slug}`} onClick={() => runAction(c.slug, 'approve')}>
-                            {busy === `approve:${c.slug}` ? '...' : 'Approve'}
-                          </button>
+                          <>
+                            <button className="btn-primary" style={{ padding: '4px 8px', fontSize: 11 }} disabled={busy === `approve:${c.slug}`} onClick={() => runAction(c.slug, 'approve')}>
+                              {busy === `approve:${c.slug}` ? '...' : 'Approve'}
+                            </button>
+                            <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: 11, color: '#F09595' }} disabled={busy === `reject:${c.slug}`} onClick={() => runAction(c.slug, 'reject')}>
+                              {busy === `reject:${c.slug}` ? '...' : 'Reject'}
+                            </button>
+                          </>
                         )}
                         {c.status === 'active' && (
-                          <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: 11, color: '#F09595' }} disabled={busy === `suspend:${c.slug}`} onClick={() => runAction(c.slug, 'suspend')}>
-                            {busy === `suspend:${c.slug}` ? '...' : 'Suspend'}
-                          </button>
+                          <>
+                            <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: 11 }} disabled={busy === `pause:${c.slug}`} onClick={() => runAction(c.slug, 'pause')}>
+                              {busy === `pause:${c.slug}` ? '...' : 'Pause'}
+                            </button>
+                            <button className="btn-secondary" style={{ padding: '4px 8px', fontSize: 11, color: '#F09595' }} disabled={busy === `suspend:${c.slug}`} onClick={() => runAction(c.slug, 'suspend')}>
+                              {busy === `suspend:${c.slug}` ? '...' : 'Suspend'}
+                            </button>
+                          </>
                         )}
-                        {c.status === 'suspended' && (
-                          <button className="btn-primary" style={{ padding: '4px 8px', fontSize: 11 }} disabled={busy === `unsuspend:${c.slug}`} onClick={() => runAction(c.slug, 'unsuspend')}>
-                            {busy === `unsuspend:${c.slug}` ? '...' : 'Restore'}
+                        {(c.status === 'suspended' || c.status === 'paused') && (
+                          <button className="btn-primary" style={{ padding: '4px 8px', fontSize: 11 }} disabled={busy === `resume:${c.slug}`} onClick={() => runAction(c.slug, 'resume')}>
+                            {busy === `resume:${c.slug}` ? '...' : 'Resume'}
                           </button>
                         )}
                         {c.status === 'active' && (

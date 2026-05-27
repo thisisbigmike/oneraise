@@ -25,6 +25,7 @@ const KYC_COLORS: Record<string, string> = {
   verified: 'var(--teal-200)',
   pending: 'var(--amber)',
   unverified: 'var(--w30)',
+  rejected: '#F09595',
 };
 
 export default function AdminUsersPage() {
@@ -35,17 +36,25 @@ export default function AdminUsersPage() {
   const [pages, setPages] = useState(1);
   const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [kycFilter, setKycFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [busyUser, setBusyUser] = useState('');
   const [roleModalUser, setRoleModalUser] = useState<AdminUser | null>(null);
   const [newRole, setNewRole] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createName, setCreateName] = useState('');
+  const [createEmail, setCreateEmail] = useState('');
+  const [createRole, setCreateRole] = useState('backer');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createLoading, setCreateLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoadStatus('loading');
     try {
       const params = new URLSearchParams({ page: String(page) });
       if (roleFilter !== 'all') params.set('role', roleFilter);
+      if (kycFilter !== 'all') params.set('kyc', kycFilter);
       if (search) params.set('search', search);
       const res = await fetch(`/api/admin/users?${params}`, { cache: 'no-store' });
       const data = await res.json();
@@ -57,7 +66,7 @@ export default function AdminUsersPage() {
     } catch {
       setLoadStatus('error');
     }
-  }, [page, roleFilter, search]);
+  }, [page, roleFilter, kycFilter, search]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -74,11 +83,65 @@ export default function AdminUsersPage() {
       showToast('User updated.', 'success');
       setRoleModalUser(null);
       await load();
-    } catch (e: any) {
-      showToast(e.message || 'Failed to update user.', 'error');
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Failed to update user.', 'error');
     } finally {
       setBusyUser('');
     }
+  };
+
+  const setKycStatus = async (userId: string, kycStatus: string) => {
+    setBusyUser(userId);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action: 'set-kyc', kycStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      showToast('KYC status updated.', 'success');
+      await load();
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Failed to update KYC status.', 'error');
+    } finally {
+      setBusyUser('');
+    }
+  };
+
+  const createUser = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setCreateLoading(true);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: createName,
+          email: createEmail,
+          role: createRole,
+          password: createPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      showToast('User created.', 'success');
+      setCreateOpen(false);
+      setCreateName('');
+      setCreateEmail('');
+      setCreateRole('backer');
+      setCreatePassword('');
+      await load();
+    } catch (error: unknown) {
+      showToast(error instanceof Error ? error.message : 'Failed to create user.', 'error');
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
+  const deleteUser = async (user: AdminUser) => {
+    if (!window.confirm(`Delete ${user.email}? Accounts with history should be banned instead.`)) return;
+    await runAction(user.id, 'delete');
   };
 
   return (
@@ -87,6 +150,10 @@ export default function AdminUsersPage() {
         <div>
           <h1 className="page-title">Users</h1>
           <div className="page-sub">{total.toLocaleString()} total users</div>
+        </div>
+        <div className="header-actions">
+          <a href="/api/admin/exports?kind=users" className="btn-secondary" style={{ padding: '8px 16px', fontSize: 13 }}>Export CSV</a>
+          <button className="btn-primary" style={{ padding: '8px 16px', fontSize: 13 }} onClick={() => setCreateOpen(true)}>Create user</button>
         </div>
       </div>
 
@@ -120,6 +187,23 @@ export default function AdminUsersPage() {
             </button>
           ))}
         </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {['all', 'verified', 'pending', 'unverified', 'rejected'].map(k => (
+            <button
+              key={k}
+              onClick={() => { setKycFilter(k); setPage(1); }}
+              style={{
+                padding: '6px 12px', fontSize: 12, borderRadius: 6, border: '1px solid',
+                borderColor: kycFilter === k ? (KYC_COLORS[k] ?? 'var(--teal-200)') : 'rgba(245,250,247,0.1)',
+                background: kycFilter === k ? `${KYC_COLORS[k] ?? 'var(--teal-200)'}18` : 'transparent',
+                color: kycFilter === k ? (KYC_COLORS[k] ?? 'var(--teal-200)') : 'var(--w50)',
+                cursor: 'pointer', textTransform: 'capitalize',
+              }}
+            >
+              {k} KYC
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="content-card">
@@ -148,12 +232,14 @@ export default function AdminUsersPage() {
                   <tr key={u.id}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        {u.image
-                          ? <img src={u.image} alt={u.name} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
-                          : <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(93,202,165,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'var(--teal-200)', flexShrink: 0 }}>
+                        {u.image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={u.image} alt={u.name} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+                        ) : (
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(93,202,165,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'var(--teal-200)', flexShrink: 0 }}>
                               {u.name.charAt(0).toUpperCase()}
                             </div>
-                        }
+                        )}
                         <div>
                           <div style={{ fontWeight: 600, fontSize: 14 }}>{u.name}</div>
                           <div style={{ fontSize: 12, color: 'var(--w50)' }}>{u.email}</div>
@@ -166,9 +252,18 @@ export default function AdminUsersPage() {
                       </span>
                     </td>
                     <td>
-                      <span style={{ fontSize: 12, color: KYC_COLORS[u.bushaStatus] ?? 'var(--w30)', textTransform: 'capitalize' }}>
-                        {u.bushaStatus}
-                      </span>
+                      <select
+                        value={u.bushaStatus}
+                        disabled={busyUser === u.id}
+                        onChange={event => setKycStatus(u.id, event.target.value)}
+                        className="s-input"
+                        style={{ width: 132, padding: '6px 8px', fontSize: 12, color: KYC_COLORS[u.bushaStatus] ?? 'var(--w30)' }}
+                      >
+                        <option value="unverified">Unverified</option>
+                        <option value="pending">Pending</option>
+                        <option value="verified">Verified</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
                     </td>
                     <td style={{ color: 'var(--w80)' }}>{u.campaignCount}</td>
                     <td style={{ color: 'var(--w80)' }}>{u.donationCount}</td>
@@ -191,6 +286,14 @@ export default function AdminUsersPage() {
                             Ban
                           </button>
                         )}
+                        <button
+                          className="btn-secondary"
+                          style={{ padding: '4px 8px', fontSize: 12, color: '#F09595' }}
+                          disabled={busyUser === u.id}
+                          onClick={() => deleteUser(u)}
+                        >
+                          Delete
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -236,6 +339,42 @@ export default function AdminUsersPage() {
               </button>
               <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setRoleModalUser(null)}>Cancel</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {createOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 24, width: 'min(460px, 100%)' }}>
+            <h3 style={{ marginBottom: 16, fontSize: 16 }}>Create user</h3>
+            <form onSubmit={createUser} style={{ display: 'grid', gap: 14 }}>
+              <div className="s-field">
+                <label className="s-label">Name</label>
+                <input className="s-input" value={createName} onChange={e => setCreateName(e.target.value)} required />
+              </div>
+              <div className="s-field">
+                <label className="s-label">Email</label>
+                <input className="s-input" type="email" value={createEmail} onChange={e => setCreateEmail(e.target.value)} required />
+              </div>
+              <div className="s-field">
+                <label className="s-label">Role</label>
+                <select className="s-input" value={createRole} onChange={e => setCreateRole(e.target.value)}>
+                  <option value="backer">Backer</option>
+                  <option value="creator">Creator</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div className="s-field">
+                <label className="s-label">Password</label>
+                <input className="s-input" type="password" minLength={8} value={createPassword} onChange={e => setCreatePassword(e.target.value)} placeholder="Optional for OAuth-only account" />
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+                <button className="btn-primary" type="submit" style={{ flex: 1 }} disabled={createLoading}>
+                  {createLoading ? 'Creating...' : 'Create'}
+                </button>
+                <button className="btn-secondary" type="button" style={{ flex: 1 }} onClick={() => setCreateOpen(false)}>Cancel</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

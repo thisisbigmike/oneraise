@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
+import type { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { getStoredDonationCreditUsd } from "@/lib/currency";
 import { getUniqueBackerCount } from "@/lib/backers";
 
+type SessionUser = {
+  role?: string | null;
+};
+
 function getSessionUser(session: unknown) {
   if (!session || typeof session !== "object" || !("user" in session)) return {};
-  return (session as { user?: any }).user ?? {};
+  return ((session as { user?: unknown }).user as SessionUser | undefined) ?? {};
 }
 
 export async function GET(req: Request) {
@@ -25,7 +30,7 @@ export async function GET(req: Request) {
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
     const limit = 50;
 
-    const where: any = {};
+    const where: Prisma.CampaignWhereInput = {};
     if (status && status !== "all") where.status = status;
     if (search) {
       where.OR = [
@@ -115,6 +120,9 @@ export async function PATCH(req: Request) {
 
     let newStatus: string | undefined;
     if (action === "approve") newStatus = "active";
+    else if (action === "reject") newStatus = "suspended";
+    else if (action === "pause") newStatus = "paused";
+    else if (action === "resume") newStatus = "active";
     else if (action === "suspend") newStatus = "suspended";
     else if (action === "unsuspend") newStatus = "active";
     else if (action === "complete") newStatus = "completed";
