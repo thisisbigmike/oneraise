@@ -96,6 +96,12 @@
   justify-content: center;
   font-weight: 600;
   font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.creator-avatar-img {
+  object-fit: cover;
+  background: rgba(255,255,255,0.05);
 }
 
 .creator-name {
@@ -220,6 +226,69 @@
   padding: 18px !important;
   font-size: 1.1rem !important;
   margin-bottom: 16px;
+}
+
+.btn-donate-disabled {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: rgba(255, 255, 255, 0.58) !important;
+  cursor: not-allowed;
+}
+
+.campaign-ended-banner {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 22px;
+  padding: 16px;
+  border: 1px solid rgba(239, 159, 39, 0.32);
+  border-radius: 16px;
+  background: rgba(239, 159, 39, 0.1);
+  color: #FFD58C;
+}
+
+.campaign-ended-banner span {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.campaign-final-results {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.campaign-final-results div {
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.campaign-final-results span,
+.campaign-final-results strong {
+  display: block;
+}
+
+.campaign-final-results span {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.campaign-final-results strong {
+  color: #fff;
+  font-size: 1rem;
+}
+
+@media (max-width: 420px) {
+  .campaign-final-results {
+    grid-template-columns: 1fr;
+  }
 }
 
 .trust-note {

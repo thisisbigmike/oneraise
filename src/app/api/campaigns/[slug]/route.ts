@@ -7,6 +7,7 @@ import { getCampaignPct } from "@/lib/campaign-seeds";
 import { getStoredDonationCreditUsd } from "@/lib/currency";
 import { isPublicCampaign } from "@/lib/campaigns-data";
 import { getUniqueBackerCount } from "@/lib/backers";
+import { finalizeEndedCampaigns, getCampaignOutcome, getCampaignTiming } from "@/lib/campaign-lifecycle";
 
 const MAX_IMAGE_DATA_URL_LENGTH = 7 * 1024 * 1024;
 const PROTECTED_CAMPAIGN_TYPES = new Set([
@@ -81,6 +82,8 @@ export async function GET(
   // Try to fetch from database with a timeout so the page never hangs
   let campaign: any = null;
   try {
+    await finalizeEndedCampaigns();
+
     const dbPromise = prisma.campaign.findUnique({
       where: { slug },
       select: {
@@ -99,6 +102,7 @@ export async function GET(
         user: {
           select: {
             name: true,
+            image: true,
           },
         },
         milestones: {
@@ -168,6 +172,13 @@ export async function GET(
   const raised = liveRaised;
   const pct = getCampaignPct(raised, goal);
   const creatorName = campaign.user?.name || "OneRaise Creator";
+  const creatorImage = campaign.user?.image || null;
+  const timing = getCampaignTiming(campaign);
+  const outcome = getCampaignOutcome({
+    goal,
+    raised,
+    type: campaign.type,
+  });
   const recentDonors = campaign.donations.slice(0, 8).map((donation: any, index: number) => {
     const donorName = donation.isAnonymous
       ? "Anonymous"
@@ -191,6 +202,7 @@ export async function GET(
       title: campaign.title,
       image: campaign.image,
       creator: creatorName,
+      creatorImage,
       creatorInitials:
         creatorName
           .split(" ")
@@ -205,7 +217,11 @@ export async function GET(
       category: campaign.category,
       desc: campaign.description || "",
       backers: liveBackers,
-      daysLeft: campaign.status === "active" ? Math.max(0, Math.ceil((campaign.createdAt.getTime() + 30 * 86400000 - Date.now()) / 86400000)) : 0,
+      daysLeft: timing.daysLeft,
+      endDate: timing.endDate.toISOString(),
+      isEnded: timing.isEnded,
+      goalMet: outcome.goalMet,
+      outcomeLabel: outcome.label,
       verified: true,
       status: campaign.status,
       type: campaign.type || "standard",
@@ -286,6 +302,7 @@ export async function PATCH(
       where: { slug },
       data,
     });
+    const timing = getCampaignTiming(updated);
 
     revalidateCampaignViews(updated.slug);
 
@@ -302,7 +319,9 @@ export async function PATCH(
         goal: updated.goal,
         pct: getCampaignPct(updated.raised, updated.goal),
         backers: 0,
-        daysLeft: updated.status === "active" ? 30 : 0,
+        daysLeft: timing.daysLeft,
+        endDate: timing.endDate.toISOString(),
+        isEnded: timing.isEnded,
         category: updated.category,
         type: updated.type,
         protectStatus: updated.protectStatus,

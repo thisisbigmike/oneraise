@@ -12,7 +12,10 @@ export type CampaignCardProps = {
   image?: string | null;
   pct?: number;
   actions?: React.ReactNode;
-  
+  creator?: string;
+  creatorInitials?: string;
+  creatorImage?: string | null;
+
   // Optional protect type fields if we want to show PROTECT badges
   isProtected?: boolean;
   protectStatus?: string;
@@ -31,13 +34,23 @@ export default function CampaignCard({
   image,
   pct,
   actions,
+  creator,
+  creatorInitials,
+  creatorImage,
   isProtected,
   protectStatus,
   protectTypeLabel
 }: CampaignCardProps) {
   const calculatedPct = pct !== undefined ? pct : Math.min(Math.round((raised / goal) * 100), 100);
-  const formattedEndDate = endDate || new Date(Date.now() + daysLeft * 86400000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   const isDraft = status === 'draft';
+  const isCompleted = status === 'completed';
+  const timelineLabel = endDate
+    ? `${isCompleted ? 'Ended' : 'Ends'} ${endDate}`
+    : isCompleted
+      ? 'Ended'
+      : daysLeft > 0
+        ? `Ends in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`
+        : '';
 
   return (
     <div className="uni-camp-card">
@@ -65,8 +78,19 @@ export default function CampaignCard({
       
       <div className="ucc-body">
         <h3 className="ucc-title">{title}</h3>
+        {creator && (
+          <div className="ucc-creator">
+            {creatorImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={creatorImage} alt={creator} className="ucc-creator-avatar ucc-creator-img" />
+            ) : (
+              <div className="ucc-creator-avatar">{creatorInitials || creator.slice(0, 2).toUpperCase()}</div>
+            )}
+            <span className="ucc-creator-name">by {creator}</span>
+          </div>
+        )}
         <div className="ucc-subtitle">
-          Goal: ${goal.toLocaleString()} {daysLeft > 0 && !isDraft ? `• Ends ${formattedEndDate}` : ''}
+          Goal: ${goal.toLocaleString()} {!isDraft && timelineLabel ? `• ${timelineLabel}` : ''}
         </div>
         {isProtected && protectTypeLabel && (
            <div className="ucc-protect-sub">
@@ -96,8 +120,8 @@ export default function CampaignCard({
                 <div className="ucc-stat-val">{backers}</div>
               </div>
               <div className="ucc-stat">
-                <div className="ucc-stat-lbl">DAYS LEFT</div>
-                <div className="ucc-stat-val">{daysLeft}</div>
+                <div className="ucc-stat-lbl">{isCompleted ? 'STATUS' : 'DAYS LEFT'}</div>
+                <div className="ucc-stat-val">{isCompleted ? 'Ended' : daysLeft}</div>
               </div>
             </div>
           </>
@@ -105,7 +129,7 @@ export default function CampaignCard({
 
         {isDraft && (
           <div className="ucc-draft-msg">
-            This campaign hasn't been published yet. Complete setup and go live.
+            This campaign hasn&apos;t been published yet. Complete setup and go live.
           </div>
         )}
 

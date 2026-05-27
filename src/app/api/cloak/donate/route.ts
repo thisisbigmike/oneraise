@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { PublicKey } from "@solana/web3.js";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { ensureCampaignAcceptsDonations, getDonationBlockedStatus } from "@/lib/campaign-lifecycle";
 import { estimateCloakFee, usdcToRaw, rawToUsdc } from "@/lib/cloak";
 import { resolveOneRaiseTreasury } from "@/lib/solana-payments";
 
@@ -70,16 +71,7 @@ export async function POST(req: Request) {
     }
 
     /* ── Resolve campaign ── */
-    const campaign = await prisma.campaign.findUnique({
-      where: { slug: campaignSlug },
-      select: { id: true, title: true },
-    });
-    if (!campaign) {
-      return NextResponse.json(
-        { error: "Campaign not found." },
-        { status: 404 },
-      );
-    }
+    const campaign = await ensureCampaignAcceptsDonations(campaignSlug);
 
     /* ── Resolve treasury ── */
     const treasury = resolveOneRaiseTreasury();
@@ -155,6 +147,6 @@ export async function POST(req: Request) {
       error instanceof Error
         ? error.message
         : "Unable to prepare Cloak shielded donation.";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: msg }, { status: getDonationBlockedStatus(error) });
   }
 }

@@ -8,7 +8,9 @@ import { useToast } from '../components';
 import './auth.css';
 import AnimatedButton from '@/components/ui/AnimatedButton';
 
-const TICKER_DATA = [
+type TickerItem = { init: string; cls: string; name: string; action: string; amount: string };
+
+const TICKER_FALLBACK: TickerItem[] = [
   {init:'TC',cls:'ta1',name:'Tunde Coker',action:'just received a payout · Lagos',amount:'₦3.6M'},
   {init:'AK',cls:'ta2',name:'Amara Kone',action:'backed SolarPack Mini · Nairobi',amount:'$120'},
   {init:'JD',cls:'ta3',name:'Jana Dvořák',action:'launched new campaign · Prague',amount:'New'},
@@ -16,6 +18,29 @@ const TICKER_DATA = [
   {init:'PL',cls:'ta2',name:'Priya Lal',action:'campaign goal reached · Mumbai',amount:'$50K'},
   {init:'EO',cls:'ta3',name:'Emeka Obi',action:'just received a payout · Abuja',amount:'₦1.2M'},
 ];
+
+type PlatformStats = {
+  totalRaisedUsd: number;
+  creatorCount: number;
+  uniqueBackers: number;
+  successRate: number;
+  recentActivity: TickerItem[];
+};
+
+const PLATFORM_STATS_DEFAULT: PlatformStats = {
+  totalRaisedUsd: 0,
+  creatorCount: 0,
+  uniqueBackers: 0,
+  successRate: 0,
+  recentActivity: [],
+};
+
+function formatStatNum(n: number) {
+  if (n >= 1_000_000_000) return { count: (n / 1_000_000_000).toFixed(1), suffix: 'B' };
+  if (n >= 1_000_000) return { count: (n / 1_000_000).toFixed(1), suffix: 'M' };
+  if (n >= 1_000) return { count: Math.round(n / 1_000).toString(), suffix: 'K' };
+  return { count: n.toString(), suffix: '' };
+}
 
 const COUNTRIES = [
   { flag: '🇳🇬', name: 'Nigeria' },
@@ -75,16 +100,38 @@ function AuthPageContent() {
   const [resendTimer, setResendTimer] = useState(0);
 
   // Ticker state
-  const [tickerItems, setTickerItems] = useState(TICKER_DATA.slice(0, 3));
+  const [tickerItems, setTickerItems] = useState<TickerItem[]>(TICKER_FALLBACK.slice(0, 3));
   const tickerIndexRef = useRef(3);
   const oauthErrorRef = useRef<string | null>(null);
   const countrySelectRef = useRef<HTMLDivElement | null>(null);
+  const liveTickerRef = useRef<TickerItem[]>(TICKER_FALLBACK);
+
+  // Platform stats state
+  const [platformStats, setPlatformStats] = useState<PlatformStats>(PLATFORM_STATS_DEFAULT);
+
+  // Fetch real platform stats
+  useEffect(() => {
+    fetch('/api/platform-stats')
+      .then(r => r.ok ? r.json() : null)
+      .then((data: PlatformStats | null) => {
+        if (data) {
+          setPlatformStats(data);
+          if (data.recentActivity && data.recentActivity.length >= 4) {
+            liveTickerRef.current = data.recentActivity;
+            setTickerItems(data.recentActivity.slice(0, 3));
+            tickerIndexRef.current = 3;
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Ticker Effect
   useEffect(() => {
     const interval = setInterval(() => {
       setTickerItems(prev => {
-        const nextItem = TICKER_DATA[tickerIndexRef.current % TICKER_DATA.length];
+        const data = liveTickerRef.current;
+        const nextItem = data[tickerIndexRef.current % data.length];
         tickerIndexRef.current++;
         return [...prev.slice(1), nextItem];
       });
@@ -355,7 +402,17 @@ function AuthPageContent() {
           <h1 className="left-headline">
             Where ideas<br/>find their<br/><em>global backing.</em>
           </h1>
-          <p className="left-sub">Join 148,000 creators who&apos;ve raised over $4.2B from 2.1 million backers worldwide.</p>
+          <p className="left-sub">
+            {platformStats.creatorCount > 0
+              ? `Join ${platformStats.creatorCount.toLocaleString()} creators`
+              : 'Join 148,000 creators'} who&apos;ve raised{' '}
+            {platformStats.totalRaisedUsd > 0
+              ? `$${formatStatNum(platformStats.totalRaisedUsd).count}${formatStatNum(platformStats.totalRaisedUsd).suffix}`
+              : 'over $4.2B'} from{' '}
+            {platformStats.uniqueBackers > 0
+              ? `${formatStatNum(platformStats.uniqueBackers).count}${formatStatNum(platformStats.uniqueBackers).suffix} `
+              : '2.1 million '}backers worldwide.
+          </p>
           <div className="ticker">
             {tickerItems.map((item, i) => (
               <div key={i + item.name} className="tick-item" style={{ animationDelay: `0.${4 + i * 2}s` }}>
@@ -370,10 +427,32 @@ function AuthPageContent() {
           </div>
         </div>
         <div className="stats-row">
-          <div className="stat-pill"><div className="sp-num">$4.2<span className="ac">B</span></div><div className="sp-lbl">Raised</div></div>
-          <div className="stat-pill"><div className="sp-num">148<span className="ac">K</span></div><div className="sp-lbl">Creators</div></div>
-          <div className="stat-pill"><div className="sp-num">78<span className="ac">%</span></div><div className="sp-lbl">Success</div></div>
-          <div className="stat-pill"><div className="sp-num">78</div><div className="sp-lbl">Countries</div></div>
+          {(() => {
+            const r = formatStatNum(platformStats.totalRaisedUsd);
+            return (
+              <div className="stat-pill">
+                <div className="sp-num">{platformStats.totalRaisedUsd > 0 ? <>${r.count}<span className="ac">{r.suffix}</span></> : <>$4.2<span className="ac">B</span></>}</div>
+                <div className="sp-lbl">Raised</div>
+              </div>
+            );
+          })()}
+          {(() => {
+            const c = formatStatNum(platformStats.creatorCount);
+            return (
+              <div className="stat-pill">
+                <div className="sp-num">{platformStats.creatorCount > 0 ? <>{c.count}<span className="ac">{c.suffix}</span></> : <>148<span className="ac">K</span></>}</div>
+                <div className="sp-lbl">Creators</div>
+              </div>
+            );
+          })()}
+          <div className="stat-pill">
+            <div className="sp-num">{platformStats.successRate > 0 ? <>{platformStats.successRate}<span className="ac">%</span></> : <>78<span className="ac">%</span></>}</div>
+            <div className="sp-lbl">Success</div>
+          </div>
+          <div className="stat-pill">
+            <div className="sp-num">78</div>
+            <div className="sp-lbl">Countries</div>
+          </div>
         </div>
       </div>
 

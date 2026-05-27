@@ -12,7 +12,7 @@ export default async function ExplorePage(props: { searchParams?: Promise<{ q?: 
   const campaigns = allCampaigns.map(c => ({
     ...c,
     slug: c.slug,
-    daysLeft: c.daysLeft || 30, // Mock days left if undefined
+    daysLeft: c.daysLeft,
   }));
 
   return (

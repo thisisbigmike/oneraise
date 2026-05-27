@@ -27,22 +27,32 @@ type HomeDonation = {
 
 async function getHomeStats() {
   try {
-    const [activeCampaignsCount, allCompletedDonations] = await Promise.all([
+    const [activeCampaignsCount, allCompletedDonations, creatorCount, completedCampaigns] = await Promise.all([
       prisma.campaign.count({ where: { status: 'active' } }),
       prisma.donation.findMany({
         where: { status: 'completed' },
         select: { amount: true, currency: true, coverFee: true, provider: true, providerDataJson: true, donorEmail: true, userId: true, id: true, createdAt: true, donorName: true, isAnonymous: true, campaign: { select: { title: true } } },
         orderBy: { createdAt: 'desc' }
       }),
+      prisma.user.count({ where: { role: 'creator' } }),
+      prisma.campaign.findMany({
+        where: { status: 'completed' },
+        select: { raised: true, goal: true },
+      }),
     ]);
 
     const totalRaisedUsd = allCompletedDonations.reduce((sum, d) => sum + getStoredDonationCreditUsd(d), 0);
     const uniqueBackers = new Set(allCompletedDonations.map(getDonationBackerKey).filter(Boolean)).size;
+    const successRate = completedCampaigns.length > 0
+      ? Math.round(completedCampaigns.filter(c => c.raised >= c.goal).length / completedCampaigns.length * 100)
+      : 0;
 
     return {
       activeCampaignsCount,
       totalRaisedUsd,
       uniqueBackers,
+      creatorCount,
+      successRate,
       recentDonations: allCompletedDonations.slice(0, 5),
     };
   } catch (error) {
@@ -51,6 +61,8 @@ async function getHomeStats() {
       activeCampaignsCount: 0,
       totalRaisedUsd: 0,
       uniqueBackers: 0,
+      creatorCount: 0,
+      successRate: 0,
       recentDonations: [] as HomeDonation[],
     };
   }
@@ -61,7 +73,9 @@ export default async function Home() {
     getCachedPublicCampaignsList(),
     getHomeStats(),
   ]);
-  const landingCampaigns = allCampaigns.slice(0, 3);
+  const landingCampaigns = allCampaigns
+    .filter((campaign) => campaign.status === 'active' && !campaign.isEnded)
+    .slice(0, 3);
 
   const formatStat = (num: number) => {
     if (num >= 1000000000) return { count: (num / 1000000000).toFixed(1), suffix: 'B' };
@@ -73,7 +87,16 @@ export default async function Home() {
   const raisedStat = formatStat(homeStats.totalRaisedUsd);
   const campaignsStat = formatStat(homeStats.activeCampaignsCount);
   const backersStat = formatStat(homeStats.uniqueBackers);
-  const successRate = homeStats.totalRaisedUsd > 0 ? 100 : 0; 
+  const successRate = homeStats.successRate;
+
+  const formatLong = (num: number) => {
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)} million`;
+    if (num >= 1000) return `${Math.round(num / 1000).toLocaleString()}K`;
+    return num.toLocaleString();
+  };
+  const creatorDisplay = homeStats.creatorCount > 0 ? formatLong(homeStats.creatorCount) : '148K';
+  const backersDisplay = homeStats.uniqueBackers > 0 ? formatLong(homeStats.uniqueBackers) : '2.1 million';
+  const backersShort = homeStats.uniqueBackers > 0 ? `${backersStat.count}${backersStat.suffix}` : '2.1M';
 
   const recentDonations = homeStats.recentDonations;
 
@@ -152,7 +175,7 @@ export default async function Home() {
         </span>
       </span>
     </h1>
-    <p className="hero-sub">OneRaise connects creators, entrepreneurs, and changemakers with a global community of 2.1 million backers — across every border, currency, and timezone.</p>
+    <p className="hero-sub">OneRaise connects creators, entrepreneurs, and changemakers with a global community of {backersDisplay} backers — across every border, currency, and timezone.</p>
     
     <form className="hero-search-form" action="/explore" method="GET">
       <div className="hero-search-row">
@@ -171,7 +194,7 @@ export default async function Home() {
     <div className="hero-trust">
       <div className="trust-item">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.5 4h4.2l-3.4 2.5 1.3 4L7 9 3.4 11.5l1.3-4L1.3 5H5.5z" fill="#1D9E75"/></svg>
-        Trusted by 148K creators
+        Trusted by {creatorDisplay} creators
       </div>
       <div className="trust-sep"></div>
       <div className="trust-item">
@@ -272,7 +295,7 @@ export default async function Home() {
           <div className="step-num-wrap"><div className="step-num">3</div></div>
           <div className="step-body">
             <div className="step-title">Launch to the world</div>
-            <div className="step-desc">Go live instantly — 2.1M backers across 78 countries can discover your campaign immediately.</div>
+            <div className="step-desc">Go live instantly — {backersShort} backers across 78 countries can discover your campaign immediately.</div>
           </div>
         </div>
         <div className="step-item reveal reveal-delay-4">
@@ -319,6 +342,9 @@ export default async function Home() {
             category={campaign.category}
             image={campaign.image}
             pct={campaignPct(campaign)}
+            creator={campaign.creator}
+            creatorInitials={campaign.creatorInitials}
+            creatorImage={campaign.creatorImage}
             actions={
               <Link href={`/backer/donate/${campaign.slug}`} className="ucc-btn ucc-btn-primary">
                 View Campaign
@@ -463,7 +489,7 @@ export default async function Home() {
 <section className="cta-section">
   <div className="cta-inner">
     <h2 className="cta-title reveal">Your idea deserves<br/><em>the world&apos;s</em> backing.</h2>
-    <p className="cta-sub reveal reveal-delay-1">Join 148,000 creators who&apos;ve already launched on OneRaise. Your first campaign is free.</p>
+    <p className="cta-sub reveal reveal-delay-1">Join {homeStats.creatorCount > 0 ? homeStats.creatorCount.toLocaleString() : '148,000'} creators who&apos;ve already launched on OneRaise. Your first campaign is free.</p>
     <div className="cta-actions reveal reveal-delay-2">
       <AnimatedButton text="Start your campaign" href="/join" />
       <a href="#" className="btn-hero-secondary" style={{fontSize: '15px', padding: '14px 28px'}}>Talk to our team</a>

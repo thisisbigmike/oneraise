@@ -32,12 +32,17 @@ type CampaignView = {
   image?: string | null;
   creator: string;
   creatorInitials: string;
+  creatorImage?: string | null;
   raised: number;
   goal: number;
   category: string;
   desc: string;
   backers: number;
   daysLeft: number;
+  endDate?: string;
+  isEnded?: boolean;
+  goalMet?: boolean;
+  outcomeLabel?: string;
   verified: boolean;
   status: 'active' | 'completed' | 'draft';
   type: 'standard' | 'protected_crowdfunding' | 'emergency_aid' | 'grant_distribution';
@@ -170,6 +175,7 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
 
   const pct = getCampaignPct(campaign.raised, campaign.goal);
   const isProtectedCampaign = isProtectedType(campaign.type);
+  const isCampaignEnded = campaign.isEnded || campaign.status === 'completed';
   const milestones = campaign.milestones || [];
   const reportReasons = [
     { value: 'fake', label: 'Fake campaign' },
@@ -258,7 +264,12 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
             <h1 className="campaign-title">{campaign.title}</h1>
             <p className="campaign-subtitle">{campaign.desc}</p>
             <div className="campaign-creator">
-              <div className="creator-avatar">{campaign.creatorInitials}</div>
+              {campaign.creatorImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={campaign.creatorImage} alt={campaign.creator} className="creator-avatar creator-avatar-img" />
+              ) : (
+                <div className="creator-avatar">{campaign.creatorInitials}</div>
+              )}
               <div>
                 <div className="creator-name">By {campaign.creator}</div>
                 <div className="creator-verified">
@@ -294,6 +305,12 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
                   <p>Funds are tied to milestone proof before release.</p>
                 </div>
               )}
+              {isCampaignEnded && (
+                <div className="campaign-ended-banner">
+                  <strong>Campaign ended</strong>
+                  <span>{campaign.outcomeLabel || 'The funding window has closed. New donations are no longer accepted.'}</span>
+                </div>
+              )}
               <div className="funding-raised">
                 ${campaign.raised.toLocaleString()}
                 <span className="funding-goal"> raised of ${campaign.goal.toLocaleString()} goal</span>
@@ -313,14 +330,37 @@ export default function CampaignPage({ params }: { params: Promise<{ id: string 
                   <div className="stat-lbl">backers</div>
                 </div>
                 <div className="stat-box">
-                  <div className="stat-val">{campaign.daysLeft}</div>
-                  <div className="stat-lbl">days left</div>
+                  <div className="stat-val">{isCampaignEnded ? 'Ended' : campaign.daysLeft}</div>
+                  <div className="stat-lbl">{isCampaignEnded ? 'status' : 'days left'}</div>
                 </div>
               </div>
 
-              <Link href={`/backer/donate/${campaign.slug}`} className="btn-primary-nav btn-donate">
-                Back this project
-              </Link>
+              {isCampaignEnded ? (
+                <div className="btn-primary-nav btn-donate btn-donate-disabled" aria-disabled="true">
+                  Campaign ended
+                </div>
+              ) : (
+                <Link href={`/backer/donate/${campaign.slug}`} className="btn-primary-nav btn-donate">
+                  Back this project
+                </Link>
+              )}
+
+              {isCampaignEnded && (
+                <div className="campaign-final-results">
+                  <div>
+                    <span>Total raised</span>
+                    <strong>${campaign.raised.toLocaleString()}</strong>
+                  </div>
+                  <div>
+                    <span>Final progress</span>
+                    <strong>{pct}%</strong>
+                  </div>
+                  <div>
+                    <span>Backers</span>
+                    <strong>{campaign.backers.toLocaleString()}</strong>
+                  </div>
+                </div>
+              )}
 
               <p className="trust-note">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ marginRight: '6px', verticalAlign: 'middle' }}>

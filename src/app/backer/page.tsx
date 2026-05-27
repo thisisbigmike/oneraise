@@ -53,7 +53,7 @@ export default async function BackerOverview() {
   const impactScore = campaignsSupportedCount > 5 ? 'Top 5%' : campaignsSupportedCount > 2 ? 'Top 15%' : 'Rising Star';
 
   const liveCampaigns = allCampaigns
-    .filter(c => c.status === 'active')
+    .filter(c => c.status === 'active' && !c.isEnded)
     .slice(0, 2);
 
   return (
@@ -104,6 +104,9 @@ export default async function BackerOverview() {
                   category={c.category}
                   image={c.image}
                   pct={c.pct}
+                  creator={c.creator}
+                  creatorInitials={c.creatorInitials}
+                  creatorImage={c.creatorImage}
                   actions={
                     <Link href={`/backer/donate/${c.slug}`} className="ucc-btn ucc-btn-primary">
                       Support Campaign

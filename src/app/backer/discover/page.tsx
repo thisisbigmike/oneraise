@@ -5,7 +5,9 @@ import { getCachedPublicCampaignsList } from '@/lib/campaigns-data';
 import CampaignCard from '@/components/ui/CampaignCard';
 
 export default async function DiscoverPage() {
-  const campaigns = await getCachedPublicCampaignsList();
+  const campaigns = (await getCachedPublicCampaignsList()).filter(
+    (campaign) => campaign.status === 'active' && !campaign.isEnded,
+  );
 
   return (
     <div className="overview-page">
@@ -32,6 +34,9 @@ export default async function DiscoverPage() {
               category={c.category}
               image={c.image}
               pct={pct}
+              creator={c.creator}
+              creatorInitials={c.creatorInitials}
+              creatorImage={c.creatorImage}
               actions={
                 <Link href={`/backer/donate/${c.slug || c.id}`} className="ucc-btn ucc-btn-primary">
                   Support this campaign

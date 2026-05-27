@@ -1021,6 +1021,39 @@ canvas#globe {
   letter-spacing: -0.01em;
 }
 
+.ucc-creator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.ucc-creator-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1D9E75, #0d7a5a);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.03em;
+}
+
+.ucc-creator-img {
+  object-fit: cover;
+  background: var(--ucc-progress-track);
+}
+
+.ucc-creator-name {
+  font-size: 13px;
+  color: var(--ucc-text-soft);
+  font-weight: 500;
+}
+
 .ucc-subtitle {
   font-size: 14px;
   color: var(--ucc-text-soft);

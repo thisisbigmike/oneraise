@@ -8,6 +8,7 @@ import {
 import { createTransferCheckedInstruction } from "@solana/spl-token";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { ensureCampaignAcceptsDonations, getDonationBlockedStatus } from "@/lib/campaign-lifecycle";
 
 import { convertToUsd, getDonationCreditUsd } from "@/lib/currency";
 import {
@@ -30,21 +31,6 @@ import {
 } from "@/lib/solana-payments";
 
 const DEFAULT_SLIPPAGE_BPS = 50;
-
-
-
-async function ensureCampaign(campaignSlug: string) {
-  const existing = await prisma.campaign.findUnique({
-    where: { slug: campaignSlug },
-    select: { id: true },
-  });
-
-  if (existing) {
-    return existing;
-  }
-
-  throw new Error("Campaign not found.");
-}
 
 function getErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
@@ -97,7 +83,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unable to convert donation amount to USDC." }, { status: 400 });
     }
 
-    const campaign = await ensureCampaign(campaignSlug);
+    const campaign = await ensureCampaignAcceptsDonations(campaignSlug);
     const treasury = resolveOneRaiseTreasury();
     const connection = getSolanaConnection();
 
@@ -273,7 +259,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(
       { error: getErrorMessage(error, "Unable to build Jupiter donation transaction.") },
-      { status: 500 },
+      { status: getDonationBlockedStatus(error) },
     );
   }
 }

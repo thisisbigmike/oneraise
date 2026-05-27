@@ -13,6 +13,11 @@ type CampaignView = {
   id: number; slug: string; title: string; image?: string | null; creator: string; creatorInitials: string;
   raised: number; goal: number; category: string; desc: string;
   backers: number; daysLeft: number; verified: boolean;
+  endDate?: string;
+  isEnded?: boolean;
+  goalMet?: boolean;
+  outcomeLabel?: string;
+  status?: string;
   type?: string;
   protectStatus?: string;
   milestones?: {
@@ -229,6 +234,10 @@ export default function DonatePage() {
   };
 
   const handleDonate = () => {
+    if (campaign?.isEnded || campaign?.status === 'completed') {
+      showToast('This campaign has ended and is no longer accepting donations.', 'warning');
+      return;
+    }
     if (numAmount < 5) {
       showToast('Minimum donation is $5', 'warning');
       return;
@@ -576,6 +585,7 @@ export default function DonatePage() {
   }
 
   const pct = campaign.goal > 0 ? Math.min(Math.round((campaign.raised / campaign.goal) * 100), 100) : 0;
+  const isCampaignEnded = campaign.isEnded || campaign.status === 'completed';
 
   // ── Payment Status Screen ──
   if (status !== 'idle') {
@@ -794,6 +804,69 @@ export default function DonatePage() {
           </div>
 
           {/* Sidebar persists during status */}
+          <CampaignSidebar campaign={campaign} pct={pct} />
+        </div>
+      </div>
+    );
+  }
+
+  if (isCampaignEnded) {
+    return (
+      <div className="donate-page">
+        <Link href="/backer/discover" className="donate-back">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M10 4L6 8l4 4"/></svg>
+          Back to discover
+        </Link>
+
+        <div className="page-header" style={{ marginBottom: 28 }}>
+          <div>
+            <h1 className="page-title">Campaign Ended</h1>
+            <div className="page-sub">This campaign is closed to new donations.</div>
+          </div>
+        </div>
+
+        <div className="donate-layout">
+          <div className="donate-form-card" style={{ padding: '32px' }}>
+            <div style={{
+              display: 'grid',
+              gap: 10,
+              padding: 18,
+              borderRadius: 16,
+              border: '1px solid rgba(239,159,39,0.32)',
+              background: 'rgba(239,159,39,0.1)',
+              color: '#FFD58C',
+              marginBottom: 24,
+            }}>
+              <strong>Funding window closed</strong>
+              <span style={{ color: 'var(--w70)', lineHeight: 1.5 }}>
+                {campaign.outcomeLabel || 'The final campaign results are available below. New donations are no longer accepted.'}
+              </span>
+            </div>
+
+            <div className="fee-summary" style={{ marginTop: 0 }}>
+              <div className="fee-row">
+                <span>Total raised</span>
+                <span>{currencyObj.symbol}{campaign.raised.toLocaleString()}</span>
+              </div>
+              <div className="fee-row">
+                <span>Final progress</span>
+                <span>{pct}%</span>
+              </div>
+              <div className="fee-row">
+                <span>Backers</span>
+                <span>{campaign.backers.toLocaleString()}</span>
+              </div>
+              <div className="fee-row total">
+                <span>Goal outcome</span>
+                <span>{campaign.goalMet ? 'Goal met' : 'Goal not met'}</span>
+              </div>
+            </div>
+
+            <Link href={`/campaign/${campaign.slug}`} className="btn-primary" style={{ display: 'inline-flex', marginTop: 24 }}>
+              View campaign report
+            </Link>
+          </div>
+
           <CampaignSidebar campaign={campaign} pct={pct} />
         </div>
       </div>
@@ -1219,6 +1292,7 @@ export default function DonatePage() {
 /* ── Campaign Sidebar Component ── */
 function CampaignSidebar({ campaign, pct }: { campaign: CampaignView; pct: number }) {
   const isProtectedCampaign = isProtectedType(campaign.type);
+  const isCampaignEnded = campaign.isEnded || campaign.status === 'completed';
   const milestones = campaign.milestones || [];
 
   return (
@@ -1273,7 +1347,7 @@ function CampaignSidebar({ campaign, pct }: { campaign: CampaignView; pct: numbe
             </div>
             <div style={{ textAlign: 'right' }}>
               <div className="cs-stat-value" style={{ color: 'var(--white)' }}>{pct}%</div>
-              <div className="cs-stat-label">{campaign.daysLeft} days left</div>
+              <div className="cs-stat-label">{isCampaignEnded ? 'campaign ended' : `${campaign.daysLeft} days left`}</div>
             </div>
           </div>
           <div className="cs-progress-bar">

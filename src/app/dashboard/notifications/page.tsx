@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { finalizeEndedCampaigns } from "@/lib/campaign-lifecycle";
 import prisma from "@/lib/prisma";
 import NotificationsClient, { NotificationItem } from "./NotificationsClient";
 
@@ -22,6 +23,8 @@ export default async function NotificationsPage() {
 
   const role = sessionUser.role || "creator";
   const isCreator = role === "creator";
+
+  await finalizeEndedCampaigns();
 
   const donations = await prisma.donation.findMany({
     where: isCreator
@@ -53,6 +56,22 @@ export default async function NotificationsPage() {
       })
     : [];
 
+  const endedCampaigns = isCreator
+    ? await prisma.campaign.findMany({
+        where: {
+          userId: sessionUser.id,
+          status: "completed",
+        },
+        select: {
+          id: true,
+          title: true,
+          updatedAt: true,
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 10,
+      })
+    : [];
+
   const donationItems: NotificationItem[] = donations.map((donation) => {
     const donor = donation.isAnonymous ? "Anonymous" : donation.donorName || "A backer";
     const statusText = donation.status === "completed" ? "confirmed" : donation.status;
@@ -78,7 +97,16 @@ export default async function NotificationsPage() {
     read: payout.status === "completed",
   }));
 
-  const notifications = [...donationItems, ...payoutItems].sort(
+  const endedCampaignItems: NotificationItem[] = endedCampaigns.map((campaign) => ({
+    id: `campaign-ended-${campaign.id}`,
+    type: "system",
+    title: "Campaign window closed",
+    desc: `${campaign.title} has ended. Review final results and continue with payout or Protect verification.`,
+    dateIso: campaign.updatedAt.toISOString(),
+    read: false,
+  }));
+
+  const notifications = [...endedCampaignItems, ...donationItems, ...payoutItems].sort(
     (a, b) => new Date(b.dateIso).getTime() - new Date(a.dateIso).getTime(),
   );
 

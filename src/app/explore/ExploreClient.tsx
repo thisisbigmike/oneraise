@@ -12,6 +12,8 @@ type ExploreCampaign = {
   title: string;
   image?: string | null;
   creator: string;
+  creatorInitials?: string;
+  creatorImage?: string | null;
   raised: number;
   goal: number;
   backers?: number;
@@ -20,14 +22,18 @@ type ExploreCampaign = {
   desc: string;
   status?: string;
   daysLeft: number;
+  endDate?: string;
+  isEnded?: boolean;
 };
 
 export default function ExploreClient({ initialQuery, campaigns }: { initialQuery: string, campaigns: ExploreCampaign[] }) {
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [category, setCategory] = useState('All');
+  const [campaignState, setCampaignState] = useState('Live campaigns');
   const [sortOrder, setSortOrder] = useState('Trending');
 
   const categories = ['All', 'Technology', 'Social Impact', 'Education', 'Health'];
+  const campaignStateOptions = ['Live campaigns', 'Ended campaigns', 'All campaigns'];
   const sortOptions = ['Trending', 'Newest', 'Most Funded', 'Ending Soon'];
 
   // Filter and sort the campaigns
@@ -47,17 +53,35 @@ export default function ExploreClient({ initialQuery, campaigns }: { initialQuer
       result = result.filter(c => c.category === category);
     }
 
+    if (campaignState === 'Live campaigns') {
+      result = result.filter(c => !c.isEnded && c.status !== 'completed');
+    } else if (campaignState === 'Ended campaigns') {
+      result = result.filter(c => c.isEnded || c.status === 'completed');
+    }
+
     // Sorting logic mock
     if (sortOrder === 'Newest') {
       result = result.sort((a, b) => b.id - a.id);
     } else if (sortOrder === 'Most Funded') {
       result = result.sort((a, b) => b.raised - a.raised);
     } else if (sortOrder === 'Ending Soon') {
-      result = result.sort((a, b) => a.daysLeft - b.daysLeft);
+      result = result.sort((a, b) => {
+        const aEnded = a.isEnded || a.status === 'completed';
+        const bEnded = b.isEnded || b.status === 'completed';
+        if (aEnded !== bEnded) return aEnded ? 1 : -1;
+        return a.daysLeft - b.daysLeft;
+      });
+    } else {
+      result = result.sort((a, b) => {
+        const aEnded = a.isEnded || a.status === 'completed';
+        const bEnded = b.isEnded || b.status === 'completed';
+        if (aEnded !== bEnded) return aEnded ? 1 : -1;
+        return 0;
+      });
     }
 
     return result;
-  }, [searchQuery, category, sortOrder, campaigns]);
+  }, [searchQuery, category, campaignState, sortOrder, campaigns]);
 
   return (
     <main className="explore-container">
@@ -88,6 +112,14 @@ export default function ExploreClient({ initialQuery, campaigns }: { initialQuer
 
         <div className="filter-group filter-select-group">
           <CustomSelect
+            value={campaignState}
+            onChange={setCampaignState}
+            options={campaignStateOptions.map(state => ({ value: state, label: state }))}
+          />
+        </div>
+
+        <div className="filter-group filter-select-group">
+          <CustomSelect
             value={sortOrder}
             onChange={setSortOrder}
             options={sortOptions.map(sort => ({ value: sort, label: sort }))}
@@ -97,26 +129,40 @@ export default function ExploreClient({ initialQuery, campaigns }: { initialQuer
 
       <div className="campaigns-grid" style={{ marginTop: '40px' }}>
         {filteredCampaigns.length > 0 ? (
-          filteredCampaigns.map((campaign, i) => (
-            <div key={campaign.id} className="reveal visible" style={{ animationDelay: `${i * 0.1}s` }}>
-              <CampaignCard
-                title={campaign.title}
-                goal={campaign.goal}
-                raised={campaign.raised}
-                backers={campaign.backers || 0}
-                daysLeft={campaign.daysLeft}
-                status={campaign.status || 'active'}
-                category={campaign.category}
-                image={campaign.image}
-                pct={campaign.pct ?? getCampaignPct(campaign.raised, campaign.goal)}
-                actions={
-                  <Link href={`/backer/donate/${campaign.slug || campaign.id}`} className="ucc-btn ucc-btn-primary">
-                    Support this campaign
-                  </Link>
-                }
-              />
-            </div>
-          ))
+          filteredCampaigns.map((campaign, i) => {
+            const ended = campaign.isEnded || campaign.status === 'completed';
+
+            return (
+              <div key={campaign.id} className="reveal visible" style={{ animationDelay: `${i * 0.1}s` }}>
+                <CampaignCard
+                  title={campaign.title}
+                  goal={campaign.goal}
+                  raised={campaign.raised}
+                  backers={campaign.backers || 0}
+                  daysLeft={campaign.daysLeft}
+                  status={ended ? 'completed' : campaign.status || 'active'}
+                  category={campaign.category}
+                  endDate={campaign.endDate ? new Date(campaign.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : undefined}
+                  image={campaign.image}
+                  pct={campaign.pct ?? getCampaignPct(campaign.raised, campaign.goal)}
+                  creator={campaign.creator}
+                  creatorInitials={campaign.creatorInitials}
+                  creatorImage={campaign.creatorImage}
+                  actions={
+                    ended ? (
+                      <Link href={`/campaign/${campaign.slug || campaign.id}`} className="ucc-btn ucc-btn-outline">
+                        View final results
+                      </Link>
+                    ) : (
+                      <Link href={`/backer/donate/${campaign.slug || campaign.id}`} className="ucc-btn ucc-btn-primary">
+                        Support this campaign
+                      </Link>
+                    )
+                  }
+                />
+              </div>
+            );
+          })
         ) : (
           <div className="no-results">
             <h3>No campaigns found.</h3>

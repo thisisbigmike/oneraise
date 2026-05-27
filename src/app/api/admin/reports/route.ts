@@ -24,8 +24,16 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Unable to load campaign reports.";
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { getServerSession } = await import("next-auth");
+    const { authOptions } = await import("@/lib/auth");
+    const session = await getServerSession(authOptions);
+    const role = (session?.user as any)?.role;
+    if (role !== "admin") {
+      return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+    }
+
     const reports = await prisma.$queryRaw<CampaignReportRow[]>`
       SELECT
         "id",

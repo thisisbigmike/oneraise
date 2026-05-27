@@ -7,6 +7,7 @@ import prisma from '@/lib/prisma';
 import { getCampaignPct } from '@/lib/campaign-seeds';
 
 import { getUniqueBackerCount } from '@/lib/backers';
+import { finalizeEndedCampaigns, getCampaignTiming } from '@/lib/campaign-lifecycle';
 import { getStoredDonationCreditUsd } from '@/lib/currency';
 import CampaignCard from '@/components/ui/CampaignCard';
 
@@ -18,13 +19,15 @@ export default async function SavedCampaignsPage() {
     redirect('/auth?mode=signin');
   }
 
+  await finalizeEndedCampaigns();
+
   const bookmarks = await prisma.bookmark.findMany({
     where: { userId },
     include: {
       campaign: {
         include: {
           user: {
-            select: { name: true }
+            select: { name: true, image: true }
           },
           donations: {
             where: { status: 'completed' }
@@ -38,15 +41,20 @@ export default async function SavedCampaignsPage() {
   const savedCampaigns = bookmarks.map(b => {
     const c = b.campaign;
     const raised = c.donations.reduce((sum, d) => sum + getStoredDonationCreditUsd(d as any), 0);
-    const daysLeft = c.status === "active" ? Math.max(0, Math.ceil((c.createdAt.getTime() + 30 * 86400000 - Date.now()) / 86400000)) : 0;
+    const timing = getCampaignTiming(c);
     
+    const creator = c.user?.name || 'OneRaise Creator';
+    const creatorInitials = creator.split(' ').map((p: string) => p[0]).join('').slice(0, 2).toUpperCase() || 'OR';
     return {
       ...c,
       raised,
       pct: getCampaignPct(raised, c.goal),
-      creator: c.user?.name || 'OneRaise Creator',
+      creator,
+      creatorInitials,
+      creatorImage: c.user?.image || null,
       backers: getUniqueBackerCount(c.donations),
-      daysLeft
+      daysLeft: timing.daysLeft,
+      isEnded: timing.isEnded,
     };
   });
 
@@ -68,25 +76,32 @@ export default async function SavedCampaignsPage() {
         </div>
       ) : (
         <div className="campaign-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 24 }}>
-          {savedCampaigns.map((c) => (
-            <CampaignCard
-              key={c.id}
-              title={c.title}
-              goal={c.goal}
-              raised={c.raised}
-              backers={c.backers}
-              daysLeft={c.daysLeft}
-              status={c.status}
-              category={c.category}
-              image={c.image}
-              pct={c.pct}
-              actions={
-                <Link href={`/backer/donate/${c.slug}`} className="ucc-btn ucc-btn-primary">
-                  View Campaign
-                </Link>
-              }
-            />
-          ))}
+          {savedCampaigns.map((c) => {
+            const ended = c.isEnded || c.status === 'completed';
+
+            return (
+              <CampaignCard
+                key={c.id}
+                title={c.title}
+                goal={c.goal}
+                raised={c.raised}
+                backers={c.backers}
+                daysLeft={c.daysLeft}
+                status={ended ? 'completed' : c.status}
+                category={c.category}
+                image={c.image}
+                pct={c.pct}
+                creator={c.creator}
+                creatorInitials={c.creatorInitials}
+                creatorImage={c.creatorImage}
+                actions={
+                  <Link href={ended ? `/campaign/${c.slug}` : `/backer/donate/${c.slug}`} className={`ucc-btn ${ended ? 'ucc-btn-outline' : 'ucc-btn-primary'}`}>
+                    {ended ? 'View final results' : 'View Campaign'}
+                  </Link>
+                }
+              />
+            );
+          })}
         </div>
       )}
     </div>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { ensureCampaignAcceptsDonations, getDonationBlockedStatus } from "@/lib/campaign-lifecycle";
 import { getDonationCreditUsd } from "@/lib/currency";
 import {
   buildMoonPayCheckoutUrl,
@@ -13,21 +14,6 @@ import {
   getMoonPayCurrencyCode,
   toNumber,
 } from "@/lib/payments";
-
-
-
-async function ensureCampaign(campaignSlug: string) {
-  const existing = await prisma.campaign.findUnique({
-    where: { slug: campaignSlug },
-    select: { id: true },
-  });
-
-  if (existing) {
-    return existing;
-  }
-
-  throw new Error("Campaign not found.");
-}
 
 function parseExpiresAt(value: unknown) {
   if (!value) return null;
@@ -76,7 +62,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Donation amount must be greater than 0" }, { status: 400 });
     }
 
-    const campaign = await ensureCampaign(parsedCampaignId);
+    const campaign = await ensureCampaignAcceptsDonations(parsedCampaignId);
     const donation = await prisma.donation.create({
       data: {
         amount: parsedAmount,
@@ -190,7 +176,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(
       { error: error.message || "Unable to initiate MoonPay payment." },
-      { status: 500 },
+      { status: getDonationBlockedStatus(error) },
     );
   }
 }

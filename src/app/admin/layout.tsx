@@ -1,13 +1,33 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { ToastProvider, ThemeProvider, useTheme } from '../components';
 import '../shared-dashboard.css';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+
+  useEffect(() => {
+    if (status === 'loading') return;
+    const role = (session?.user as any)?.role;
+    if (status === 'unauthenticated' || role !== 'admin') {
+      router.replace('/auth?mode=signin');
+    }
+  }, [status, session, router]);
+
+  if (status === 'loading') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--ink)', color: 'var(--w50)', fontSize: 14 }}>
+        Verifying access...
+      </div>
+    );
+  }
+  if ((session?.user as any)?.role !== 'admin') return null;
 
   type NavItem = { name: string; path: string; icon: React.ReactNode; badge?: string; dot?: boolean };
   const navItems: { section: string; items: NavItem[] }[] = [

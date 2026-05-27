@@ -2,6 +2,7 @@ import { unstable_cache } from 'next/cache';
 import prisma from "@/lib/prisma";
 
 import { getUniqueBackerCount } from "@/lib/backers";
+import { finalizeEndedCampaigns, getCampaignOutcome, getCampaignTiming } from "@/lib/campaign-lifecycle";
 import { getStoredDonationCreditUsd } from "@/lib/currency";
 
 export type CampaignListItem = {
@@ -12,6 +13,7 @@ export type CampaignListItem = {
   image?: string | null;
   creator: string;
   creatorInitials: string;
+  creatorImage?: string | null;
   raised: number;
   goal: number;
   pct: number;
@@ -19,6 +21,10 @@ export type CampaignListItem = {
   desc: string;
   backers: number;
   daysLeft: number;
+  endDate: string;
+  isEnded: boolean;
+  goalMet: boolean;
+  outcomeLabel: string;
   verified: boolean;
   status: string;
   type: string;
@@ -64,6 +70,8 @@ export function getNumericCampaignId(slug: string) {
 
 
 async function getLiveCampaignsList(where?: { userId?: string }): Promise<CampaignListItem[]> {
+  await finalizeEndedCampaigns();
+
   const campaigns = await prisma.campaign.findMany({
     where,
     select: {
@@ -82,6 +90,7 @@ async function getLiveCampaignsList(where?: { userId?: string }): Promise<Campai
       user: {
         select: {
           name: true,
+          image: true,
         },
       },
       milestones: {
@@ -131,11 +140,18 @@ async function getLiveCampaignsList(where?: { userId?: string }): Promise<Campai
 
   const liveCampaigns = campaigns.map((campaign) => {
     const creator = campaign.user?.name || "OneRaise Creator";
+    const creatorImage = campaign.user?.image || null;
     const raised = campaign.donations.reduce(
       (sum, donation) => sum + getStoredDonationCreditUsd(donation),
       0,
     );
     const goal = campaign.goal;
+    const timing = getCampaignTiming(campaign);
+    const outcome = getCampaignOutcome({
+      goal,
+      raised,
+      type: campaign.type,
+    });
 
     return {
       id: Number(campaign.slug) || getNumericCampaignId(campaign.slug),
@@ -145,13 +161,18 @@ async function getLiveCampaignsList(where?: { userId?: string }): Promise<Campai
       image: campaign.image,
       creator,
       creatorInitials: getInitials(creator),
+      creatorImage,
       raised,
       goal,
       pct: getCampaignPct(raised, goal),
       category: campaign.category,
       desc: campaign.description || "",
       backers: getUniqueBackerCount(campaign.donations),
-      daysLeft: campaign.status === "active" ? Math.max(0, Math.ceil((campaign.createdAt.getTime() + 30 * 86400000 - Date.now()) / 86400000)) : 0,
+      daysLeft: timing.daysLeft,
+      endDate: timing.endDate.toISOString(),
+      isEnded: timing.isEnded,
+      goalMet: outcome.goalMet,
+      outcomeLabel: outcome.label,
       verified: true,
       status: campaign.status,
       type: campaign.type,

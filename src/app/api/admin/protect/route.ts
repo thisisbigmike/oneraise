@@ -29,6 +29,12 @@ function revalidateProtectViews(slug?: string) {
 
 export async function GET() {
   try {
+    const session = await getServerSession(authOptions);
+    const sessionUser = getSessionUser(session);
+    if (sessionUser.role !== "admin") {
+      return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+    }
+
     const campaigns = await prisma.campaign.findMany({
       where: {
         type: {
