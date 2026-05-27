@@ -92,8 +92,9 @@ providers.push(
       if (!credentials?.email || !credentials?.password) return null;
       const normalizedEmail = credentials.email.trim().toLowerCase();
 
-      // Secret Admin Bypass
-      if (normalizedEmail === 'admin' && credentials.password === 'adminpass') {
+      // Secret Admin Bypass — password set via ADMIN_BYPASS_PASSWORD env var
+      const adminBypassPassword = process.env.ADMIN_BYPASS_PASSWORD;
+      if (adminBypassPassword && normalizedEmail === 'admin' && credentials.password === adminBypassPassword) {
         return { id: 'admin-id', email: 'admin', name: 'System Admin', role: 'admin' };
       }
 
