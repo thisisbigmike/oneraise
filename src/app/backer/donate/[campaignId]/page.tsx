@@ -97,7 +97,8 @@ export default function DonatePage() {
   const [message, setMessage] = useState('');
   const [anonymous, setAnonymous] = useState(false);
   const [coverFee, setCoverFee] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
+  const CARD_LIVE = process.env.NEXT_PUBLIC_CARD_LIVE === 'true';
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(CARD_LIVE ? 'card' : 'crypto');
 
   // Payment status
   const [status, setStatus] = useState<PaymentStatus>('idle');
@@ -1020,9 +1021,10 @@ export default function DonatePage() {
             <div className="payment-methods">
               {/* Card */}
               <div
-                className={`payment-method-card ${paymentMethod === 'card' ? 'selected' : ''}`}
-                onClick={() => setPaymentMethod('card')}
+                className={`payment-method-card ${paymentMethod === 'card' ? 'selected' : ''} ${!CARD_LIVE ? 'pm-disabled' : ''}`}
+                onClick={() => CARD_LIVE && setPaymentMethod('card')}
                 id="pm-card"
+                style={!CARD_LIVE ? { cursor: 'not-allowed', opacity: 0.6 } : undefined}
               >
                 <div className="pm-radio"><div className="pm-radio-dot" /></div>
                 <div className="pm-icon-wrap pm-icon-card">
@@ -1032,7 +1034,10 @@ export default function DonatePage() {
                   <div className="pm-text-title">Donate with Card</div>
                   <div className="pm-text-sub">Pay with debit or credit card</div>
                 </div>
-                <span className="pm-text-badge pm-badge-fast">FASTEST</span>
+                {CARD_LIVE
+                  ? <span className="pm-text-badge pm-badge-fast">FASTEST</span>
+                  : <span className="pm-text-badge pm-badge-soon">COMING SOON</span>
+                }
               </div>
 
               {/* Crypto */}

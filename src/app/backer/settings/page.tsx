@@ -4,6 +4,19 @@ import SettingsClient from "../../dashboard/settings/SettingsClient";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 
+type SettingsUser = {
+  name: string | null;
+  email: string | null;
+  image: string | null;
+  role: string | null;
+  kycStatus: string | null;
+  emailVerified: Date | null;
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+  campaignUpdates: boolean;
+  marketingEmails: boolean;
+};
+
 export default async function BackerSettingsPage() {
   const session = await getServerSession(authOptions);
 
@@ -11,17 +24,19 @@ export default async function BackerSettingsPage() {
     redirect('/auth');
   }
 
-  const userId = (session.user as any)?.id as string | undefined;
-  let dbUser: any = null;
+  const userId = (session.user as { id?: string })?.id;
+  let dbUser: SettingsUser | null = null;
   try {
     dbUser = userId
-      ? await (prisma.user as any).findUnique({
+      ? await prisma.user.findUnique({
           where: { id: userId },
-          select: { 
-            name: true, 
-            email: true, 
-            image: true, 
+          select: {
+            name: true,
+            email: true,
+            image: true,
             role: true,
+            kycStatus: true,
+            emailVerified: true,
             emailNotifications: true,
             pushNotifications: true,
             campaignUpdates: true,
@@ -37,6 +52,8 @@ export default async function BackerSettingsPage() {
   const email = dbUser?.email || session.user.email || '';
   const image = dbUser?.image || session.user.image || '';
   const role = dbUser?.role || 'backer';
+  const verificationStatus = dbUser?.kycStatus || 'unverified';
+  const emailVerified = !!dbUser?.emailVerified;
   const emailNotifications = dbUser?.emailNotifications ?? true;
   const pushNotifications = dbUser?.pushNotifications ?? true;
   const campaignUpdates = dbUser?.campaignUpdates ?? true;
@@ -44,11 +61,13 @@ export default async function BackerSettingsPage() {
 
   return (
     <div style={{ padding: '32px 40px' }}>
-      <SettingsClient 
+      <SettingsClient
         initialName={name}
         initialEmail={email}
         initialImage={image}
         role={role}
+        initialVerificationStatus={verificationStatus}
+        initialEmailVerified={emailVerified}
         initialEmailNotif={emailNotifications}
         initialPushNotif={pushNotifications}
         initialCampaignNotif={campaignUpdates}

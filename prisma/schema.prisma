@@ -42,8 +42,11 @@ model User {
   image           String?
   password        String?
   role            String?
-  bushaProfileId  String?          @unique
-  bushaStatus     String?          @default("unverified")
+  bushaProfileId          String?   @unique
+  kycStatus               String?   @default("unverified")
+  verificationFullName    String?
+  verificationIdType      String?
+  verificationIdImage     String?
   
   // Notification Preferences
   emailNotifications Boolean       @default(true)

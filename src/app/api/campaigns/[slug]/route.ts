@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import type { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { getCampaignPct } from "@/lib/campaign-seeds";
@@ -20,6 +21,75 @@ type SessionUser = {
   id?: string;
   role?: string;
 };
+
+const campaignSelect = {
+  id: true,
+  title: true,
+  image: true,
+  slug: true,
+  description: true,
+  goal: true,
+  raised: true,
+  category: true,
+  status: true,
+  type: true,
+  protectStatus: true,
+  createdAt: true,
+  user: {
+    select: {
+      name: true,
+      image: true,
+      kycStatus: true,
+      emailVerified: true,
+    },
+  },
+  milestones: {
+    orderBy: {
+      createdAt: "asc",
+    },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      status: true,
+      proofUrl: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  },
+  _count: {
+    select: {
+      donations: {
+        where: {
+          status: "completed",
+        },
+      },
+    },
+  },
+  donations: {
+    where: {
+      status: "completed",
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      id: true,
+      amount: true,
+      currency: true,
+      coverFee: true,
+      provider: true,
+      providerDataJson: true,
+      userId: true,
+      donorName: true,
+      donorEmail: true,
+      isAnonymous: true,
+      createdAt: true,
+    },
+  },
+} satisfies Prisma.CampaignSelect;
+
+type CampaignRecord = Prisma.CampaignGetPayload<{ select: typeof campaignSelect }>;
 
 function getSessionUser(session: unknown): SessionUser {
   if (!session || typeof session !== "object" || !("user" in session)) return {};
@@ -57,9 +127,12 @@ function revalidateCampaignViews(slug?: string) {
   revalidatePath("/");
   revalidatePath("/explore");
   revalidatePath("/backer/discover");
+  revalidateTag("campaigns-list", "max");
+  revalidateTag("admin-stats", "max");
   if (slug) {
     revalidatePath(`/backer/donate/${slug}`);
     revalidatePath(`/campaign/${slug}`);
+    revalidateTag(`campaign-${slug}`, "max");
   }
 }
 
@@ -80,80 +153,17 @@ export async function GET(
 
 
   // Try to fetch from database with a timeout so the page never hangs
-  let campaign: any = null;
+  let campaign: CampaignRecord | null = null;
   try {
     await finalizeEndedCampaigns();
 
     const dbPromise = prisma.campaign.findUnique({
       where: { slug },
-      select: {
-        id: true,
-        title: true,
-        image: true,
-        slug: true,
-        description: true,
-        goal: true,
-        raised: true,
-        category: true,
-        status: true,
-        type: true,
-        protectStatus: true,
-        createdAt: true,
-        user: {
-          select: {
-            name: true,
-            image: true,
-          },
-        },
-        milestones: {
-          orderBy: {
-            createdAt: "asc",
-          },
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            status: true,
-            proofUrl: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        },
-        _count: {
-          select: {
-            donations: {
-              where: {
-                status: "completed",
-              },
-            },
-          },
-        },
-        donations: {
-          where: {
-            status: "completed",
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-          select: {
-            id: true,
-            amount: true,
-            currency: true,
-            coverFee: true,
-            provider: true,
-            providerDataJson: true,
-            userId: true,
-            donorName: true,
-            donorEmail: true,
-            isAnonymous: true,
-            createdAt: true,
-          },
-        },
-      },
+      select: campaignSelect,
     });
 
     // 5-second timeout to prevent hanging when DB is slow
-    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
+    const timeoutPromise = new Promise<CampaignRecord | null>((resolve) => setTimeout(() => resolve(null), 5000));
     campaign = await Promise.race([dbPromise, timeoutPromise]);
   } catch {
     // Database unavailable — fall through to seed data
@@ -164,7 +174,7 @@ export async function GET(
   }
 
   const liveRaised = campaign.donations.reduce(
-    (sum: number, donation: any) => sum + getStoredDonationCreditUsd(donation),
+    (sum, donation) => sum + getStoredDonationCreditUsd(donation),
     0,
   );
   const liveBackers = getUniqueBackerCount(campaign.donations);
@@ -179,7 +189,7 @@ export async function GET(
     raised,
     type: campaign.type,
   });
-  const recentDonors = campaign.donations.slice(0, 8).map((donation: any, index: number) => {
+  const recentDonors = campaign.donations.slice(0, 8).map((donation, index) => {
     const donorName = donation.isAnonymous
       ? "Anonymous"
       : donation.donorName?.trim() || donation.donorEmail?.split("@")[0] || "Supporter";
@@ -222,16 +232,20 @@ export async function GET(
       isEnded: timing.isEnded,
       goalMet: outcome.goalMet,
       outcomeLabel: outcome.label,
-      verified: true,
+      verified: campaign.user?.kycStatus === "verified" && !!campaign.user?.emailVerified,
       status: campaign.status,
       type: campaign.type || "standard",
       protectStatus: campaign.protectStatus || "funding",
-      milestones: campaign.milestones.map((milestone: any) => ({
+      milestones: campaign.milestones.map((milestone) => ({
         ...milestone,
         createdAt: milestone.createdAt.toISOString(),
         updatedAt: milestone.updatedAt.toISOString(),
       })),
       recentDonors,
+    },
+  }, {
+    headers: {
+      "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
     },
   });
 }

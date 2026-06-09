@@ -52,7 +52,7 @@ export async function GET(req: Request) {
           name: true,
           email: true,
           role: true,
-          bushaStatus: true,
+          kycStatus: true,
           emailNotifications: true,
           pushNotifications: true,
           campaignUpdates: true,
@@ -62,13 +62,13 @@ export async function GET(req: Request) {
       });
 
       return csvResponse("users", [
-        ["id", "name", "email", "role", "kyc_status", "campaigns", "donations", "payouts", "email_notifications", "push_notifications", "campaign_updates", "marketing_emails"],
+        ["id", "name", "email", "role", "verification_status", "campaigns", "donations", "payouts", "email_notifications", "push_notifications", "campaign_updates", "marketing_emails"],
         ...users.map((user) => [
           user.id,
           user.name,
           user.email,
           user.role,
-          user.bushaStatus,
+          user.kycStatus,
           user._count.campaigns,
           user._count.donations,
           user._count.payouts,

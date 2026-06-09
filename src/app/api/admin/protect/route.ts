@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
+import { getStoredDonationCreditUsd } from "@/lib/currency";
 
 type SessionUser = {
   id?: string;
@@ -109,7 +110,29 @@ export async function PATCH(req: Request) {
 
     const campaign = await prisma.campaign.findUnique({
       where: { slug: campaignSlug },
-      select: { id: true, slug: true, protectStatus: true },
+      select: {
+        id: true,
+        slug: true,
+        goal: true,
+        protectStatus: true,
+        milestones: {
+          select: {
+            id: true,
+            status: true,
+            proofUrl: true,
+          },
+        },
+        donations: {
+          where: { status: "completed" },
+          select: {
+            amount: true,
+            currency: true,
+            coverFee: true,
+            provider: true,
+            providerDataJson: true,
+          },
+        },
+      },
     });
 
     if (!campaign) {
@@ -123,11 +146,17 @@ export async function PATCH(req: Request) {
 
       const milestone = await prisma.milestone.findUnique({
         where: { id: milestoneId },
-        select: { id: true, campaignId: true },
+        select: { id: true, campaignId: true, status: true, proofUrl: true },
       });
 
       if (!milestone || milestone.campaignId !== campaign.id) {
         return NextResponse.json({ error: "Milestone not found for this campaign." }, { status: 404 });
+      }
+      if (milestone.status !== "submitted") {
+        return NextResponse.json({ error: "Only submitted milestones can be reviewed." }, { status: 409 });
+      }
+      if (action === "approve-milestone" && !milestone.proofUrl) {
+        return NextResponse.json({ error: "Milestone proof is required before approval." }, { status: 409 });
       }
 
       const updated = await prisma.$transaction(async (tx) => {
@@ -144,23 +173,15 @@ export async function PATCH(req: Request) {
             status: "submitted",
           },
         });
-        const remainingUnapproved = await tx.milestone.count({
-          where: {
-            campaignId: campaign.id,
-            status: { not: "approved" },
-          },
-        });
 
         if (remainingSubmitted === 0) {
           await tx.campaign.update({
             where: { id: campaign.id },
             data: {
               protectStatus:
-                action === "approve-milestone" && remainingUnapproved === 0
-                  ? "unlocked"
-                  : action === "approve-milestone"
-                    ? "locked"
-                    : "funding",
+                action === "approve-milestone"
+                  ? "locked"
+                  : "funding",
             },
           });
         }
@@ -181,6 +202,33 @@ export async function PATCH(req: Request) {
     }
 
     if (action === "release-campaign" || action === "refund-campaign" || action === "lock-campaign") {
+      const raised = campaign.donations.reduce((sum, donation) => sum + getStoredDonationCreditUsd(donation), 0);
+      const allMilestonesApproved =
+        campaign.milestones.length > 0 &&
+        campaign.milestones.every((milestone) => milestone.status === "approved");
+      const hasReleased = campaign.protectStatus === "unlocked";
+
+      if (action === "release-campaign") {
+        if (campaign.protectStatus === "unlocked") {
+          return NextResponse.json({ error: "Campaign funds have already been released." }, { status: 409 });
+        }
+        if (!allMilestonesApproved) {
+          return NextResponse.json({ error: "All milestones must be approved before release." }, { status: 409 });
+        }
+        if (raised < campaign.goal) {
+          return NextResponse.json({ error: "Campaign goal must be reached before release." }, { status: 409 });
+        }
+      }
+
+      if (action === "refund-campaign") {
+        if (hasReleased) {
+          return NextResponse.json({ error: "Released campaigns cannot be refunded." }, { status: 409 });
+        }
+        if (raised >= campaign.goal && allMilestonesApproved) {
+          return NextResponse.json({ error: "Campaign is eligible for release, not refund." }, { status: 409 });
+        }
+      }
+
       const protectStatus =
         action === "release-campaign"
           ? "unlocked"

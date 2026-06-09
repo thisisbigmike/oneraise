@@ -38,14 +38,7 @@ function roleMap(rows: { role: string | null; _count: { _all: number } }[]) {
   }, {});
 }
 
-export async function GET() {
-  try {
-    const session = await getServerSession(authOptions);
-    const user = getSessionUser(session);
-    if (user.role !== "admin") {
-      return NextResponse.json({ error: "Admin access required." }, { status: 403 });
-    }
-
+async function fetchAdminStats() {
     const [
       totalUserCount,
       activeCampaignCount,
@@ -53,7 +46,7 @@ export async function GET() {
       campaignStatusRows,
       userRoleRows,
       verifiedUserCount,
-      pendingKycUserCount,
+      pendingVerificationUserCount,
       creatorCount,
       backerCount,
       creatorsWithCampaigns,
@@ -78,8 +71,8 @@ export async function GET() {
       prisma.campaign.count(),
       prisma.campaign.groupBy({ by: ["status"], _count: { _all: true } }),
       prisma.user.groupBy({ by: ["role"], _count: { _all: true } }),
-      prisma.user.count({ where: { bushaStatus: "verified" } }),
-      prisma.user.count({ where: { bushaStatus: "pending" } }),
+      prisma.user.count({ where: { kycStatus: "verified" } }),
+      prisma.user.count({ where: { kycStatus: "pending" } }),
       prisma.user.count({ where: { role: "creator" } }),
       prisma.user.count({ where: { role: "backer" } }),
       prisma.user.count({ where: { role: "creator", campaigns: { some: {} } } }),
@@ -287,7 +280,7 @@ export async function GET() {
       .sort((a, b) => new Date(b.dateIso).getTime() - new Date(a.dateIso).getTime())
       .slice(0, 12);
 
-    return NextResponse.json({
+    return {
       success: true,
       stats: {
         totalUserCount,
@@ -299,8 +292,8 @@ export async function GET() {
         campaignStatuses,
         userRoles,
         verifiedUserCount,
-        unverifiedUserCount: Math.max(0, totalUserCount - verifiedUserCount - pendingKycUserCount),
-        pendingKycUserCount,
+        unverifiedUserCount: Math.max(0, totalUserCount - verifiedUserCount - pendingVerificationUserCount),
+        pendingVerificationUserCount,
         creatorCount,
         backerCount,
         creatorsWithCampaigns,
@@ -340,7 +333,18 @@ export async function GET() {
         campaignSlug: d.campaign.slug,
         createdAt: d.createdAt.toISOString(),
       })),
-    });
+    };
+}
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+    const user = getSessionUser(session);
+    if (user.role !== "admin") {
+      return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+    }
+    const data = await fetchAdminStats();
+    return NextResponse.json(data);
   } catch (error) {
     console.error("admin/stats error", error);
     return NextResponse.json({ error: "Unable to load platform stats." }, { status: 500 });

@@ -15,7 +15,7 @@ type PlatformStats = {
   userRoles: Record<string, number>;
   verifiedUserCount: number;
   unverifiedUserCount: number;
-  pendingKycUserCount: number;
+  pendingVerificationUserCount: number;
   creatorCount: number;
   backerCount: number;
   creatorsWithCampaigns: number;
@@ -176,7 +176,7 @@ export default function AdminOverview() {
   const maxMonthlyVolume = Math.max(1, ...monthlyFunding.map((month) => month.volumeUsd));
   const platformHealthItems = stats
     ? [
-        { label: 'Verified users', value: stats.verifiedUserCount.toLocaleString(), note: `${stats.pendingKycUserCount.toLocaleString()} pending KYC` },
+        { label: 'Verified users', value: stats.verifiedUserCount.toLocaleString(), note: `${stats.pendingVerificationUserCount.toLocaleString()} pending verification` },
         { label: 'Creator activation', value: `${stats.conversion.creatorActivationRate}%`, note: `${stats.creatorsWithCampaigns.toLocaleString()} creators launched campaigns` },
         { label: 'Backer activation', value: `${stats.conversion.backerActivationRate}%`, note: `${stats.backersWithCompletedDonations.toLocaleString()} backers completed donations` },
         { label: 'Pending payouts', value: fmt(stats.pendingPayoutUsd), note: `${stats.pendingPayoutCount.toLocaleString()} payout requests` },

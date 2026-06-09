@@ -9,7 +9,13 @@ type AdminUser = {
   email: string;
   role: string;
   image: string | null;
-  bushaStatus: string;
+  verificationStatus: string;
+  emailVerified: boolean;
+  verificationFullName: string | null;
+  verificationDocumentType: string | null;
+  verificationDocumentUrl: string | null;
+  verificationSubmittedAt: string | null;
+  verificationReviewedAt: string | null;
   campaignCount: number;
   donationCount: number;
 };
@@ -21,7 +27,7 @@ const ROLE_COLORS: Record<string, string> = {
   banned: '#F09595',
 };
 
-const KYC_COLORS: Record<string, string> = {
+const VERIFICATION_COLORS: Record<string, string> = {
   verified: 'var(--teal-200)',
   pending: 'var(--amber)',
   unverified: 'var(--w30)',
@@ -36,7 +42,7 @@ export default function AdminUsersPage() {
   const [pages, setPages] = useState(1);
   const [loadStatus, setLoadStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [roleFilter, setRoleFilter] = useState('all');
-  const [kycFilter, setKycFilter] = useState('all');
+  const [verificationFilter, setVerificationFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [busyUser, setBusyUser] = useState('');
@@ -54,7 +60,7 @@ export default function AdminUsersPage() {
     try {
       const params = new URLSearchParams({ page: String(page) });
       if (roleFilter !== 'all') params.set('role', roleFilter);
-      if (kycFilter !== 'all') params.set('kyc', kycFilter);
+      if (verificationFilter !== 'all') params.set('verification', verificationFilter);
       if (search) params.set('search', search);
       const res = await fetch(`/api/admin/users?${params}`, { cache: 'no-store' });
       const data = await res.json();
@@ -66,7 +72,7 @@ export default function AdminUsersPage() {
     } catch {
       setLoadStatus('error');
     }
-  }, [page, roleFilter, kycFilter, search]);
+  }, [page, roleFilter, verificationFilter, search]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -90,20 +96,20 @@ export default function AdminUsersPage() {
     }
   };
 
-  const setKycStatus = async (userId: string, kycStatus: string) => {
+  const setVerificationStatus = async (userId: string, verificationStatus: string) => {
     setBusyUser(userId);
     try {
       const res = await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, action: 'set-kyc', kycStatus }),
+        body: JSON.stringify({ userId, action: 'set-verification', verificationStatus }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      showToast('KYC status updated.', 'success');
+      showToast('Verification status updated.', 'success');
       await load();
     } catch (error: unknown) {
-      showToast(error instanceof Error ? error.message : 'Failed to update KYC status.', 'error');
+      showToast(error instanceof Error ? error.message : 'Failed to update verification status.', 'error');
     } finally {
       setBusyUser('');
     }
@@ -191,16 +197,16 @@ export default function AdminUsersPage() {
           {['all', 'verified', 'pending', 'unverified', 'rejected'].map(k => (
             <button
               key={k}
-              onClick={() => { setKycFilter(k); setPage(1); }}
+              onClick={() => { setVerificationFilter(k); setPage(1); }}
               style={{
                 padding: '6px 12px', fontSize: 12, borderRadius: 6, border: '1px solid',
-                borderColor: kycFilter === k ? (KYC_COLORS[k] ?? 'var(--teal-200)') : 'rgba(245,250,247,0.1)',
-                background: kycFilter === k ? `${KYC_COLORS[k] ?? 'var(--teal-200)'}18` : 'transparent',
-                color: kycFilter === k ? (KYC_COLORS[k] ?? 'var(--teal-200)') : 'var(--w50)',
+                borderColor: verificationFilter === k ? (VERIFICATION_COLORS[k] ?? 'var(--teal-200)') : 'rgba(245,250,247,0.1)',
+                background: verificationFilter === k ? `${VERIFICATION_COLORS[k] ?? 'var(--teal-200)'}18` : 'transparent',
+                color: verificationFilter === k ? (VERIFICATION_COLORS[k] ?? 'var(--teal-200)') : 'var(--w50)',
                 cursor: 'pointer', textTransform: 'capitalize',
               }}
             >
-              {k} KYC
+              {k} verification
             </button>
           ))}
         </div>
@@ -221,7 +227,7 @@ export default function AdminUsersPage() {
                 <tr>
                   <th>User</th>
                   <th>Role</th>
-                  <th>KYC</th>
+                  <th>Verification</th>
                   <th>Campaigns</th>
                   <th>Donations</th>
                   <th>Actions</th>
@@ -253,17 +259,33 @@ export default function AdminUsersPage() {
                     </td>
                     <td>
                       <select
-                        value={u.bushaStatus}
+                        value={u.verificationStatus}
                         disabled={busyUser === u.id}
-                        onChange={event => setKycStatus(u.id, event.target.value)}
+                        onChange={event => setVerificationStatus(u.id, event.target.value)}
                         className="s-input"
-                        style={{ width: 132, padding: '6px 8px', fontSize: 12, color: KYC_COLORS[u.bushaStatus] ?? 'var(--w30)' }}
+                        style={{ width: 132, padding: '6px 8px', fontSize: 12, color: VERIFICATION_COLORS[u.verificationStatus] ?? 'var(--w30)' }}
                       >
                         <option value="unverified">Unverified</option>
                         <option value="pending">Pending</option>
                         <option value="verified">Verified</option>
                         <option value="rejected">Rejected</option>
                       </select>
+                      <div style={{ fontSize: 11, color: 'var(--w50)', marginTop: 6 }}>
+                        {u.emailVerified ? 'Email confirmed' : 'Email unconfirmed'}
+                        {u.verificationDocumentUrl && (
+                          <>
+                            {' · '}
+                            <a href={u.verificationDocumentUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--teal-200)' }}>
+                              View upload
+                            </a>
+                          </>
+                        )}
+                      </div>
+                      {u.verificationFullName && (
+                        <div style={{ fontSize: 11, color: 'var(--w30)', marginTop: 4 }}>
+                          {u.verificationFullName}{u.verificationDocumentType ? ` · ${u.verificationDocumentType.replaceAll('_', ' ')}` : ''}
+                        </div>
+                      )}
                     </td>
                     <td style={{ color: 'var(--w80)' }}>{u.campaignCount}</td>
                     <td style={{ color: 'var(--w80)' }}>{u.donationCount}</td>

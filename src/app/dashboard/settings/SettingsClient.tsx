@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useToast, Modal } from '../../components';
 import CustomSelect from '@/components/ui/CustomSelect';
@@ -10,6 +10,8 @@ type SettingsClientProps = {
   initialEmail: string;
   initialImage?: string | null;
   role: string;
+  initialVerificationStatus?: string;
+  initialEmailVerified?: boolean;
   initialEmailNotif?: boolean;
   initialPushNotif?: boolean;
   initialCampaignNotif?: boolean;
@@ -38,8 +40,8 @@ function readProfilePhoto(file: File): Promise<string> {
       img.onload = () => {
         const canvas = document.createElement('canvas');
         const MAX_SIZE = 128;
-        let width = img.width;
-        let height = img.height;
+        const width = img.width;
+        const height = img.height;
 
         // Force square 1:1 aspect ratio for profile photos
         const size = Math.min(width, height);
@@ -67,11 +69,19 @@ function readProfilePhoto(file: File): Promise<string> {
   });
 }
 
+const DOCUMENT_TYPE_OPTIONS = [
+  { value: 'account_proof', label: 'Account proof' },
+  { value: 'organization_document', label: 'Organization document' },
+  { value: 'campaign_document', label: 'Campaign document' },
+  { value: 'other', label: 'Other document' },
+];
+
 export default function SettingsClient(props: SettingsClientProps) {
   const { initialName, initialEmail, initialImage, role } = props;
   const { showToast } = useToast();
   const { update: updateSession } = useSession();
   const fileRef = useRef<HTMLInputElement>(null);
+  const documentFileRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState('profile');
   const [fullName, setFullName] = useState(initialName || '');
   const [email, setEmail] = useState(initialEmail || '');
@@ -100,6 +110,25 @@ export default function SettingsClient(props: SettingsClientProps) {
   ]);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [verificationStatus, setVerificationStatusState] = useState(props.initialVerificationStatus || 'unverified');
+  const [emailVerified, setEmailVerified] = useState(!!props.initialEmailVerified);
+  const [verifyFullName, setVerifyFullName] = useState('');
+  const [verifyDocumentType, setVerifyDocumentType] = useState('account_proof');
+  const [verifyDocumentImage, setVerifyDocumentImage] = useState('');
+  const [verifyDocumentFileName, setVerifyDocumentFileName] = useState('');
+  const [submittingVerification, setSubmittingVerification] = useState(false);
+  const [sendingEmailVerification, setSendingEmailVerification] = useState(false);
+
+  useEffect(() => {
+    const result = new URLSearchParams(window.location.search).get('emailVerified');
+    if (result === 'success') {
+      setEmailVerified(true);
+      showToast('Email verified. Your badge will show once admin approval is complete.', 'success');
+    }
+    if (result === 'invalid') {
+      showToast('Email verification link is invalid or expired.', 'error');
+    }
+  }, [showToast]);
 
   const handleSave = async () => {
     setSavingProfile(true);
@@ -123,6 +152,7 @@ export default function SettingsClient(props: SettingsClientProps) {
         email: data.user.email,
         image: data.user.image,
       });
+      setEmailVerified(!!data.user.emailVerified);
       showToast('Profile settings saved successfully!', 'success');
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not save profile settings.', 'error');
@@ -182,7 +212,7 @@ export default function SettingsClient(props: SettingsClientProps) {
       });
       if (!res.ok) throw new Error('Could not save preferences.');
       showToast('Notification preferences saved!', 'success');
-    } catch (error) {
+    } catch {
       showToast('Error saving preferences.', 'error');
     } finally {
       setSavingProfile(false);
@@ -207,6 +237,60 @@ export default function SettingsClient(props: SettingsClientProps) {
     if (deleteConfirm !== 'DELETE') { showToast('Type DELETE to confirm.', 'warning'); return; }
     showToast('Account deletion request submitted.', 'error');
     setDeleteOpen(false); setDeleteConfirm('');
+  };
+
+  const handleVerificationFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { showToast('Please upload an image file.', 'error'); return; }
+    if (file.size > 5 * 1024 * 1024) { showToast('Verification document must be under 5MB.', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setVerifyDocumentImage(ev.target?.result as string);
+      setVerifyDocumentFileName(file.name);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmitVerification = async () => {
+    if (!verifyFullName.trim()) { showToast('Enter the name you want reviewed.', 'error'); return; }
+    if (!verifyDocumentImage) { showToast('Upload a verification document.', 'error'); return; }
+    setSubmittingVerification(true);
+    try {
+      const res = await fetch('/api/verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName: verifyFullName, documentType: verifyDocumentType, documentImage: verifyDocumentImage }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Submission failed.');
+      setVerificationStatusState('pending');
+      showToast('Verification submitted. We\'ll review and update your status shortly.', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not submit verification.', 'error');
+    } finally {
+      setSubmittingVerification(false);
+    }
+  };
+
+  const handleRequestEmailVerification = async () => {
+    setSendingEmailVerification(true);
+    try {
+      const res = await fetch('/api/email-verify/request', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not send verification email.');
+      if (data.alreadyVerified) {
+        setEmailVerified(true);
+        showToast('Email is already verified.', 'success');
+      } else {
+        showToast('Verification email sent. Check your inbox.', 'success');
+      }
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Could not send verification email.', 'error');
+    } finally {
+      setSendingEmailVerification(false);
+    }
   };
 
   const tabs = [
@@ -263,15 +347,89 @@ export default function SettingsClient(props: SettingsClientProps) {
               )}
             </div>
           </div>
-          {role === 'creator' && (
-            <div className="content-card" style={{ marginTop: 24 }}>
-              <div className="cc-title" style={{ marginBottom: 24 }}>Verification Status</div>
-              <div className="s-verify-row">
-                <div className="s-verify-badge verified"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>Verified Creator</div>
-                <span style={{ fontSize: 13, color: 'var(--w50)' }}>Your identity has been verified. You can receive payouts.</span>
+          <div className="content-card" style={{ marginTop: 24 }}>
+            <div className="cc-title" style={{ marginBottom: 24 }}>Account Verification</div>
+            <div className="s-verify-row" style={{ marginBottom: 20 }}>
+              <div className={`s-verify-badge ${emailVerified ? 'verified' : 'pending'}`}>
+                {emailVerified ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                )}
+                {emailVerified ? 'Email Confirmed' : 'Email Unconfirmed'}
               </div>
+              {!emailVerified && (
+                <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={handleRequestEmailVerification} disabled={sendingEmailVerification}>
+                  {sendingEmailVerification ? 'Sending...' : 'Send verification email'}
+                </button>
+              )}
             </div>
-          )}
+            {verificationStatus === 'verified' && emailVerified && (
+              <div className="s-verify-row">
+                <div className="s-verify-badge verified">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                  Verified
+                </div>
+                <span style={{ fontSize: 13, color: 'var(--w50)' }}>Admin approved your upload and your email is confirmed.</span>
+              </div>
+            )}
+            {verificationStatus === 'verified' && !emailVerified && (
+              <div className="s-verify-row">
+                <div className="s-verify-badge pending">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                  Email Required
+                </div>
+                <span style={{ fontSize: 13, color: 'var(--w50)' }}>Admin approved your upload. Confirm your email to unlock the verified badge.</span>
+              </div>
+            )}
+            {verificationStatus === 'pending' && (
+              <div className="s-verify-row">
+                <div className="s-verify-badge pending">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                  Under Review
+                </div>
+                <span style={{ fontSize: 13, color: 'var(--w50)' }}>Your upload is being reviewed. This usually takes 1-2 business days.</span>
+              </div>
+            )}
+            {(verificationStatus === 'unverified' || verificationStatus === 'rejected') && (
+              <div className="s-verify-form">
+                {verificationStatus === 'rejected' && (
+                  <div className="s-verify-row" style={{ marginBottom: 20 }}>
+                    <div className="s-verify-badge rejected">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+                      Rejected
+                    </div>
+                    <span style={{ fontSize: 13, color: 'var(--w50)' }}>Your previous submission was rejected. Please resubmit with a clearer document.</span>
+                  </div>
+                )}
+                <div className="s-fields">
+                  <div className="s-field">
+                    <label className="s-label">Name to Review</label>
+                    <input className="s-input" value={verifyFullName} onChange={e => setVerifyFullName(e.target.value)} placeholder="Enter the name tied to this account" />
+                  </div>
+                  <div className="s-field">
+                    <label className="s-label">Document Type</label>
+                    <CustomSelect
+                      value={verifyDocumentType}
+                      onChange={setVerifyDocumentType}
+                      options={DOCUMENT_TYPE_OPTIONS}
+                    />
+                  </div>
+                  <div className="s-field s-field-full">
+                    <label className="s-label">Verification Document</label>
+                    <input ref={documentFileRef} type="file" accept="image/*" hidden onChange={handleVerificationFileChange} />
+                    <button className="btn-secondary" style={{ fontSize: 13, padding: '8px 14px' }} onClick={() => documentFileRef.current?.click()}>
+                      {verifyDocumentFileName ? `✓ ${verifyDocumentFileName}` : 'Upload document'}
+                    </button>
+                    <div className="s-hint">Clear JPG, PNG, or WebP image. Max 5MB.</div>
+                  </div>
+                </div>
+                <button className="btn-primary" style={{ marginTop: 20 }} onClick={handleSubmitVerification} disabled={submittingVerification}>
+                  {submittingVerification ? 'Submitting...' : 'Submit for Verification'}
+                </button>
+              </div>
+            )}
+          </div>
           <div className="s-action-bar">
             <button className="btn-primary" onClick={handleSave} disabled={savingProfile}>
               {savingProfile ? 'Saving...' : 'Save changes'}

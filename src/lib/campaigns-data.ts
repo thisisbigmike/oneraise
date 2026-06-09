@@ -43,7 +43,7 @@ export type CampaignMilestoneItem = {
 };
 
 export function isPublicCampaign(campaign: { status?: string | null }) {
-  return campaign.status !== "draft";
+  return campaign.status === "active" || campaign.status === "completed";
 }
 
 function getCampaignPct(raised: number, goal: number) {

@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { getCampaignPct } from '@/lib/campaign-seeds';
+import { rankCampaignsForDiscovery } from '@/lib/campaign-recommendations';
 import CampaignCard from '@/components/ui/CampaignCard';
 import CustomSelect from '@/components/ui/CustomSelect';
 
@@ -21,6 +22,18 @@ type ExploreCampaign = {
   category: string;
   desc: string;
   status?: string;
+  type?: string;
+  protectStatus?: string;
+  verified?: boolean;
+  milestones?: {
+    id: string;
+    title: string;
+    description: string | null;
+    status: string;
+    proofUrl: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }[];
   daysLeft: number;
   endDate?: string;
   isEnded?: boolean;
@@ -30,11 +43,14 @@ export default function ExploreClient({ initialQuery, campaigns }: { initialQuer
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [category, setCategory] = useState('All');
   const [campaignState, setCampaignState] = useState('Live campaigns');
-  const [sortOrder, setSortOrder] = useState('Trending');
+  const [sortOrder, setSortOrder] = useState('Recommended');
 
-  const categories = ['All', 'Technology', 'Social Impact', 'Education', 'Health'];
+  const categories = useMemo(() => {
+    const uniqueCategories = Array.from(new Set(campaigns.map(c => c.category).filter(Boolean))).sort();
+    return ['All', ...uniqueCategories];
+  }, [campaigns]);
   const campaignStateOptions = ['Live campaigns', 'Ended campaigns', 'All campaigns'];
-  const sortOptions = ['Trending', 'Newest', 'Most Funded', 'Ending Soon'];
+  const sortOptions = ['Recommended', 'Newest', 'Most Funded', 'Ending Soon'];
 
   // Filter and sort the campaigns
   const filteredCampaigns = useMemo(() => {
@@ -60,7 +76,30 @@ export default function ExploreClient({ initialQuery, campaigns }: { initialQuer
     }
 
     // Sorting logic mock
-    if (sortOrder === 'Newest') {
+    if (sortOrder === 'Recommended') {
+      result = rankCampaignsForDiscovery(
+        result.map(c => ({
+          ...c,
+          slug: c.slug || String(c.id),
+          dbId: undefined,
+          pct: c.pct ?? getCampaignPct(c.raised, c.goal),
+          backers: c.backers || 0,
+          isEnded: !!c.isEnded,
+          status: c.status || 'active',
+          verified: !!c.verified,
+          type: c.type || 'standard',
+          protectStatus: c.protectStatus || 'funding',
+          milestones: c.milestones || [],
+        })),
+        {
+          query: searchQuery,
+          preferredCategories: category !== 'All' ? [category] : [],
+        },
+        {
+          includeEnded: campaignState !== 'Live campaigns',
+        },
+      ).map(recommendation => recommendation.campaign);
+    } else if (sortOrder === 'Newest') {
       result = result.sort((a, b) => b.id - a.id);
     } else if (sortOrder === 'Most Funded') {
       result = result.sort((a, b) => b.raised - a.raised);
@@ -70,13 +109,6 @@ export default function ExploreClient({ initialQuery, campaigns }: { initialQuer
         const bEnded = b.isEnded || b.status === 'completed';
         if (aEnded !== bEnded) return aEnded ? 1 : -1;
         return a.daysLeft - b.daysLeft;
-      });
-    } else {
-      result = result.sort((a, b) => {
-        const aEnded = a.isEnded || a.status === 'completed';
-        const bEnded = b.isEnded || b.status === 'completed';
-        if (aEnded !== bEnded) return aEnded ? 1 : -1;
-        return 0;
       });
     }
 

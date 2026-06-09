@@ -26,7 +26,7 @@ export default function AboutPage() {
     },
     {
       question: "What is the Verified Creator badge?",
-      answer: "The Verified Creator badge indicates that the campaign creator has undergone our strict identity and background verification process. This boosts trust and typically leads to higher backer conversion."
+      answer: "The Verified Creator badge means the creator completed email confirmation and passed OneRaise manual review. It is a trust signal, not a legal identity or background check."
     }
   ];
 
@@ -93,7 +93,7 @@ export default function AboutPage() {
                 <div className="trust-icon">🛡️</div>
                 <div>
                   <h4>Verified Creators</h4>
-                  <p>Our comprehensive identity verification ensures creators are who they say they are.</p>
+                  <p>Email confirmation plus manual admin review gives backers a clearer trust signal without a formal identity-check process.</p>
                 </div>
               </div>
               <div className="trust-feature">

@@ -16,14 +16,18 @@ const ThemeContext = createContext<ThemeContextType>({ theme: 'dark', setTheme: 
 export function useTheme() { return useContext(ThemeContext); }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeMode>('system');
-  const [systemPref, setSystemPref] = useState<'dark' | 'light'>('dark');
+  const [theme, setThemeState] = useState<ThemeMode>(() => {
+    if (typeof window === 'undefined') return 'system';
+    const saved = localStorage.getItem('oneraise-theme') as ThemeMode | null;
+    return saved || 'system';
+  });
+  const [systemPref, setSystemPref] = useState<'dark' | 'light'>(() => {
+    if (typeof window === 'undefined') return 'dark';
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  });
 
   useEffect(() => {
-    const saved = localStorage.getItem('oneraise-theme') as ThemeMode | null;
-    if (saved) setThemeState(saved);
     const mq = window.matchMedia('(prefers-color-scheme: light)');
-    setSystemPref(mq.matches ? 'light' : 'dark');
     const handler = (e: MediaQueryListEvent) => setSystemPref(e.matches ? 'light' : 'dark');
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
@@ -69,7 +73,6 @@ export function useToast() {
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
-  let nextId = 0;
 
   const removeToast = useCallback((id: number) => {
     setToasts(prev => prev.filter(t => t.id !== id));
@@ -83,27 +86,44 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     }, 4000);
   }, []);
 
+  const getToastText = (toast: Toast) => {
+    if (toast.title) {
+      return { title: toast.title, message: toast.message };
+    }
+
+    const match = toast.message.match(/^(.+?[.!?])\s+(.+)$/);
+    if (match) {
+      return { title: match[1], message: match[2] };
+    }
+
+    return { title: toast.message, message: '' };
+  };
+
   return (
     <ToastContext.Provider value={{ showToast, removeToast }}>
       {children}
       <div className="toast-container">
-        {toasts.map(t => (
-          <div key={t.id} className={`toast toast-${t.type} modern-toast`}>
-            <div className="modern-toast-icon">
-              {t.type === 'success' && '✓'}
-              {t.type === 'info' && 'i'}
-              {t.type === 'warning' && '⚠'}
-              {t.type === 'error' && '✕'}
+        {toasts.map(t => {
+          const text = getToastText(t);
+
+          return (
+            <div key={t.id} className={`toast toast-${t.type} modern-toast`}>
+              <div className="modern-toast-icon">
+                {t.type === 'success' && '✓'}
+                {t.type === 'info' && 'i'}
+                {t.type === 'warning' && '!'}
+                {t.type === 'error' && '×'}
+              </div>
+              <div className="modern-toast-content">
+                <div className="modern-toast-title">{text.title}</div>
+                {text.message && <div className="modern-toast-message">{text.message}</div>}
+              </div>
+              <button className="modern-toast-close" onClick={() => removeToast(t.id)} aria-label="Dismiss notification">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
             </div>
-            <div className="modern-toast-content">
-              {t.title && <div className="modern-toast-title">{t.title}</div>}
-              <div className="modern-toast-message">{t.message}</div>
-            </div>
-            <button className="modern-toast-close" onClick={() => removeToast(t.id)}>
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </ToastContext.Provider>
   );

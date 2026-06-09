@@ -17,10 +17,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const userInitials = userName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [campaignCount, setCampaignCount] = useState<number | null>(null);
+  const [verifiedBadge, setVerifiedBadge] = useState(false);
 
   // Close mobile menu on route change
   useEffect(() => {
-    setMobileMenuOpen(false);
+    const id = window.setTimeout(() => setMobileMenuOpen(false), 0);
+    return () => window.clearTimeout(id);
   }, [pathname]);
 
   // Fetch campaign count
@@ -33,13 +35,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (!ignore && res.ok && Array.isArray(data.campaigns)) {
           setCampaignCount(data.campaigns.length);
         }
-      } catch (err) {
+      } catch {
         // fail silently
       }
     };
     fetchCampaigns();
     return () => { ignore = true; };
   }, [pathname]); // Re-fetch occasionally, e.g. when navigating around
+
+  useEffect(() => {
+    let ignore = false;
+    const fetchVerification = async () => {
+      try {
+        const res = await fetch('/api/verification', { cache: 'no-store' });
+        const data = await res.json();
+        if (!ignore && res.ok) {
+          setVerifiedBadge(!!data.verifiedBadge);
+        }
+      } catch {
+        if (!ignore) setVerifiedBadge(false);
+      }
+    };
+    fetchVerification();
+    return () => { ignore = true; };
+  }, [pathname]);
 
 
   type NavItem = { name: string; path: string; icon: React.ReactNode; badge?: string; dot?: boolean };
@@ -131,7 +150,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {userImage ? <img src={userImage} alt={`${userName} profile`} /> : userInitials}
             </div>
             <div className="up-info">
-              <div className="up-name">{userName} <svg className="verified-badge" width="16" height="16" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="11" fill="#1D9BF0"/><path d="M9.5 14.25L6.25 11l-1.02 1.02L9.5 16.29l10-10-1.02-1.02L9.5 14.25z" fill="#fff"/></svg></div>
+              <div className="up-name">
+                {userName}
+                {verifiedBadge && <svg className="verified-badge" width="16" height="16" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="11" fill="#1D9BF0"/><path d="M9.5 14.25L6.25 11l-1.02 1.02L9.5 16.29l10-10-1.02-1.02L9.5 14.25z" fill="#fff"/></svg>}
+              </div>
               <div className="up-role">Creator</div>
             </div>
             <svg className="up-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>

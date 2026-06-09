@@ -1,13 +1,33 @@
 import React from 'react';
 import Link from 'next/link';
+import { getServerSession } from 'next-auth';
 import { getCampaignPct } from '@/lib/campaign-seeds';
+import { authOptions } from '@/lib/auth';
+import { rankCampaignsForDiscovery } from '@/lib/campaign-recommendations';
 import { getCachedPublicCampaignsList } from '@/lib/campaigns-data';
+import { getBackerRecommendationContext } from '@/lib/discovery-preferences';
 import CampaignCard from '@/components/ui/CampaignCard';
 
+type SessionUser = {
+  id?: string | null;
+};
+
+function getSessionUser(session: unknown): SessionUser {
+  if (!session || typeof session !== 'object' || !('user' in session)) return {};
+  return ((session as { user?: unknown }).user as SessionUser | undefined) ?? {};
+}
+
 export default async function DiscoverPage() {
-  const campaigns = (await getCachedPublicCampaignsList()).filter(
+  const session = await getServerSession(authOptions);
+  const userId = getSessionUser(session).id ?? null;
+  const [allCampaigns, recommendationContext] = await Promise.all([
+    getCachedPublicCampaignsList(),
+    getBackerRecommendationContext(userId),
+  ]);
+  const campaigns = allCampaigns.filter(
     (campaign) => campaign.status === 'active' && !campaign.isEnded,
   );
+  const recommendations = rankCampaignsForDiscovery(campaigns, recommendationContext);
 
   return (
     <div className="overview-page">
@@ -19,7 +39,7 @@ export default async function DiscoverPage() {
       </div>
 
       <div className="campaign-grid">
-        {campaigns.map(c => {
+        {recommendations.map(({ campaign: c }) => {
           const pct = c.pct ?? getCampaignPct(c.raised, c.goal);
 
           return (

@@ -26,14 +26,14 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const role = searchParams.get("role") || undefined;
-    const kyc = searchParams.get("kyc") || undefined;
+    const verification = searchParams.get("verification") || undefined;
     const search = searchParams.get("search") || undefined;
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
     const limit = 50;
 
     const where: Prisma.UserWhereInput = {};
     if (role && role !== "all") where.role = role;
-    if (kyc && kyc !== "all") where.bushaStatus = kyc;
+    if (verification && verification !== "all") where.kycStatus = verification;
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
@@ -53,7 +53,11 @@ export async function GET(req: Request) {
           email: true,
           role: true,
           image: true,
-          bushaStatus: true,
+          kycStatus: true,
+          emailVerified: true,
+          verificationFullName: true,
+          verificationIdType: true,
+          verificationIdImage: true,
           emailNotifications: true,
           _count: {
             select: {
@@ -74,7 +78,11 @@ export async function GET(req: Request) {
         email: u.email || "—",
         role: u.role || "backer",
         image: u.image,
-        bushaStatus: u.bushaStatus || "unverified",
+        verificationStatus: u.kycStatus || "unverified",
+        emailVerified: !!u.emailVerified,
+        verificationFullName: u.verificationFullName,
+        verificationDocumentType: u.verificationIdType,
+        verificationDocumentUrl: u.verificationIdImage,
         campaignCount: u._count.campaigns,
         donationCount: u._count.donations,
       })),
@@ -127,7 +135,7 @@ export async function POST(req: Request) {
         email: normalizedEmail,
         role: parsedRole,
         password: parsedPassword ? await bcrypt.hash(parsedPassword, 10) : null,
-        bushaStatus: "unverified",
+        kycStatus: "unverified",
       },
     });
 
@@ -157,7 +165,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Admin access required." }, { status: 403 });
     }
 
-    const { userId, action, role, kycStatus } = await req.json();
+    const { userId, action, role, verificationStatus } = await req.json();
     if (!userId || typeof userId !== "string") {
       return NextResponse.json({ error: "userId required." }, { status: 400 });
     }
@@ -190,14 +198,20 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ success: true, user: { id: updated.id, role: updated.role } });
     }
 
-    if (action === "set-kyc") {
+    if (action === "set-verification") {
       const allowed = ["unverified", "pending", "verified", "rejected"];
-      if (!allowed.includes(kycStatus)) {
-        return NextResponse.json({ error: `KYC status must be one of: ${allowed.join(", ")}.` }, { status: 400 });
+      if (!allowed.includes(verificationStatus)) {
+        return NextResponse.json({ error: `Verification status must be one of: ${allowed.join(", ")}.` }, { status: 400 });
       }
-      const updated = await prisma.user.update({ where: { id: userId }, data: { bushaStatus: kycStatus } });
+      const updated = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          kycStatus: verificationStatus,
+        },
+      });
       revalidatePath("/admin/users");
-      return NextResponse.json({ success: true, user: { id: updated.id, bushaStatus: updated.bushaStatus } });
+      revalidatePath("/admin");
+      return NextResponse.json({ success: true, user: { id: updated.id, verificationStatus: updated.kycStatus } });
     }
 
     if (action === "ban") {

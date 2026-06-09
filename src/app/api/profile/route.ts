@@ -46,13 +46,19 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "A valid email address is required." }, { status: 400 });
     }
 
+    const currentUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+
     let updatedUser;
     try {
-      updatedUser = await (prisma.user as any).update({
+      updatedUser = await prisma.user.update({
         where: { id: userId },
         data: {
           name: parsedName,
           email: parsedEmail,
+          ...(currentUser?.email?.toLowerCase() !== parsedEmail ? { emailVerified: null } : {}),
           ...(parsedImage !== undefined ? { image: parsedImage } : {}),
           ...(emailNotifications !== undefined ? { emailNotifications: !!emailNotifications } : {}),
           ...(pushNotifications !== undefined ? { pushNotifications: !!pushNotifications } : {}),
@@ -63,6 +69,7 @@ export async function PATCH(req: Request) {
           id: true,
           name: true,
           email: true,
+          emailVerified: true,
           image: true,
           emailNotifications: true,
           pushNotifications: true,
@@ -70,9 +77,11 @@ export async function PATCH(req: Request) {
           marketingEmails: true,
         },
       });
-    } catch (dbError: any) {
+    } catch (dbError: unknown) {
       console.error("Database update error:", dbError);
-      if (dbError.code === 'P2024' || dbError.message?.includes('Can\'t reach database server')) {
+      const errorCode = typeof dbError === "object" && dbError && "code" in dbError ? dbError.code : undefined;
+      const errorMessage = dbError instanceof Error ? dbError.message : "";
+      if (errorCode === 'P2024' || errorMessage.includes('Can\'t reach database server')) {
         return NextResponse.json({ error: "The database is currently busy. Please wait a few seconds and try again." }, { status: 503 });
       }
       throw dbError; // Let the outer catch handle other Prisma errors
