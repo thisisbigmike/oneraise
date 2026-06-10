@@ -60,8 +60,8 @@ export default function AdminSettingsPage() {
       setCurrentPw('');
       setNewPw('');
       setConfirmPw('');
-    } catch (err: any) {
-      showToast(err.message || 'Failed to change password.', 'error');
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : 'Failed to change password.', 'error');
     } finally {
       setPwLoading(false);
     }
@@ -83,7 +83,7 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
-      <div className="content-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+      <div className="content-grid admin-responsive-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: 24 }}>
 
         {/* Platform Configuration */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>

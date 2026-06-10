@@ -132,7 +132,7 @@ export default function AdminReportsPage() {
             <div style={{ color: 'var(--w50)', fontSize: 13, marginTop: 4 }}>Download operational reports for finance, moderation, and platform review.</div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div className="admin-chip-row" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {[
             ['summary', 'Platform summary'],
             ['users', 'Users'],
@@ -154,7 +154,7 @@ export default function AdminReportsPage() {
             <div className="cc-title">Latest Flags</div>
             <div style={{ color: 'var(--w50)', fontSize: 13, marginTop: 4 }}>Resolve, dismiss, reopen, or suspend campaigns from the moderation queue.</div>
           </div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div className="admin-chip-row" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {['all', 'open', 'resolved', 'dismissed'].map((item) => (
               <button
                 key={item}

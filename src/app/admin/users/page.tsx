@@ -164,10 +164,11 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-        <form onSubmit={e => { e.preventDefault(); setSearch(searchInput); setPage(1); }} style={{ display: 'flex', gap: 8 }}>
+      <div className="admin-filter-bar" style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
+        <form className="admin-search-form" onSubmit={e => { e.preventDefault(); setSearch(searchInput); setPage(1); }} style={{ display: 'flex', gap: 8 }}>
           <input
             className="s-input"
+            aria-label="Search users by name or email"
             placeholder="Search name or email..."
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
@@ -176,7 +177,7 @@ export default function AdminUsersPage() {
           <button type="submit" className="btn-secondary" style={{ padding: '8px 16px', fontSize: 13 }}>Search</button>
           {search && <button type="button" className="btn-secondary" style={{ padding: '8px 12px', fontSize: 13 }} onClick={() => { setSearch(''); setSearchInput(''); setPage(1); }}>Clear</button>}
         </form>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div className="admin-chip-row" style={{ display: 'flex', gap: 6 }}>
           {['all', 'creator', 'backer', 'admin', 'banned'].map(r => (
             <button
               key={r}
@@ -193,7 +194,7 @@ export default function AdminUsersPage() {
             </button>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div className="admin-chip-row" style={{ display: 'flex', gap: 6 }}>
           {['all', 'verified', 'pending', 'unverified', 'rejected'].map(k => (
             <button
               key={k}

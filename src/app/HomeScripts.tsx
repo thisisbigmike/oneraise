@@ -7,32 +7,42 @@ export default function HomeScripts() {
     // ── PIXEL TRAIL ──
     const dots: { el: HTMLDivElement; x: number; y: number }[] = [];
     const MAX_DOTS = 18;
-    for (let i = 0; i < MAX_DOTS; i++) {
-      const d = document.createElement('div');
-      d.className = 'trail-dot';
-      document.body.appendChild(d);
-      dots.push({ el: d, x: 0, y: 0 });
-    }
+    const enableTrail =
+      window.matchMedia('(pointer: fine)').matches &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let mouseX = 0,
       mouseY = 0;
+    let hasMousePosition = false;
+    let trailInterval: number | undefined;
     const handleMouseMove = (e: MouseEvent) => {
       mouseX = e.clientX;
       mouseY = e.clientY;
+      hasMousePosition = true;
     };
-    document.addEventListener('mousemove', handleMouseMove);
     let trailIdx = 0;
-    const trailInterval = setInterval(() => {
-      const d = dots[trailIdx % MAX_DOTS];
-      d.x = mouseX;
-      d.y = mouseY;
-      d.el.style.left = mouseX + 'px';
-      d.el.style.top = mouseY + 'px';
-      d.el.style.opacity = '0.6';
-      setTimeout(() => {
-        d.el.style.opacity = '0';
-      }, 300);
-      trailIdx++;
-    }, 40);
+    if (enableTrail) {
+      for (let i = 0; i < MAX_DOTS; i++) {
+        const d = document.createElement('div');
+        d.className = 'trail-dot';
+        document.body.appendChild(d);
+        dots.push({ el: d, x: 0, y: 0 });
+      }
+
+      document.addEventListener('mousemove', handleMouseMove);
+      trailInterval = window.setInterval(() => {
+        if (!hasMousePosition) return;
+        const d = dots[trailIdx % MAX_DOTS];
+        d.x = mouseX;
+        d.y = mouseY;
+        d.el.style.left = mouseX + 'px';
+        d.el.style.top = mouseY + 'px';
+        d.el.style.opacity = '0.45';
+        window.setTimeout(() => {
+          d.el.style.opacity = '0';
+        }, 260);
+        trailIdx++;
+      }, 48);
+    }
 
     // ── MOBILE MENU ──
     const hamburger = document.getElementById('hamburger');
@@ -219,7 +229,7 @@ export default function HomeScripts() {
     // Cleanup
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
-      clearInterval(trailInterval);
+      if (trailInterval) window.clearInterval(trailInterval);
       hamburger?.removeEventListener('click', handleMenuClick);
       mobileMenu?.removeEventListener('click', handleMenuLinkClick);
       document.removeEventListener('keydown', handleEscape);

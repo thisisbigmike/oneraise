@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -15,6 +15,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const { data: session, status } = useSession();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -23,6 +24,28 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.replace('/auth?mode=signin');
     }
   }, [status, session, router]);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setMobileMenuOpen(false), 0);
+    return () => window.clearTimeout(id);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileMenuOpen(false);
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [mobileMenuOpen]);
 
   if (status === 'loading') {
     return (
@@ -52,7 +75,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <ThemeProvider>
     <ToastProvider>
       <div className="dash-wrapper">
-        <aside className="sidebar" style={{ borderRightColor: 'rgba(239,159,39,0.1)' }}>
+        <div className="mobile-topbar admin-mobile-topbar">
+          <Link href="/" className="logo">One<span>Raise</span></Link>
+          <div className="mobile-topbar-actions">
+            <span className="mobile-topbar-label">Admin</span>
+            <button
+              type="button"
+              className={`hamburger-btn ${mobileMenuOpen ? 'open' : ''}`}
+              onClick={() => setMobileMenuOpen(open => !open)}
+              aria-label={mobileMenuOpen ? 'Close admin navigation' : 'Open admin navigation'}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="admin-sidebar"
+            >
+              <span className="hamburger-line" aria-hidden="true" />
+              <span className="hamburger-line" aria-hidden="true" />
+              <span className="hamburger-line" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+
+        {mobileMenuOpen && (
+          <button
+            type="button"
+            className="mobile-overlay"
+            aria-label="Close navigation menu"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+
+        <aside
+          id="admin-sidebar"
+          className={`sidebar ${mobileMenuOpen ? 'sidebar-mobile-open' : ''}`}
+          style={{ borderRightColor: 'rgba(239,159,39,0.1)' }}
+          aria-label="Admin navigation"
+        >
           <div className="sidebar-header">
             <Link href="/" className="logo">One<span>Raise</span></Link>
             <div className="logo-sub" style={{ color: 'var(--amber)' }}>ADMIN PORTAL</div>
@@ -64,7 +120,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 {sec.items.map(item => {
                   const isActive = pathname === item.path || (pathname.startsWith(item.path) && item.path !== '/admin');
                   return (
-                    <Link key={item.name} href={item.path} className={`nav-link ${isActive ? 'active' : ''}`}>
+                    <Link key={item.name} href={item.path} className={`nav-link ${isActive ? 'active' : ''}`} onClick={() => setMobileMenuOpen(false)}>
                       <div className="nl-left"><span className="nl-icon">{item.icon}</span><span className="nl-text">{item.name}</span></div>
                       {item.badge && <span className="nl-badge" style={{ background: 'var(--amber)', color: 'var(--ink)' }}>{item.badge}</span>}
                     </Link>
@@ -77,7 +133,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <ThemeToggle />
 
           <div className="sidebar-footer">
-            <Link href="/admin/settings" className="user-profile">
+            <Link href="/admin/settings" className="user-profile" onClick={() => setMobileMenuOpen(false)}>
               <div className="up-avatar" style={{background: 'var(--amber)', color: 'var(--ink)'}}>SYS</div>
               <div className="up-info">
                 <div className="up-name">System Admin</div>
@@ -98,13 +154,13 @@ function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   return (
     <div className="theme-toggle">
-      <button className={theme === 'light' ? 'active' : ''} onClick={() => setTheme('light')}>
+      <button type="button" aria-label="Use light theme" className={theme === 'light' ? 'active' : ''} onClick={() => setTheme('light')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
       </button>
-      <button className={theme === 'dark' ? 'active' : ''} onClick={() => setTheme('dark')}>
+      <button type="button" aria-label="Use dark theme" className={theme === 'dark' ? 'active' : ''} onClick={() => setTheme('dark')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
       </button>
-      <button className={theme === 'system' ? 'active' : ''} onClick={() => setTheme('system')}>
+      <button type="button" aria-label="Use system theme" className={theme === 'system' ? 'active' : ''} onClick={() => setTheme('system')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
       </button>
     </div>

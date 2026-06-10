@@ -115,10 +115,11 @@ function AdminCampaignsContent() {
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-        <form onSubmit={e => { e.preventDefault(); setSearch(searchInput); setPage(1); }} style={{ display: 'flex', gap: 8 }}>
+      <div className="admin-filter-bar" style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
+        <form className="admin-search-form" onSubmit={e => { e.preventDefault(); setSearch(searchInput); setPage(1); }} style={{ display: 'flex', gap: 8 }}>
           <input
             className="s-input"
+            aria-label="Search campaigns by title or slug"
             placeholder="Search title or slug..."
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
@@ -127,7 +128,7 @@ function AdminCampaignsContent() {
           <button type="submit" className="btn-secondary" style={{ padding: '8px 16px', fontSize: 13 }}>Search</button>
           {search && <button type="button" className="btn-secondary" style={{ padding: '8px 12px', fontSize: 13 }} onClick={() => { setSearch(''); setSearchInput(''); setPage(1); }}>Clear</button>}
         </form>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div className="admin-chip-row" style={{ display: 'flex', gap: 6 }}>
           {['all', 'active', 'draft', 'paused', 'completed', 'suspended'].map(s => (
             <button
               key={s}

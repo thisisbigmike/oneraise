@@ -133,7 +133,7 @@ function AdminTransactionsContent() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '1px solid rgba(245,250,247,0.08)', paddingBottom: 0 }}>
+      <div className="admin-tabs" style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '1px solid rgba(245,250,247,0.08)', paddingBottom: 0 }}>
         {(['donations', 'payouts'] as const).map(t => (
           <button
             key={t}
@@ -153,7 +153,7 @@ function AdminTransactionsContent() {
       </div>
 
       {/* Status filters */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
+      <div className="admin-chip-row" style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
         {(tab === 'donations' ? donationStatuses : payoutStatuses).map(s => (
           <button
             key={s}

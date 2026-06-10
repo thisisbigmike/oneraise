@@ -240,7 +240,7 @@ export default function AdminOverview() {
       </div>
 
       {stats && (
-        <div className="content-grid" style={{ gridTemplateColumns: 'minmax(0, 1.1fr) minmax(320px, 0.9fr)', marginBottom: 24 }}>
+        <div className="content-grid admin-responsive-grid" style={{ gridTemplateColumns: 'minmax(0, 1.1fr) minmax(320px, 0.9fr)', marginBottom: 24 }}>
           <div className="content-card">
             <div className="cc-header">
               <div>

@@ -113,7 +113,6 @@ export default async function Home() {
   const getInitials = (name: string) => name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'OR';
 
   const campaignPct = (campaign: CampaignListItem) => campaign.pct;
-  const formatCompactGoal = (value: number) => (value >= 1000 && value % 1000 === 0 ? `$${value / 1000}k goal` : `$${value?.toLocaleString()} goal`);
 
   return (
     <main>
@@ -355,9 +354,20 @@ export default async function Home() {
       ))}
     </div>
   ) : (
-    <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--w50)' }}>
-      <p>No active campaigns found in the database yet.</p>
-      <AnimatedButton text="Start the first campaign" href="/join" style={{ marginTop: '20px' }} />
+    <div className="campaigns-empty">
+      <div className="campaigns-empty-icon" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+          <path d="M5 12h14M12 5v14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      </div>
+      <div>
+        <h3>No active campaigns yet</h3>
+        <p>Launch the first live campaign or browse drafts from the dashboard once they are approved.</p>
+      </div>
+      <div className="campaigns-empty-actions">
+        <AnimatedButton text="Start a campaign" href="/join" />
+        <Link href="/explore" className="btn-hero-secondary">Browse campaigns</Link>
+      </div>
     </div>
   )}
 </section>
