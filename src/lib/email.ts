@@ -1,42 +1,28 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
-const FROM = process.env.EMAIL_FROM || `OneRaise <${process.env.GMAIL_USER}>`;
+const DEFAULT_DEV_FROM = 'OneRaise <onboarding@resend.dev>';
 const APP_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
-let transporter: nodemailer.Transporter | null | undefined;
+function getResendConfig() {
+  const apiKey = process.env.RESEND_API_KEY?.trim() || '';
+  const from = process.env.EMAIL_FROM?.trim() || '';
 
-function hasUsableGmailConfig() {
-  const user = process.env.GMAIL_USER?.trim() || '';
-  const password = process.env.GMAIL_APP_PASSWORD?.trim() || '';
-
-  if (!user || !password) return false;
-  if (user === 'your-gmail@gmail.com') return false;
-  if (/^x+(\s+x+)*$/i.test(password)) return false;
-
-  return true;
-}
-
-function getTransporter() {
-  if (transporter !== undefined) return transporter;
-  if (!hasUsableGmailConfig()) {
-    transporter = null;
-    return transporter;
+  if (!apiKey) return null;
+  if (!from && process.env.NODE_ENV === 'production') {
+    throw new Error('Email service is not configured correctly.');
   }
-  transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  });
-  return transporter;
+
+  return {
+    apiKey,
+    from: from || DEFAULT_DEV_FROM,
+  };
 }
 
 export async function sendEmailVerificationEmail(email: string, token: string) {
   const url = `${APP_URL}/api/email-verify/confirm?token=${token}&email=${encodeURIComponent(email)}`;
+  const config = getResendConfig();
 
-  const client = getTransporter();
-  if (!client) {
+  if (!config) {
     if (process.env.NODE_ENV === 'production') {
       throw new Error('Email service is not configured correctly.');
     }
@@ -44,10 +30,20 @@ export async function sendEmailVerificationEmail(email: string, token: string) {
     return;
   }
 
-  await client.sendMail({
-    from: FROM,
-    to: email,
-    subject: 'Verify your email — OneRaise',
+  const text = [
+    'Verify your email',
+    '',
+    'Click the link below to verify your OneRaise email address. This link expires in 24 hours.',
+    url,
+    '',
+    "If you didn't request this, ignore this email.",
+  ].join('\n');
+
+  const resend = new Resend(config.apiKey);
+  const { error } = await resend.emails.send({
+    from: config.from,
+    to: [email],
+    subject: 'Verify your email - OneRaise',
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;">
         <h2 style="margin-bottom:8px;">Verify your email</h2>
@@ -56,5 +52,10 @@ export async function sendEmailVerificationEmail(email: string, token: string) {
         <p style="color:#999;font-size:12px;margin-top:24px;">If you didn't request this, ignore this email.</p>
       </div>
     `,
+    text,
   });
+
+  if (error) {
+    throw new Error(`Resend email failed: ${error.message}`);
+  }
 }

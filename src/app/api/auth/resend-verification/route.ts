@@ -14,8 +14,8 @@ function getResendErrorMessage(error: unknown) {
     return 'The database is currently unavailable. Please wait a few seconds and try again.';
   }
 
-  if (/EAUTH|Invalid login|authentication|Username and Password not accepted|Missing credentials/i.test(message)) {
-    return 'Email service is not configured correctly. Check the Gmail sender and app password.';
+  if (/Resend email failed|Email service is not configured|EAUTH|Invalid login|authentication|Username and Password not accepted|Missing credentials/i.test(message)) {
+    return 'Email service is not configured correctly. Check the Resend API key and sender address.';
   }
 
   return 'Could not send verification email. Please try again.';

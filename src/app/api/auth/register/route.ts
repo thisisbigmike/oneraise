@@ -14,7 +14,7 @@ function getRegistrationErrorMessage(error: unknown) {
     return 'The database is currently unavailable. Please wait a few seconds and try again.';
   }
 
-  if (/EAUTH|Invalid login|authentication|Username and Password not accepted|Missing credentials/i.test(message)) {
+  if (/Resend email failed|Email service is not configured|EAUTH|Invalid login|authentication|Username and Password not accepted|Missing credentials/i.test(message)) {
     return 'Account could not be created because email verification is not configured correctly.';
   }
 
