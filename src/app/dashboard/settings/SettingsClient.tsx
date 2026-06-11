@@ -18,11 +18,33 @@ type SettingsClientProps = {
   initialMarketingNotif?: boolean;
 };
 
+type EmailVerificationResponse = {
+  success?: boolean;
+  alreadyVerified?: boolean;
+  error?: string;
+};
+
 const MAX_PROFILE_PHOTO_SIZE = 2 * 1024 * 1024;
 const INVITE_ROLE_OPTIONS = [
   { value: 'editor', label: 'Editor' },
   { value: 'viewer', label: 'Viewer' },
 ];
+
+async function readJsonResponse(res: Response): Promise<EmailVerificationResponse> {
+  const text = await res.text();
+
+  if (!text.trim()) {
+    if (res.ok) return {};
+    throw new Error('The server returned an empty response. Please try again.');
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(text);
+    return parsed && typeof parsed === 'object' ? parsed as EmailVerificationResponse : {};
+  } catch {
+    throw new Error('The server returned an unreadable response. Please try again.');
+  }
+}
 
 function readProfilePhoto(file: File): Promise<string> {
   if (!file.type.startsWith('image/')) {
@@ -278,7 +300,7 @@ export default function SettingsClient(props: SettingsClientProps) {
     setSendingEmailVerification(true);
     try {
       const res = await fetch('/api/email-verify/request', { method: 'POST' });
-      const data = await res.json();
+      const data = await readJsonResponse(res);
       if (!res.ok) throw new Error(data.error || 'Could not send verification email.');
       if (data.alreadyVerified) {
         setEmailVerified(true);

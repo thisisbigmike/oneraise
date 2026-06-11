@@ -4,17 +4,40 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { getStoredDonationCreditUsd } from '@/lib/currency';
-import { getCachedPublicCampaignsList } from '@/lib/campaigns-data';
+import { getCachedPublicCampaignsList, type CampaignListItem } from '@/lib/campaigns-data';
 import CampaignCard from '@/components/ui/CampaignCard';
+
+type SessionUser = {
+  id?: string | null;
+};
+
+type BackerDonation = {
+  amount: number;
+  currency: string | null;
+  coverFee: boolean | null;
+  provider: string | null;
+  providerDataJson: string | null;
+  campaignId: string;
+};
+
+type RecentUpdate = {
+  id: string;
+  title: string;
+  description: string | null;
+  createdAt: Date;
+  campaign: {
+    title: string;
+  };
+};
 
 export default async function BackerOverview() {
   const session = await getServerSession(authOptions);
-  const userId = (session?.user as any)?.id;
+  const userId = (session?.user as SessionUser | undefined)?.id;
   const firstName = session?.user?.name?.split(' ')[0] || 'Backer';
 
-  let userDonations: any[] = [];
-  let recentUpdates: any[] = [];
-  let allCampaigns: any[] = [];
+  let userDonations: BackerDonation[] = [];
+  let recentUpdates: RecentUpdate[] = [];
+  let allCampaigns: CampaignListItem[] = [];
 
   try {
     // Fetch real statistics for the logged-in user
@@ -80,7 +103,20 @@ export default async function BackerOverview() {
           <div className="sc-value" style={{ fontSize: 28, marginTop: 8 }}>{campaignsSupportedCount}</div>
         </div>
         <div className="stat-card">
-          <div className="sc-label">Impact Score</div>
+          <div className="sc-top">
+            <div className="sc-label">Impact Score</div>
+            <div className="sc-icon impact-score-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M12 3l2.4 5.1 5.6.7-4.1 3.9 1 5.5L12 15.5 7.1 18.2l1-5.5L4 8.8l5.6-.7L12 3z"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinejoin="round"
+                />
+                <path d="M19 3v4M21 5h-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              </svg>
+            </div>
+          </div>
           <div className="sc-value" style={{ fontSize: 28, marginTop: 8, color: 'var(--amber)' }}>{impactScore}</div>
         </div>
       </div>

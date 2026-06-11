@@ -12,9 +12,12 @@ import CampaignAssistant from '@/components/CampaignAssistant';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const userName = session?.user?.name || 'Creator';
+  const sessionName = session?.user?.name?.trim();
+  const userName = sessionName || 'Campaign workspace';
   const userImage = session?.user?.image || '';
-  const userInitials = userName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+  const userInitials = sessionName
+    ? sessionName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'CR';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [campaignCount, setCampaignCount] = useState<number | null>(null);
   const [verifiedBadge, setVerifiedBadge] = useState(false);
@@ -99,7 +102,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* MOBILE OVERLAY */}
       {mobileMenuOpen && (
-        <div className="mobile-overlay" onClick={() => setMobileMenuOpen(false)} />
+        <button
+          type="button"
+          className="mobile-overlay"
+          aria-label="Close navigation menu"
+          onClick={() => setMobileMenuOpen(false)}
+        />
       )}
 
       {/* SIDEBAR */}
@@ -145,18 +153,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <div className="sidebar-footer">
           <Link href="/dashboard/settings" className="user-profile" onClick={() => setMobileMenuOpen(false)}>
-            <div className="up-avatar">
+            <div className="up-avatar up-avatar-creator">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {userImage ? <img src={userImage} alt={`${userName} profile`} /> : userInitials}
             </div>
             <div className="up-info">
-              <div className="up-name">
+              <div className="up-name" title={userName}>
                 {userName}
-                {verifiedBadge && <svg className="verified-badge" width="16" height="16" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="11" fill="#1D9BF0"/><path d="M9.5 14.25L6.25 11l-1.02 1.02L9.5 16.29l10-10-1.02-1.02L9.5 14.25z" fill="#fff"/></svg>}
+                {verifiedBadge && <svg className="verified-badge" aria-hidden="true" width="16" height="16" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="11" fill="#1D9BF0"/><path d="M9.5 14.25L6.25 11l-1.02 1.02L9.5 16.29l10-10-1.02-1.02L9.5 14.25z" fill="#fff"/></svg>}
               </div>
-              <div className="up-role">Creator</div>
+              <div className="up-meta">
+                <span className="up-role-badge up-role-creator">
+                  <span className="up-role-dot" aria-hidden="true" />
+                  Creator
+                </span>
+                {verifiedBadge && <span className="up-verified-pill">Verified</span>}
+              </div>
             </div>
-            <svg className="up-arrow" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </Link>
         </div>
       </aside>
@@ -176,13 +189,13 @@ function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   return (
     <div className="theme-toggle">
-      <button className={theme === 'light' ? 'active' : ''} onClick={() => setTheme('light')}>
+      <button type="button" aria-label="Use light theme" className={theme === 'light' ? 'active' : ''} onClick={() => setTheme('light')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
       </button>
-      <button className={theme === 'dark' ? 'active' : ''} onClick={() => setTheme('dark')}>
+      <button type="button" aria-label="Use dark theme" className={theme === 'dark' ? 'active' : ''} onClick={() => setTheme('dark')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
       </button>
-      <button className={theme === 'system' ? 'active' : ''} onClick={() => setTheme('system')}>
+      <button type="button" aria-label="Use system theme" className={theme === 'system' ? 'active' : ''} onClick={() => setTheme('system')}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
       </button>
     </div>

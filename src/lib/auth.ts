@@ -98,11 +98,26 @@ providers.push(
         return { id: 'admin-id', email: 'admin', name: 'System Admin', role: 'admin' };
       }
 
-      const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+      const user = await prisma.user.findUnique({
+        where: { email: normalizedEmail },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          image: true,
+          password: true,
+          role: true,
+          emailVerified: true,
+        },
+      });
       if (!user || !user.password) return null;
       
       const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
       if (!isPasswordValid) return null;
+
+      if (!user.emailVerified) {
+        throw new Error("EmailNotVerified");
+      }
 
       return { id: user.id, email: user.email, name: user.name, image: user.image, role: user.role };
     }
@@ -134,7 +149,7 @@ export const authOptions: AuthOptions = {
       }
       return session;
     },
-    async jwt({ token, user, trigger, session, account }) {
+    async jwt({ token, user, trigger, session }) {
       // On initial sign-in, build a minimal token
       if (user) {
         const authUser = user as AuthUser;

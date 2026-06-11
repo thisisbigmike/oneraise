@@ -5,9 +5,20 @@ const APP_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
 let transporter: nodemailer.Transporter | null | undefined;
 
+function hasUsableGmailConfig() {
+  const user = process.env.GMAIL_USER?.trim() || '';
+  const password = process.env.GMAIL_APP_PASSWORD?.trim() || '';
+
+  if (!user || !password) return false;
+  if (user === 'your-gmail@gmail.com') return false;
+  if (/^x+(\s+x+)*$/i.test(password)) return false;
+
+  return true;
+}
+
 function getTransporter() {
   if (transporter !== undefined) return transporter;
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+  if (!hasUsableGmailConfig()) {
     transporter = null;
     return transporter;
   }
@@ -26,6 +37,9 @@ export async function sendEmailVerificationEmail(email: string, token: string) {
 
   const client = getTransporter();
   if (!client) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Email service is not configured correctly.');
+    }
     console.log(`[DEV] Email verification link for ${email}:\n${url}`);
     return;
   }

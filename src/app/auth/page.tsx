@@ -252,6 +252,20 @@ function AuthPageContent() {
     return role;
   };
 
+  const resendVerificationForSignin = async (normalizedEmail: string, signinPassword: string) => {
+    try {
+      const res = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail, password: signinPassword }),
+      });
+      const data = await res.json();
+      return res.ok && data?.sent === true;
+    } catch {
+      return false;
+    }
+  };
+
   const handleSignup = async () => {
     if (!selectedSignupRole || role !== selectedSignupRole) {
       showToast('Choose whether you are signing up as a creator or donor first.', 'warning', 'Choose Account Type');
@@ -281,7 +295,7 @@ function AuthPageContent() {
       setLoading(false);
 
       setSuccessState(true);
-      showToast('Account created successfully! Please sign in manually.', 'success', 'Welcome to OneRaise');
+      showToast('Account created. Check your inbox to verify your email before signing in.', 'success', 'Verify your email');
       setTimeout(() => {
         setSuccessState(false);
         setMode('signin');
@@ -312,7 +326,18 @@ function AuthPageContent() {
       setLoading(false);
 
       if (res?.error) {
-        showToast('Invalid email or password. Please try again.', 'error', 'Login Failed');
+        if (res.error.includes('EmailNotVerified')) {
+          const verificationSent = isAdminLogin ? false : await resendVerificationForSignin(normalizedEmail, password);
+          showToast(
+            verificationSent
+              ? 'Verify your email before signing in. We sent you a fresh verification link.'
+              : 'Verify your email before signing in. Check your inbox for the verification link.',
+            'warning',
+            'Email Verification Required',
+          );
+        } else {
+          showToast('Invalid email or password. Please try again.', 'error', 'Login Failed');
+        }
         return;
       }
 
