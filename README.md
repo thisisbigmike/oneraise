@@ -38,7 +38,11 @@ OneRaise is a next-generation crowdfunding platform designed to bridge the gap b
 
 ## Technical Setup
 
-This app is built with **Next.js 15**, **Prisma**, and **Supabase**.
+This app is built with **Next.js 16**, **Prisma**, and **Supabase**.
+
+### Environment
+
+Copy `.env.example` to `.env` and `.env.local`, then fill in real values. The example file documents every variable the app reads (database, auth, email, Busha, MoonPay, Paystack, Solana/Jupiter, AI).
 
 ### Supabase Setup
 
