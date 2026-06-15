@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getStoredDonationCreditUsd } from "@/lib/currency";
+import { getCreatorPayoutSummary } from "@/lib/payment-records";
+import { isProtectedCampaignType } from "@/lib/campaign-lifecycle";
 import AnalyticsClient, { AnalyticsEvent } from "./AnalyticsClient";
 
 type SessionUser = {
@@ -62,5 +64,64 @@ export default async function AnalyticsPage() {
     dateIso: donation.createdAt.toISOString(),
   }));
 
-  return <AnalyticsClient events={events} />;
+  if (!isCreator) {
+    return <AnalyticsClient events={events} />;
+  }
+
+  // ── Creator-only enrichments (F4) ──
+  const [withdrawSummary, creatorCampaigns] = await Promise.all([
+    getCreatorPayoutSummary(sessionUser.id),
+    prisma.campaign.findMany({
+      where: { userId: sessionUser.id },
+      select: {
+        title: true,
+        slug: true,
+        type: true,
+        goal: true,
+        raised: true,
+        status: true,
+        protectStatus: true,
+        milestones: { select: { status: true } },
+        donations: {
+          where: { status: "completed" },
+          select: { userId: true },
+        },
+      },
+    }),
+  ]);
+
+  const withdraw = {
+    available: withdrawSummary.availableBalance,
+    pending: withdrawSummary.pendingBalance,
+    withdrawn: withdrawSummary.totalWithdrawn,
+  };
+
+  const escrow = creatorCampaigns
+    .filter((campaign) => isProtectedCampaignType(campaign.type))
+    .map((campaign) => ({
+      title: campaign.title,
+      slug: campaign.slug,
+      protectStatus: campaign.protectStatus,
+      approved: campaign.milestones.filter((m) => m.status === "approved").length,
+      total: campaign.milestones.length,
+      goalMet: campaign.goal > 0 && campaign.raised >= campaign.goal,
+    }));
+
+  // New vs repeat donors across the creator's campaigns (registered donors only).
+  const donorCounts = new Map<string, number>();
+  for (const campaign of creatorCampaigns) {
+    for (const donation of campaign.donations) {
+      if (donation.userId) {
+        donorCounts.set(donation.userId, (donorCounts.get(donation.userId) || 0) + 1);
+      }
+    }
+  }
+  const donorSplit = {
+    newDonors: [...donorCounts.values()].filter((count) => count === 1).length,
+    repeatDonors: [...donorCounts.values()].filter((count) => count > 1).length,
+  };
+
+  return (
+    <AnalyticsClient events={events} withdraw={withdraw} escrow={escrow} donorSplit={donorSplit} />
+  );
 }

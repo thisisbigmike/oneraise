@@ -1,6 +1,8 @@
 import prisma from "@/lib/prisma";
 import { getStoredDonationCreditUsd } from "@/lib/currency";
 import { safeJsonParse } from "@/lib/payments";
+import { notifyRecipient, donationReceiptText } from "@/lib/notify";
+import { syncBadges } from "@/lib/badges";
 
 export function stringifyJson(value: unknown) {
   return JSON.stringify(value ?? null);
@@ -13,7 +15,9 @@ export async function markDonationStatus(args: {
   providerData?: unknown;
   instructions?: unknown;
 }) {
-  return prisma.$transaction(async (tx) => {
+  let freshlyCreditedDonationId: string | null = null;
+
+  const result = await prisma.$transaction(async (tx) => {
     const existing = await tx.donation.findUnique({
       where: { id: args.donationId },
     });
@@ -54,16 +58,81 @@ export async function markDonationStatus(args: {
         },
       });
 
-      return tx.donation.update({
+      const credited = await tx.donation.update({
         where: { id: existing.id },
         data: {
           creditedAt: new Date(),
         },
       });
+
+      // Idempotent gate: notifications fire only on the one credit transition.
+      freshlyCreditedDonationId = existing.id;
+      return credited;
     }
 
     return updated;
   });
+
+  if (freshlyCreditedDonationId) {
+    // Best-effort, post-commit. Must never block or fail donation crediting.
+    void sendDonationNotifications(freshlyCreditedDonationId);
+  }
+
+  return result;
+}
+
+/** Fire-and-forget WhatsApp/SMS for a freshly credited donation. Swallows errors. */
+async function sendDonationNotifications(donationId: string) {
+  try {
+    const donation = await prisma.donation.findUnique({
+      where: { id: donationId },
+      include: {
+        campaign: { include: { user: true } },
+        user: true,
+      },
+    });
+    if (!donation) return;
+
+    const amountLabel = `${donation.currency} ${donation.amount.toLocaleString()}`;
+    const campaignTitle = donation.campaign.title;
+
+    // Donor receipt (registered donor phone, or phone captured at checkout).
+    const donorPhone = donation.user?.phone || donation.donorPhone || null;
+    if (donorPhone) {
+      await notifyRecipient(
+        {
+          phone: donorPhone,
+          whatsappNotifications: donation.user?.whatsappNotifications,
+          smsNotifications: donation.user?.smsNotifications,
+        },
+        donationReceiptText(amountLabel, campaignTitle),
+      );
+    }
+
+    // Recompute donor badges (may emit a "badge unlocked" feed row + push).
+    if (donation.userId) {
+      await syncBadges(donation.userId);
+    }
+
+    // Creator alert — "you received a donation". High-value real-time nudge.
+    const creator = donation.campaign.user;
+    if (creator?.phone && creator.campaignUpdates !== false) {
+      await notifyRecipient(
+        {
+          phone: creator.phone,
+          whatsappNotifications: creator.whatsappNotifications,
+          smsNotifications: creator.smsNotifications,
+        },
+        `OneRaise: you received ${amountLabel} on "${campaignTitle}". 🎉`,
+      );
+    }
+  } catch (err) {
+    console.error(
+      `[notify] donation notification failed for ${donationId}: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+    );
+  }
 }
 
 export async function markPayoutStatus(args: {

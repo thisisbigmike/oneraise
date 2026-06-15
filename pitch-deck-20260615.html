@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OneRaise — Pitch Deck</title>
+<style>
+  :root{
+    --ink:#0A1812; --ink-mid:#111C17; --ink-card:#0D1A16;
+    --teal-50:#E1F5EE; --teal-100:#9FE1CB; --teal-200:#5DCAA5;
+    --teal-400:#1D9E75; --teal-600:#0F6E56; --teal-800:#085041; --teal-900:#04342C;
+    --amber:#EF9F27; --amber-600:#BA7517;
+    --white:#F8FCF9; --grad:linear-gradient(180deg,#18D397 0%,#09B77C 100%);
+    --grad-d:linear-gradient(135deg,#18D397 0%,#0F6E56 100%);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    background:var(--ink); color:var(--white);
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
+  .deck{height:100vh;width:100vw;position:relative}
+  .slide{
+    position:absolute;inset:0;display:none;flex-direction:column;
+    justify-content:center;padding:6vh 9vw;opacity:0;
+    transition:opacity .45s ease;
+    background:radial-gradient(120% 90% at 80% 10%,rgba(29,158,117,.12),transparent 60%),var(--ink);
+  }
+  .slide.active{display:flex;opacity:1}
+  .eyebrow{
+    font-size:.85rem;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--teal-200);font-weight:600;margin-bottom:1.2rem;
+  }
+  h1{font-size:clamp(2.6rem,6vw,5rem);line-height:1.02;font-weight:800;letter-spacing:-.02em}
+  h2{font-size:clamp(2rem,4.4vw,3.4rem);line-height:1.05;font-weight:800;letter-spacing:-.015em;margin-bottom:1.6rem}
+  h2 .hl{color:var(--teal-200)}
+  .lead{font-size:clamp(1.1rem,1.7vw,1.5rem);color:#C9DAD2;max-width:60ch;line-height:1.5}
+  .grad-text{background:var(--grad-d);-webkit-background-clip:text;background-clip:text;color:transparent}
+  ul{list-style:none;margin-top:1.4rem;display:flex;flex-direction:column;gap:1rem}
+  li{font-size:clamp(1.05rem,1.6vw,1.4rem);padding-left:1.8rem;position:relative;color:#DCEAE3;line-height:1.4}
+  li::before{content:"";position:absolute;left:0;top:.55em;width:.7rem;height:.7rem;border-radius:50%;background:var(--grad)}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1.2rem;margin-top:2rem}
+  .card{
+    background:var(--ink-card);border:1px solid rgba(93,202,165,.18);
+    border-radius:16px;padding:1.6rem 1.4rem;
+  }
+  .card .num{font-size:clamp(2rem,3.4vw,2.8rem);font-weight:800;line-height:1;background:var(--grad-d);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .card .lbl{margin-top:.6rem;font-size:.95rem;color:#A9C2B7}
+  .card .sub{margin-top:.3rem;font-size:.78rem;color:var(--teal-400);font-weight:600}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:2.4rem;align-items:start}
+  .panel{background:var(--ink-card);border:1px solid rgba(93,202,165,.18);border-radius:16px;padding:1.8rem}
+  .panel h3{font-size:1.15rem;color:var(--teal-200);margin-bottom:1rem;letter-spacing:.02em}
+  .panel.bad h3{color:#F09595}
+  .panel.bad{border-color:rgba(240,149,149,.25)}
+  .panel ul li::before{background:#F09595}
+  .panel.good ul li::before{background:var(--grad)}
+  .timeline{display:grid;grid-template-columns:repeat(4,1fr);gap:1.2rem;margin-top:2.2rem}
+  .phase{background:var(--ink-card);border:1px solid rgba(93,202,165,.18);border-radius:14px;padding:1.4rem 1.2rem;position:relative}
+  .phase .q{font-size:.78rem;font-weight:700;color:var(--amber);letter-spacing:.05em;text-transform:uppercase}
+  .phase h4{font-size:1.05rem;margin:.5rem 0 .7rem;color:var(--white)}
+  .phase p{font-size:.88rem;color:#B4CABF;line-height:1.45}
+  .ask-row{display:flex;gap:1.4rem;flex-wrap:wrap;margin-top:2rem}
+  .ask-chip{background:var(--ink-card);border:1px solid rgba(93,202,165,.25);border-radius:999px;padding:.85rem 1.5rem;font-size:1.05rem;font-weight:600}
+  .ask-chip b{color:var(--teal-200)}
+  .logo{display:flex;align-items:center;gap:.7rem;margin-bottom:2.4rem}
+  .logo .mark{width:46px;height:46px;border-radius:12px;background:var(--grad);display:grid;place-items:center;font-weight:800;color:#04342C;font-size:1.4rem}
+  .logo .name{font-size:1.3rem;font-weight:800;letter-spacing:-.01em}
+  .tagline{margin-top:1.6rem;font-size:clamp(1.2rem,2vw,1.7rem);color:#C9DAD2;font-weight:500}
+  .footer-note{position:absolute;bottom:5vh;left:9vw;font-size:.9rem;color:#7FA295}
+  .badge{display:inline-block;background:rgba(29,158,117,.16);border:1px solid rgba(93,202,165,.3);color:var(--teal-200);font-size:.8rem;font-weight:600;padding:.35rem .9rem;border-radius:999px;letter-spacing:.04em}
+  .themes{display:flex;gap:.7rem;flex-wrap:wrap;margin-top:2rem}
+  .theme{background:rgba(29,158,117,.1);border:1px solid rgba(93,202,165,.22);border-radius:10px;padding:.55rem 1rem;font-size:.92rem;color:#CFE5DB}
+  .nav{position:fixed;bottom:2.4vh;right:3vw;display:flex;align-items:center;gap:1rem;z-index:50}
+  .nav button{background:var(--ink-card);border:1px solid rgba(93,202,165,.3);color:var(--teal-200);width:42px;height:42px;border-radius:50%;font-size:1.1rem;cursor:pointer;transition:.2s}
+  .nav button:hover{background:var(--teal-600);color:#fff}
+  .counter{font-size:.9rem;color:#7FA295;min-width:54px;text-align:center}
+  .progress{position:fixed;top:0;left:0;height:3px;background:var(--grad);transition:width .4s;z-index:50}
+  .notes{position:fixed;bottom:0;left:0;right:0;background:#06120D;border-top:1px solid rgba(93,202,165,.2);padding:1.2rem 9vw;font-size:.95rem;color:#A9C2B7;display:none;z-index:40;line-height:1.5}
+  .notes.show{display:block}
+  .notes b{color:var(--teal-200)}
+  .fill{color:var(--amber);font-weight:700}
+  .hint{position:fixed;top:1.6vh;right:3vw;font-size:.72rem;color:#5A7268;z-index:50}
+  @media(max-width:720px){.two-col,.timeline{grid-template-columns:1fr}.timeline{gap:.8rem}}
+  @media print{
+    @page{size:1280px 720px;margin:0}
+    html,body{overflow:visible;height:auto}
+    .deck{height:auto}
+    .nav,.notes,.hint,.progress{display:none!important}
+    .slide{display:flex!important;opacity:1!important;position:relative!important;inset:auto!important;
+      width:1280px;height:720px;page-break-after:always;break-after:page}
+  }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="hint">← → to navigate · N for notes</div>
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <section class="slide active">
+    <div class="logo"><div class="mark">1R</div><div class="name">OneRaise</div></div>
+    <h1>The world's first<br><span class="grad-text">borderless trust protocol</span></h1>
+    <div class="tagline">Crowdfunding where money moves on proof — not promises.</div>
+    <div class="themes">
+      <span class="theme">Stablecoins</span>
+      <span class="theme">African payment rails</span>
+      <span class="theme">AI-native fintech</span>
+      <span class="theme">Agentic payments</span>
+    </div>
+    <div class="footer-note">HEM Vibe Haus Nairobi · 2026 · oneraise.vercel.app</div>
+  </section>
+
+  <!-- 2. PROBLEM -->
+  <section class="slide">
+    <div class="eyebrow">The Problem</div>
+    <h2>Half the world is <span class="hl">locked out</span> of global crowdfunding.</h2>
+    <div class="two-col">
+      <div class="panel bad">
+        <h3>The access gap</h3>
+        <ul>
+          <li>GoFundMe, Kickstarter, Stripe — block most of Africa, LatAm, South Asia, Middle East</li>
+          <li>Creators with real causes can't even open an account</li>
+        </ul>
+      </div>
+      <div class="panel bad">
+        <h3>The trust gap</h3>
+        <ul>
+          <li>Funds that do get through move on slow, costly rails</li>
+          <li>Weeks of delay, lost to fees and FX</li>
+          <li>Donors can't verify their money achieved anything</li>
+        </ul>
+      </div>
+    </div>
+    <p class="lead" style="margin-top:1.8rem">Billions in goodwill capital never reaches the people who need it — or arrives with no proof it worked.</p>
+  </section>
+
+  <!-- 3. WHY NOW -->
+  <section class="slide">
+    <div class="eyebrow">Why Now</div>
+    <h2>The rails finally <span class="hl">exist</span>.</h2>
+    <div class="cards">
+      <div class="card"><div class="num">$160B+</div><div class="lbl">Stablecoin supply now settling real payments globally</div></div>
+      <div class="card"><div class="num">&lt;$0.01</div><div class="lbl">Solana transaction cost — micro-donations finally viable</div></div>
+      <div class="card"><div class="num">Africa</div><div class="lbl">Fastest-growing stablecoin adoption region; mobile-money native</div></div>
+    </div>
+    <ul>
+      <li>Tether and stablecoin issuers expanding aggressively into African corridors</li>
+      <li>Local rails (Busha, Raenest, Paystack) now bridge crypto ↔ local currency instantly</li>
+      <li>Africans are adopting stablecoins faster than anywhere on earth — to escape inflation and broken cross-border banking. The demand is already here; the trust layer isn't.</li>
+    </ul>
+  </section>
+
+  <!-- 4. SOLUTION -->
+  <section class="slide">
+    <div class="eyebrow">The Solution</div>
+    <h2>Money held in escrow.<br>Released only on <span class="hl">verified milestones</span>.</h2>
+    <ul>
+      <li>Contributions held in <b>stablecoin escrow on Solana</b> — settles in seconds, near-zero cost, no FX loss</li>
+      <li>Funds release to creators <b>only as predefined milestones are verified</b> — the "Protect" protocol</li>
+      <li>Connects <b>African rails</b> (Busha, Raenest, Paystack) to global liquidity — anyone, anywhere can fund anyone, anywhere</li>
+      <li>On-chain <b>proof of impact</b> for every release; Cloak adds donor privacy with an auditable compliance trail</li>
+    </ul>
+    <p class="lead" style="margin-top:1.6rem">We don't just move money. <span class="grad-text">We move trust.</span></p>
+  </section>
+
+  <!-- 5. PRODUCT / DEMO -->
+  <section class="slide">
+    <div class="eyebrow">Product</div>
+    <h2>Live, mainnet-ready, <span class="hl">demoable today</span>.</h2>
+    <div class="cards">
+      <div class="card"><div class="num">78</div><div class="lbl">Countries supported at launch</div></div>
+      <div class="card"><div class="num">40+</div><div class="lbl">Currencies with local payout</div></div>
+      <div class="card"><div class="num">0%</div><div class="lbl">Platform fee on first campaign</div></div>
+      <div class="card"><div class="num">USDC</div><div class="lbl">Milestone escrow live in code (→ USDT next)</div></div>
+    </div>
+    <ul>
+      <li>Built on Next.js 16 + Solana + Cloak privacy SDK</li>
+      <li>AI-assisted campaign creation (titles, goals, descriptions)</li>
+      <li>Real-time backer + impact analytics dashboard</li>
+    </ul>
+    <div class="footer-note">Live demo: oneraise.vercel.app</div>
+  </section>
+
+  <!-- 6. WHY CRYPTO -->
+  <section class="slide">
+    <div class="eyebrow">Why Crypto / Why Solana</div>
+    <h2>Remove the chain and the product <span class="hl">breaks</span>.</h2>
+    <div class="two-col">
+      <div class="panel good">
+        <h3>What only crypto enables</h3>
+        <ul>
+          <li><b>Permissionless access</b> — no bank account, no platform gatekeeping</li>
+          <li><b>Trustless escrow</b> — funds locked by code, not a company holding your money</li>
+          <li><b>Verifiable proof</b> — every disbursement on-chain, publicly auditable</li>
+        </ul>
+      </div>
+      <div class="panel good">
+        <h3>Why Solana specifically</h3>
+        <ul>
+          <li>Sub-cent fees make small cross-border donations viable</li>
+          <li>Seconds to settle — creators get funds fast</li>
+          <li>Mature stablecoin + USDC liquidity</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. TRACTION -->
+  <section class="slide">
+    <div class="eyebrow">Traction</div>
+    <h2>Shipped product, <span class="hl">pre-launch</span>.</h2>
+    <div class="cards">
+      <div class="card"><div class="num">MVP</div><div class="lbl">Full end-to-end product deployed & demoable</div><div class="sub">Mainnet-ready</div></div>
+      <div class="card"><div class="num">Q3</div><div class="lbl">First real campaigns launching</div><div class="sub">2026</div></div>
+      <div class="card"><div class="num">78</div><div class="lbl">Countries reachable day one</div></div>
+      <div class="card"><div class="num">Live</div><div class="lbl">Escrow + Cloak privacy + AI tools working</div></div>
+    </div>
+    <p class="lead" style="margin-top:1.6rem">Architecture and core flows are built and working today. Current dashboard figures are sandbox test data — first real campaigns launch this quarter.</p>
+  </section>
+
+  <!-- 8. ROADMAP -->
+  <section class="slide">
+    <div class="eyebrow">Roadmap · Next 12 Months</div>
+    <h2>From shipped MVP to <span class="hl">scaled protocol</span>.</h2>
+    <div class="timeline">
+      <div class="phase"><div class="q">Mo 1–3</div><h4>Mainnet launch</h4><p>First 50 creators across Kenya, Nigeria, Ghana. Integrate Tether (USDT/USDe) as primary settlement.</p></div>
+      <div class="phase"><div class="q">Mo 4–6</div><h4>Rails + trust</h4><p>Deepen Busha / Raenest / Paystack payouts. Milestone verification + verified-badge. $100K+ processed.</p></div>
+      <div class="phase"><div class="q">Mo 7–9</div><h4>Agentic disbursement</h4><p>AI-agent milestone verification + automated escrow release. Begin pre-seed (SAFE) on real traction.</p></div>
+      <div class="phase"><div class="q">Mo 10–12</div><h4>Scale beyond Africa</h4><p>Expand to LatAm, South & SE Asia, Middle East. 500+ creators, 10+ markets. Open campaign API.</p></div>
+    </div>
+  </section>
+
+  <!-- 9. TEAM -->
+  <section class="slide">
+    <div class="eyebrow">Team</div>
+    <h2>Builders who ship.</h2>
+    <div class="cards">
+      <div class="card"><div class="num">Greaze Mike</div><div class="lbl">Founder — product, full-stack & GTM. Built and shipped OneRaise end-to-end, solo.</div></div>
+      <div class="card"><div class="num">1</div><div class="lbl">Solo founder — entire product live without outside capital</div></div>
+      <div class="card"><div class="num">→</div><div class="lbl">Capital-efficient execution; hiring first engineers post-raise</div></div>
+    </div>
+    <p class="lead" style="margin-top:1.6rem"><span class="fill">[CONFIRM / personalize:]</span> I'm building OneRaise because I've watched creators and causes across Africa get shut out of the platforms the rest of the world takes for granted — and watched the money that does get through vanish into fees with no proof it ever helped. I'm building the trust layer I wish existed.</p>
+  </section>
+
+  <!-- 10. ASK -->
+  <section class="slide">
+    <div class="eyebrow">The Ask</div>
+    <h2>What we want from <span class="hl">Vibe Haus</span>.</h2>
+    <ul>
+      <li>Hands-on GTM + fundraising guidance from Hashed Emergent & Tether</li>
+      <li>Integrate <b>Tether infrastructure</b> as our settlement layer during the residency</li>
+      <li>Ship <b>agentic disbursement</b> + run first live campaigns → Demo Day deliverable</li>
+      <li>Investor relationships to turn a working MVP into a fundable, scaled protocol</li>
+    </ul>
+    <div class="ask-row">
+      <div class="ask-chip">Raising next: <b>pre-seed SAFE</b>, post-launch</div>
+      <div class="ask-chip">Use: <b>scale African rails + agentic payments</b></div>
+    </div>
+  </section>
+
+  <!-- 11. CONTACT -->
+  <section class="slide">
+    <div class="logo"><div class="mark">1R</div><div class="name">OneRaise</div></div>
+    <h1>One Goal. One Platform.<br><span class="grad-text">OneRaise.</span></h1>
+    <div class="tagline">Move trust, not just money — to every market the world locked out.</div>
+    <ul style="margin-top:2rem">
+      <li>Greaze Mike — Founder</li>
+      <li>greasemike2000@gmail.com</li>
+      <li>oneraise.vercel.app · x.com/One_Raise</li>
+    </ul>
+  </section>
+
+</div>
+
+<div class="nav">
+  <button id="prev">‹</button>
+  <span class="counter" id="counter">1 / 11</span>
+  <button id="next">›</button>
+</div>
+
+<div class="notes" id="notes"></div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  const speakerNotes=[
+    "<b>Hook (5s):</b> 'OneRaise is the borderless trust protocol — crowdfunding where money only moves when impact is proven.' Don't explain crypto yet. Lead with the gap.",
+    "<b>Problem:</b> Make it visceral. Two gaps: access (platforms literally block these countries) + trust (no proof money worked). <b>Objection prep:</b> If asked 'isn't this just GoFundMe?' — they exclude most of the world AND offer zero verifiable accountability.",
+    "<b>Why now:</b> This is the slide investors skim for. Replace the [FILL] with ONE sharp catalyst you witnessed. Generic 'crypto is growing' kills credibility.",
+    "<b>Solution:</b> One idea — escrow that releases on verified milestones. End on 'we move trust.' Let it land.",
+    "<b>Product:</b> Show the live site here if possible. Say it's mainnet-ready, not vaporware. Be honest the metrics are sandbox.",
+    "<b>Why crypto:</b> The necessity test. If they ask 'why not a normal app?' — permissionless access + trustless escrow + on-chain proof all break without the chain.",
+    "<b>Traction (hardest slide):</b> Lead with PRODUCT shipped, not user numbers. 'Sandbox data, real launch this quarter.' Don't oversell. <b>Objection:</b> 'No real users?' → 'Right — that's exactly why this residency: launch with the right rails and partners.'",
+    "<b>Roadmap:</b> Walk left to right. Emphasize Tether integration (mo 1-3) and agentic disbursement (mo 7-9) — these map directly to the residency themes.",
+    "<b>Team:</b> FILL the founder-problem-fit line before presenting — it's the #1 thing they weigh. Be honest about team size; lean+shipped is a strength (capital-efficient).",
+    "<b>Ask:</b> Specific. Tie every ask to what the residency offers. You're not begging — you're matching their offer to your roadmap.",
+    "<b>Close:</b> Restate the tagline. End on the mission, not the metrics."
+  ];
+  let i=0;
+  const counter=document.getElementById('counter');
+  const progress=document.getElementById('progress');
+  const notes=document.getElementById('notes');
+  function show(n){
+    slides[i].classList.remove('active');
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides[i].classList.add('active');
+    counter.textContent=(i+1)+' / '+slides.length;
+    progress.style.width=((i+1)/slides.length*100)+'%';
+    notes.innerHTML=speakerNotes[i]||'';
+  }
+  document.getElementById('next').onclick=()=>show(i+1);
+  document.getElementById('prev').onclick=()=>show(i-1);
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key===' ')show(i+1);
+    if(e.key==='ArrowLeft')show(i-1);
+    if(e.key.toLowerCase()==='n')notes.classList.toggle('show');
+  });
+  show(0);
+</script>
+</body>
+</html>

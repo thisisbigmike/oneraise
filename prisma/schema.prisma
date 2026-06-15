@@ -47,12 +47,18 @@ model User {
   verificationFullName    String?
   verificationIdType      String?
   verificationIdImage     String?
-  
+
+  // Contact
+  phone           String?
+  phoneVerified   DateTime?
+
   // Notification Preferences
-  emailNotifications Boolean       @default(true)
-  pushNotifications  Boolean       @default(true)
-  campaignUpdates    Boolean       @default(true)
-  marketingEmails    Boolean       @default(false)
+  emailNotifications    Boolean       @default(true)
+  pushNotifications     Boolean       @default(true)
+  whatsappNotifications Boolean       @default(true)
+  smsNotifications      Boolean       @default(true)
+  campaignUpdates       Boolean       @default(true)
+  marketingEmails       Boolean       @default(false)
 
   accounts        Account[]
   campaigns       Campaign[]
@@ -62,6 +68,8 @@ model User {
   payoutMethods   PayoutMethod[]
   sessions        Session[]
   bookmarks       Bookmark[]
+  notifications   Notification[]
+  badges          Badge[]
 }
 
 model VerificationToken {
@@ -138,12 +146,17 @@ model Donation {
   createdAt         DateTime  @default(now())
   donorName         String?
   donorEmail        String?
+  donorPhone        String?
   donorMessage      String?
   isAnonymous       Boolean   @default(false)
   coverFee          Boolean   @default(false)
   userId            String?
   campaignId        String
   solanaTxSignature String?   @unique
+  // Refund-on-fail (F5). refundStatus: none | requested | processing | refunded | failed
+  refundStatus      String    @default("none")
+  refundedAt        DateTime?
+  refundTxSignature String?   @unique
   campaign          Campaign  @relation(fields: [campaignId], references: [id])
   user              User?     @relation(fields: [userId], references: [id])
 }
@@ -213,4 +226,35 @@ model Bookmark {
   campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@unique([userId, campaignId])
+}
+
+// Persistent in-app notification feed. Emitted by donation/milestone/release/
+// refund events. Best-effort phone push (WhatsApp/SMS) is fired alongside via
+// lib/notify.ts but the row here is the durable record shown in the UI.
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String // donation | milestone | release | refund | badge | system
+  title      String
+  body       String
+  campaignId String?
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, read])
+}
+
+// Earned-badge cache for donor reputation/streaks. Recomputed from donations
+// after each credited donation; the row exists once a badge is earned.
+model Badge {
+  id       String   @id @default(cuid())
+  userId   String
+  kind     String // first_donation | repeat_donor | streak_3mo | category_champion | big_backer
+  earnedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind])
+  @@index([userId])
 }

@@ -1,20 +1,100 @@
 import {
   AddressLookupTableAccount,
   Connection,
+  Keypair,
   PublicKey,
+  Transaction,
   TransactionInstruction,
+  sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   AccountLayout,
   TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountIdempotentInstruction,
+  createTransferCheckedInstruction,
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 import prisma from "@/lib/prisma";
 import { JUPITER_USDC } from "@/lib/jupiter";
 
 export const SOLANA_MAINNET_RPC = "https://api.mainnet-beta.solana.com";
+
+/** USDC has 6 decimals. */
+const USDC_DECIMALS = 6;
+
+/**
+ * Load the OneRaise treasury signer keypair from env (server-only). Supports a
+ * JSON byte array (standard `solana-keygen` file contents) or a base64-encoded
+ * 64-byte secret key. Returns null when not configured — callers must treat a
+ * missing signer as "cannot pay out automatically" rather than failing hard.
+ */
+export function getTreasuryKeypair(): Keypair | null {
+  const raw = process.env.SOLANA_TREASURY_SECRET_KEY?.trim();
+  if (!raw) return null;
+  try {
+    if (raw.startsWith("[")) {
+      return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(raw) as number[]));
+    }
+    return Keypair.fromSecretKey(Uint8Array.from(Buffer.from(raw, "base64")));
+  } catch (err) {
+    console.error(
+      `[solana] invalid SOLANA_TREASURY_SECRET_KEY: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return null;
+  }
+}
+
+/**
+ * Send USDC from the treasury wallet to a recipient owner address. Creates the
+ * recipient's ATA if needed (payer = treasury). Returns the tx signature.
+ *
+ * Used by the refund executor. The treasury keypair must control the source
+ * funds — confirm the donated funds actually sit in this wallet before calling.
+ */
+export async function sendUsdcFromTreasury(args: {
+  signer: Keypair;
+  toOwner: PublicKey;
+  amountRaw: bigint;
+}): Promise<string> {
+  const connection = getSolanaConnection();
+  const mint = getUsdcMintPublicKey();
+  const fromAta = getUsdcAta(args.signer.publicKey);
+  const toAta = getUsdcAta(args.toOwner);
+
+  const tx = new Transaction();
+  tx.add(
+    createAssociatedTokenAccountIdempotentInstruction(
+      args.signer.publicKey,
+      toAta,
+      args.toOwner,
+      mint,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+    ),
+  );
+  tx.add(
+    createTransferCheckedInstruction(
+      fromAta,
+      mint,
+      toAta,
+      args.signer.publicKey,
+      args.amountRaw,
+      USDC_DECIMALS,
+      [],
+      TOKEN_PROGRAM_ID,
+    ),
+  );
+
+  return sendAndConfirmTransaction(connection, tx, [args.signer], {
+    commitment: "confirmed",
+  });
+}
+
+/** Convert a human USDC amount to raw base units (6 decimals). */
+export function usdcAmountToRaw(amount: number): bigint {
+  return BigInt(Math.round(amount * 10 ** USDC_DECIMALS));
+}
 
 export type JupiterInstructionPayload = {
   programId: string;

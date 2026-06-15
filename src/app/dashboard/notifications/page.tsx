@@ -106,7 +106,33 @@ export default async function NotificationsPage() {
     read: false,
   }));
 
-  const notifications = [...endedCampaignItems, ...donationItems, ...payoutItems].sort(
+  // Durable rows (milestone / release / refund / badge). These carry real ids
+  // and persisted read-state — the synthesized items above are derived/legacy.
+  const stored = await prisma.notification.findMany({
+    where: { userId: sessionUser.id },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
+
+  const storedItems: NotificationItem[] = stored.map((n) => ({
+    id: n.id,
+    type:
+      n.type === "donation"
+        ? "donation"
+        : n.type === "milestone" || n.type === "release"
+          ? "milestone"
+          : "system",
+    title: n.title,
+    desc: n.body,
+    dateIso: n.createdAt.toISOString(),
+    read: n.read,
+  }));
+
+  const synthesized = isCreator
+    ? [...endedCampaignItems, ...donationItems, ...payoutItems]
+    : [];
+
+  const notifications = [...storedItems, ...synthesized].sort(
     (a, b) => new Date(b.dateIso).getTime() - new Date(a.dateIso).getTime(),
   );
 

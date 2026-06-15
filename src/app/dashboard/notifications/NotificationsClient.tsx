@@ -59,13 +59,29 @@ export default function NotificationsClient({ initialNotifications }: { initialN
   const [notifs, setNotifs] = useState(initialNotifications);
   const unread = notifs.filter(n => !n.read).length;
 
+  // Synthesized/legacy items use prefixed ids (e.g. "donation-…"); only the
+  // durable rows have bare cuid ids and a server-side read flag to persist.
+  const isPersisted = (id: string) => !id.includes('-');
+
   const markAllRead = () => {
     setNotifs(prev => prev.map(n => ({ ...n, read: true })));
     showToast('All notifications marked as read.', 'success');
+    void fetch('/api/notifications', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ all: true }),
+    }).catch(() => {});
   };
 
   const markRead = (id: string) => {
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    if (isPersisted(id)) {
+      void fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      }).catch(() => {});
+    }
   };
 
   return (

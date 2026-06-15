@@ -11,6 +11,49 @@ export type AnalyticsEvent = {
   dateIso: string;
 };
 
+export type WithdrawSummary = {
+  available: number;
+  pending: number;
+  withdrawn: number;
+};
+
+export type EscrowItem = {
+  title: string;
+  slug: string;
+  protectStatus: string;
+  approved: number;
+  total: number;
+  goalMet: boolean;
+};
+
+export type DonorSplit = {
+  newDonors: number;
+  repeatDonors: number;
+};
+
+const PROTECT_STATUS_LABEL: Record<string, string> = {
+  funding: 'Funding',
+  pending_verification: 'Pending verification',
+  locked: 'Locked — awaiting release',
+  unlocked: 'Released',
+  refunded: 'Refunded',
+};
+
+function nextEscrowAction(item: EscrowItem): string {
+  switch (item.protectStatus) {
+    case 'unlocked':
+      return 'Funds released to you';
+    case 'refunded':
+      return 'Refunded to backers';
+    case 'locked':
+      return 'Awaiting admin release';
+    case 'pending_verification':
+      return 'Proof under review';
+    default:
+      return item.goalMet ? 'Submit milestone proof' : 'Raising toward goal';
+  }
+}
+
 type RangeId = '7d' | '30d' | '90d';
 
 const ranges: { id: RangeId; label: string; days: number }[] = [
@@ -30,7 +73,17 @@ const compactUsd = (value: number) => {
   return usd.format(value);
 };
 
-export default function AnalyticsClient({ events }: { events: AnalyticsEvent[] }) {
+export default function AnalyticsClient({
+  events,
+  withdraw,
+  escrow,
+  donorSplit,
+}: {
+  events: AnalyticsEvent[];
+  withdraw?: WithdrawSummary;
+  escrow?: EscrowItem[];
+  donorSplit?: DonorSplit;
+}) {
   const [range, setRange] = useState<RangeId>('7d');
   const rangeConfig = ranges.find(r => r.id === range) || ranges[0];
 
@@ -140,6 +193,64 @@ export default function AnalyticsClient({ events }: { events: AnalyticsEvent[] }
           <div className="sc-sub">Completed donations</div>
         </div>
       </div>
+
+      {withdraw && (
+        <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginTop: 24 }}>
+          <div className="stat-card">
+            <div className="sc-label">Available to Withdraw</div>
+            <div className="sc-value" style={{ fontSize: 24, marginTop: 8, color: 'var(--teal-200)' }}>{usd.format(withdraw.available)}</div>
+            <div className="sc-sub">Released funds, net of payouts</div>
+          </div>
+          <div className="stat-card">
+            <div className="sc-label">Pending Clearance</div>
+            <div className="sc-value" style={{ fontSize: 24, marginTop: 8, color: 'var(--amber)' }}>{usd.format(withdraw.pending)}</div>
+            <div className="sc-sub">Donations not yet completed</div>
+          </div>
+          <div className="stat-card">
+            <div className="sc-label">Total Withdrawn</div>
+            <div className="sc-value" style={{ fontSize: 24, marginTop: 8 }}>{usd.format(withdraw.withdrawn)}</div>
+            <div className="sc-sub">Across all payouts</div>
+          </div>
+          <div className="stat-card">
+            <div className="sc-label">New vs Repeat Donors</div>
+            <div className="sc-value" style={{ fontSize: 24, marginTop: 8 }}>
+              {(donorSplit?.newDonors ?? 0)} / <span style={{ color: 'var(--teal-200)' }}>{donorSplit?.repeatDonors ?? 0}</span>
+            </div>
+            <div className="sc-sub">Repeat donors return to give</div>
+          </div>
+        </div>
+      )}
+
+      {escrow && escrow.length > 0 && (
+        <div className="content-card" style={{ marginTop: 24 }}>
+          <div className="cc-header">
+            <div className="cc-title">Escrow & Release Schedule</div>
+            <div className="sc-sub">Protected campaigns and their milestone progress.</div>
+          </div>
+          <div className="txn-table-wrap">
+            <table className="txn-table">
+              <thead>
+                <tr>
+                  <th>Campaign</th>
+                  <th>Status</th>
+                  <th>Milestones</th>
+                  <th>Next Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {escrow.map((item) => (
+                  <tr key={item.slug}>
+                    <td style={{ fontWeight: 600 }}>{item.title}</td>
+                    <td>{PROTECT_STATUS_LABEL[item.protectStatus] || item.protectStatus}</td>
+                    <td>{item.approved}/{item.total} approved</td>
+                    <td><span style={{ color: 'var(--teal-200)' }}>{nextEscrowAction(item)}</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="content-grid">
         <div className="content-card">

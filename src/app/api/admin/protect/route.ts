@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { getStoredDonationCreditUsd } from "@/lib/currency";
+import { notifyCampaignBackers } from "@/lib/notifications";
+import { milestoneReleasedText } from "@/lib/notify";
+import { requestCampaignRefunds, executeCampaignRefunds } from "@/lib/refunds";
 
 type SessionUser = {
   id?: string;
@@ -113,6 +116,7 @@ export async function PATCH(req: Request) {
       select: {
         id: true,
         slug: true,
+        title: true,
         goal: true,
         protectStatus: true,
         milestones: {
@@ -191,6 +195,15 @@ export async function PATCH(req: Request) {
 
       revalidateProtectViews(campaign.slug);
 
+      if (action === "approve-milestone") {
+        void notifyCampaignBackers(campaign.id, {
+          type: "milestone",
+          title: "Milestone verified",
+          body: `A milestone on "${campaign.title}" was verified: ${updated.title}.`,
+          push: true,
+        });
+      }
+
       return NextResponse.json({
         success: true,
         milestone: {
@@ -242,6 +255,28 @@ export async function PATCH(req: Request) {
       });
 
       revalidateProtectViews(updated.slug);
+
+      if (action === "release-campaign") {
+        void notifyCampaignBackers(campaign.id, {
+          type: "release",
+          title: "Funds released",
+          body: milestoneReleasedText(campaign.title, "all milestones verified"),
+          push: true,
+        });
+      } else if (action === "refund-campaign") {
+        // Flag each backer's donation as refund-requested + notify, then attempt
+        // on-chain execution for auto-refundable (Jupiter) donations. Fiat and
+        // shielded donations remain flagged for manual operator handling.
+        void notifyCampaignBackers(campaign.id, {
+          type: "refund",
+          title: "Refund initiated",
+          body: `"${campaign.title}" did not meet its conditions. Your contribution is being refunded under Protect rules.`,
+          push: true,
+        });
+        void requestCampaignRefunds(campaign.id).then(() =>
+          executeCampaignRefunds(campaign.id),
+        );
+      }
 
       return NextResponse.json({
         success: true,
