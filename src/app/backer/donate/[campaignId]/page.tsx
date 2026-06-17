@@ -1103,6 +1103,8 @@ export default function DonatePage() {
                       className={`crypto-asset ${cryptoAsset === a ? 'active' : ''}`}
                       onClick={() => setCryptoAsset(a)}
                     >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={`/tokens/${a.toLowerCase()}.svg`} alt={a} width={22} height={22} style={{ borderRadius: '50%' }} />
                       {a}
                     </button>
                   ))}

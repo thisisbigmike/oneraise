@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <clipPath id="c"><circle cx="16" cy="16" r="16"/></clipPath>
+  <g clip-path="url(#c)">
+    <rect width="32" height="32" fill="#012169"/>
+    <!-- White diagonals -->
+    <path d="M0,0 L32,32 M32,0 L0,32" stroke="#FFF" stroke-width="4"/>
+    <!-- Red diagonals -->
+    <path d="M0,0 L32,32 M32,0 L0,32" stroke="#C8102E" stroke-width="2"/>
+    <!-- White cross -->
+    <path d="M16,0 V32 M0,16 H32" stroke="#FFF" stroke-width="6"/>
+    <!-- Red cross -->
+    <path d="M16,0 V32 M0,16 H32" stroke="#C8102E" stroke-width="3.5"/>
+  </g>
+</svg>

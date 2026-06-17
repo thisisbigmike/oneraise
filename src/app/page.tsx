@@ -3,6 +3,7 @@ import { getCachedPublicCampaignsList, type CampaignListItem } from '@/lib/campa
 import HomeScripts from './HomeScripts';
 import AnimatedButton from '@/components/ui/AnimatedButton';
 import CampaignCard from '@/components/ui/CampaignCard';
+import HeroConverter from '@/components/ui/HeroConverter';
 import prisma from "@/lib/prisma";
 
 import { getDonationBackerKey } from "@/lib/backers";
@@ -123,8 +124,54 @@ export default async function Home() {
 <nav id="main-nav">
   <Link href="/" className="nav-logo">One<span>Raise</span></Link>
   <ul className="nav-links">
-    <li><Link href="/explore">Explore</Link></li>
-    <li><Link href="/protect">Protect</Link></li>
+    <li className="nav-dd">
+      <button type="button" className="nav-dd-trigger">
+        Discover
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div className="nav-dd-menu">
+        <Link href="/explore">
+          <span className="nav-dd-title">Explore campaigns</span>
+          <span className="nav-dd-desc">Browse active fundraisers worldwide</span>
+        </Link>
+        <Link href="/backer/discover">
+          <span className="nav-dd-title">For backers</span>
+          <span className="nav-dd-desc">Find causes and track your impact</span>
+        </Link>
+        <Link href="/join">
+          <span className="nav-dd-title">For creators</span>
+          <span className="nav-dd-desc">Start and run a campaign</span>
+        </Link>
+        <Link href="/protect">
+          <span className="nav-dd-title">Protect <span className="nav-dd-badge">Escrow</span></span>
+          <span className="nav-dd-desc">Milestone-based fund release</span>
+        </Link>
+      </div>
+    </li>
+    <li className="nav-dd">
+      <button type="button" className="nav-dd-trigger">
+        Products
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div className="nav-dd-menu">
+        <Link href="/send">
+          <span className="nav-dd-title">Send Money <span className="nav-dd-badge nav-dd-badge-soon">Coming Soon</span></span>
+          <span className="nav-dd-desc">Pay out to bank, mobile money, or wallet</span>
+        </Link>
+        <Link href="/receive">
+          <span className="nav-dd-title">Receive Money <span className="nav-dd-badge nav-dd-badge-soon">Coming Soon</span></span>
+          <span className="nav-dd-desc">Share a link or QR to get paid</span>
+        </Link>
+        <Link href="/invoices">
+          <span className="nav-dd-title">Invoices <span className="nav-dd-badge nav-dd-badge-soon">Coming Soon</span></span>
+          <span className="nav-dd-desc">Bill clients, get paid in any currency</span>
+        </Link>
+        <Link href="/cards">
+          <span className="nav-dd-title">Cards <span className="nav-dd-badge nav-dd-badge-soon">Coming Soon</span></span>
+          <span className="nav-dd-desc">Spend your balance with a virtual card</span>
+        </Link>
+      </div>
+    </li>
     <li><Link href="/how-it-works">How it works</Link></li>
     <li><a href="#features">Features</a></li>
     <li><a href="#community">Community</a></li>
@@ -142,6 +189,11 @@ export default async function Home() {
 <div className="mobile-menu" id="mobile-menu">
   <Link href="/explore">Explore</Link>
   <Link href="/protect">Protect</Link>
+  <span className="mobile-menu-label">Products</span>
+  <Link href="/send">Send Money <span className="nav-dd-badge nav-dd-badge-soon">Soon</span></Link>
+  <Link href="/receive">Receive Money <span className="nav-dd-badge nav-dd-badge-soon">Soon</span></Link>
+  <Link href="/invoices">Invoices <span className="nav-dd-badge nav-dd-badge-soon">Soon</span></Link>
+  <Link href="/cards">Cards <span className="nav-dd-badge nav-dd-badge-soon">Soon</span></Link>
   <Link href="/how-it-works">How it works</Link>
   <a href="#features">Features</a>
   <a href="#community">Community</a>
@@ -158,6 +210,7 @@ export default async function Home() {
     <div className="blob blob2"></div>
     <div className="blob blob3"></div>
   </div>
+  <div className="hero-grid">
   <div className="hero-content">
     <div className="hero-eyebrow">
       <span className="dot"></span>
@@ -206,6 +259,10 @@ export default async function Home() {
         0% platform fee first campaign
       </div>
     </div>
+  </div>
+  <div className="hero-visual">
+    <HeroConverter />
+  </div>
   </div>
 </section>
 

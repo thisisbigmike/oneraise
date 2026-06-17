@@ -3012,7 +3012,7 @@ select.s-input option,
   margin-bottom: 12px;
 }
 .crypto-asset {
-  padding: 6px 12px;
+  padding: 8px 16px;
   border-radius: 8px;
   border: 1px solid rgba(245,250,247,0.1);
   background: rgba(245,250,247,0.03);
@@ -3021,6 +3021,15 @@ select.s-input option,
   color: var(--w80);
   cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.crypto-asset img {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex: 0 0 auto;
 }
 .crypto-asset:hover:not(.active) {
   background: rgba(245,250,247,0.06);

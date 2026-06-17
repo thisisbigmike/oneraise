@@ -19,6 +19,18 @@
   --white-60: rgba(248,252,249,0.6);
   --white-30: rgba(248,252,249,0.3);
   --white-10: rgba(248,252,249,0.08);
+  /* Grey/border scale (dark). Components reference these; without a definition
+     var() is invalid and falls back to currentColor/transparent. */
+  --w90: rgba(248,252,249,0.9);
+  --w80: rgba(248,252,249,0.8);
+  --w70: rgba(248,252,249,0.7);
+  --w60: rgba(248,252,249,0.6);
+  --w50: rgba(248,252,249,0.5);
+  --w40: rgba(248,252,249,0.4);
+  --w30: rgba(248,252,249,0.3);
+  --w20: rgba(248,252,249,0.2);
+  --w08: rgba(248,252,249,0.06);
+  --border: rgba(248,252,249,0.1);
 }
 
 [data-theme="light"] {
@@ -29,6 +41,19 @@
   --white-60: rgba(10,24,18,0.6);
   --white-30: rgba(10,24,18,0.3);
   --white-10: rgba(10,24,18,0.08);
+  /* Full grey/border scale for light mode so any component that reads these
+     tokens renders readable dark-on-light text + visible borders app-wide.
+     Mirrors the dashboard light values; brand ink (#0A1812) base. */
+  --w90: rgba(10,24,18,0.9);
+  --w80: #1A2E24;
+  --w70: rgba(10,24,18,0.72);
+  --w60: rgba(10,24,18,0.6);
+  --w50: #5A6D64;
+  --w40: rgba(10,24,18,0.45);
+  --w30: #8A9B93;
+  --w20: #A8B5AE;
+  --w08: rgba(10,24,18,0.06);
+  --border: rgba(10,24,18,0.1);
 }
 
 html {
@@ -192,6 +217,25 @@ textarea:focus-visible {
 
 .or-select-check {
   flex: 0 0 auto;
+}
+
+/* Token logo icons inside select */
+.or-select-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+.or-select-option-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.or-select-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* ── PIXEL TRAIL ── */
@@ -2049,4 +2093,310 @@ footer {
 }
 [data-theme="light"] .globe-canvas-wrap {
   background: #FFFFFF;
+}
+
+/* ============================================================
+   HERO TWO-COLUMN + LIVE CONVERTER + NAV DROPDOWN
+   ============================================================ */
+
+.hero-grid {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  align-items: center;
+  gap: clamp(32px, 5vw, 72px);
+}
+.hero-grid .hero-content { max-width: 640px; }
+
+.hero-visual {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  opacity: 0;
+  animation: fadeUp 0.8s ease 0.6s forwards;
+}
+
+/* Converter card */
+.hconv {
+  width: 100%;
+  max-width: 440px;
+  background: rgba(13, 26, 22, 0.66);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(29, 158, 117, 0.22);
+  border-radius: 22px;
+  padding: 24px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+[data-theme="light"] .hconv {
+  background: rgba(255, 255, 255, 0.86);
+  border-color: rgba(10, 24, 18, 0.08);
+  box-shadow: 0 24px 60px rgba(10, 24, 18, 0.12);
+}
+
+.hconv-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--white-60);
+  margin-bottom: 8px;
+}
+.hconv-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(248, 252, 249, 0.04);
+  border: 1px solid var(--white-10);
+  border-radius: 14px;
+  padding: 6px 6px 6px 16px;
+  transition: border-color 0.2s;
+}
+.hconv-row:focus-within { border-color: rgba(29, 158, 117, 0.45); }
+[data-theme="light"] .hconv-row { background: rgba(10, 24, 18, 0.03); }
+
+.hconv-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--white);
+  font-family: 'Bricolage Grotesque', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  padding: 10px 0;
+}
+
+/* Branded currency picker (CustomSelect) sized compact inside the row */
+.hconv-cur { width: 132px; flex: 0 0 auto; }
+.hconv-cur .or-select-trigger {
+  min-height: 48px;
+  border-radius: 12px;
+}
+
+.hconv-rate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--white-60);
+  padding: 0 2px;
+}
+.hconv-rate-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--teal-200);
+  font-size: 12px;
+}
+.hconv-rate-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--teal-400);
+  animation: pulse 2s ease infinite;
+}
+
+.hconv-note {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(29, 158, 117, 0.1);
+  border: 1px solid rgba(29, 158, 117, 0.2);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+.hconv-note-icon {
+  font-size: 18px;
+  filter: drop-shadow(0 0 6px rgba(29, 158, 117, 0.5));
+}
+.hconv-note-title { font-size: 14px; font-weight: 600; color: var(--teal-200); }
+.hconv-note-sub { font-size: 12px; color: var(--white-60); }
+
+.hconv-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background: var(--teal-400);
+  color: #fff;
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 13px;
+  padding: 14px 20px;
+  text-decoration: none;
+  transition: background 0.2s, transform 0.1s;
+}
+.hconv-cta:hover { background: var(--teal-600); }
+.hconv-cta:active { transform: scale(0.98); }
+
+/* Nav dropdown */
+.nav-dd { position: relative; }
+.nav-dd-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--white-60);
+  letter-spacing: 0.01em;
+  padding: 0;
+  font-family: inherit;
+  transition: color 0.2s;
+}
+.nav-dd-trigger svg { transition: transform 0.25s; }
+.nav-dd:hover .nav-dd-trigger,
+.nav-dd:focus-within .nav-dd-trigger { color: var(--white); }
+.nav-dd:hover .nav-dd-trigger svg,
+.nav-dd:focus-within .nav-dd-trigger svg { transform: rotate(180deg); }
+
+.nav-dd-menu {
+  position: absolute;
+  top: calc(100% + 14px);
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  width: 300px;
+  background: var(--ink-mid);
+  border: 1px solid rgba(29, 158, 117, 0.16);
+  border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.3);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, transform 0.2s, visibility 0.2s;
+  z-index: 100;
+}
+.nav-dd-menu::before {
+  content: '';
+  position: absolute;
+  top: -14px;
+  left: 0;
+  right: 0;
+  height: 14px;
+}
+.nav-dd:hover .nav-dd-menu,
+.nav-dd:focus-within .nav-dd-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.nav-dd-menu a {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.nav-dd-menu a:hover { background: rgba(29, 158, 117, 0.1); }
+.nav-dd-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--white);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.nav-dd-desc { font-size: 12px; color: var(--white-60); font-weight: 300; }
+.nav-dd-badge {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--teal-200);
+  background: rgba(29, 158, 117, 0.16);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+.nav-dd-badge-soon {
+  color: var(--amber-400);
+  background: rgba(239, 159, 39, 0.16);
+}
+.mobile-menu-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--white-30);
+  margin-top: 6px;
+}
+
+/* Responsive: stack hero + converter */
+@media (max-width: 980px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .hero-visual { justify-content: flex-start; }
+  .hconv { max-width: 480px; }
+}
+@media (max-width: 600px) {
+  .hero-visual { animation: none; opacity: 1; }
+  .hconv { max-width: calc(100vw - 32px); }
+  .hconv-input { font-size: 22px; }
+}
+
+/* ============================================================
+   UNIVERSAL CUSTOM SCROLLBAR (brand teal)
+   Applies app-wide. Component-specific overrides (e.g. hidden
+   tab strips in shared-dashboard.css) are more specific and win.
+   ============================================================ */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(29, 158, 117, 0.45) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(29, 158, 117, 0.38);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.2s;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(29, 158, 117, 0.62);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-corner { background: transparent; }
+
+[data-theme="light"] * {
+  scrollbar-color: rgba(15, 110, 86, 0.4) transparent;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(15, 110, 86, 0.32);
+  background-clip: padding-box;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 110, 86, 0.55);
+  background-clip: padding-box;
+}
+
+/* Tighter scrollbar inside the branded dropdown menu */
+.or-select-menu::-webkit-scrollbar { width: 8px; }
+.or-select-menu::-webkit-scrollbar-thumb {
+  background: rgba(29, 158, 117, 0.5);
+  background-clip: padding-box;
 }

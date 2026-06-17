@@ -734,6 +734,17 @@
 [data-theme="light"] .auth-wrapper .forgot-pw {
   color: #5A6D64;
 }
+/* Active tab keeps white text on the teal fill (the generic .mode-btn light
+   rule above would otherwise grey it out → teal-on-teal). */
+[data-theme="light"] .auth-wrapper .mode-btn.active {
+  color: #fff;
+}
+/* Role context badge: readable dark-teal on a pale teal tint. */
+[data-theme="light"] .auth-wrapper .role-context {
+  background: rgba(15,110,86,0.10);
+  border-color: rgba(15,110,86,0.28);
+  color: var(--teal-600);
+}
 [data-theme="light"] .auth-wrapper .tick-item {
   background: #FFFFFF;
   border-color: #E0E5E2;

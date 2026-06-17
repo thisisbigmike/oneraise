@@ -7,6 +7,8 @@ export type CustomSelectOption = {
   value: string;
   label: string;
   disabled?: boolean;
+  /** Optional URL for a circular icon (e.g. token logo) rendered before the label. */
+  iconUrl?: string;
 };
 
 type CustomSelectProps = {
@@ -178,7 +180,13 @@ export default function CustomSelect({
               }
             }}
           >
-            <span>{option.label}</span>
+            <span className="or-select-option-label">
+              {option.iconUrl && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={option.iconUrl} alt="" className="or-select-icon" width={20} height={20} />
+              )}
+              {option.label}
+            </span>
             {option.value === value && (
               <svg className="or-select-check" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                 <path d="M3.5 8.3l3 3 6-6.6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
@@ -223,6 +231,10 @@ export default function CustomSelect({
         }}
       >
         <span className={selectedOption ? 'or-select-value' : 'or-select-placeholder'}>
+          {selectedOption?.iconUrl && (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={selectedOption.iconUrl} alt="" className="or-select-icon" width={20} height={20} />
+          )}
           {selectedOption?.label || placeholder}
         </span>
         <span className="or-select-chevron" aria-hidden="true">
