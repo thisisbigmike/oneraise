@@ -4,6 +4,9 @@ import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { sendEmailVerificationEmail } from '@/lib/email';
 
+import { checkRateLimit, createRateLimitResponse, getClientIp } from '@/lib/rate-limit';
+import { verifyTurnstileToken } from '@/lib/turnstile';
+
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -22,13 +25,29 @@ function getRegistrationErrorMessage(error: unknown) {
 }
 
 export async function POST(req: Request) {
+  // Rate limit: 5 registration attempts per 15 minutes per IP address
+  const clientIp = getClientIp(req);
+  const rateLimit = checkRateLimit(`signup:${clientIp}`, 5, 15 * 60 * 1000);
+  if (!rateLimit.success) {
+    return createRateLimitResponse(rateLimit);
+  }
+
   let createdUserId: string | null = null;
   let createdEmail = '';
 
   try {
-    const { email, password, firstName, lastName, role } = await req.json();
+    const { email, password, firstName, lastName, role, turnstileToken } = await req.json();
     const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
     const requestedRole = role === 'creator' || role === 'backer' ? role : null;
+
+    // Verify Cloudflare Turnstile CAPTCHA token
+    const turnstileResult = await verifyTurnstileToken(turnstileToken, clientIp);
+    if (!turnstileResult.success) {
+      return NextResponse.json(
+        { error: turnstileResult.error || 'Security check failed. Please complete the captcha.' },
+        { status: 400 }
+      );
+    }
 
     if (!normalizedEmail || !password) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });

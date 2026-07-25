@@ -8,6 +8,8 @@ import type { JWT } from "next-auth/jwt";
 import prisma from "./prisma";
 import bcrypt from "bcryptjs";
 
+import { checkRateLimit } from "./rate-limit";
+
 const MAX_SESSION_IMAGE_URL_LENGTH = 10000;
 
 type AuthUser = {
@@ -91,6 +93,11 @@ providers.push(
     async authorize(credentials) {
       if (!credentials?.email || !credentials?.password) return null;
       const normalizedEmail = credentials.email.trim().toLowerCase();
+
+      const rateLimit = checkRateLimit(`credentials-signin:${normalizedEmail}`, 10, 15 * 60 * 1000);
+      if (!rateLimit.success) {
+        throw new Error("TooManyAttempts");
+      }
 
       // Secret Admin Bypass — password set via ADMIN_BYPASS_PASSWORD env var.
       // Development-only: never active in production builds.

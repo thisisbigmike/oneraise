@@ -36,11 +36,11 @@ export function assertVerificationDocumentDataUrl(value: unknown) {
 export async function storeVerificationDocumentDataUrl(userId: string, dataUrl: string) {
   const { buffer, extension } = assertVerificationDocumentDataUrl(dataUrl);
   const digest = crypto.createHash("sha256").update(`${userId}:${Date.now()}`).update(buffer).digest("hex").slice(0, 32);
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "verification");
+  const uploadDir = path.join(process.cwd(), "private_uploads", "verification");
   const fileName = `${digest}.${extension}`;
 
   await mkdir(uploadDir, { recursive: true });
   await writeFile(path.join(uploadDir, fileName), buffer, { flag: "wx" });
 
-  return `/uploads/verification/${fileName}`;
+  return `/api/verification/document/${fileName}`;
 }

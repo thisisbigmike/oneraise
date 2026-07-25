@@ -22,7 +22,17 @@ programs/**/target
 # next.js
 /.next/
 /out/
+# uploads
 /public/uploads/verification/
+/private_uploads/
+
+# database
+prisma/*.db
+prisma/*.db-journal
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
 
 # production
 /build

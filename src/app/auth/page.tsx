@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useToast } from '../components';
 import './auth.css';
 import AnimatedButton from '@/components/ui/AnimatedButton';
+import TurnstileWidget from '@/components/TurnstileWidget';
 
 type TickerItem = { init: string; cls: string; name: string; action: string; amount: string };
 
@@ -94,6 +95,7 @@ function AuthPageContent() {
   const role: 'backer' | 'creator' = initialRole;
   const [adminCode, setAdminCode] = useState('');
   const [availableProviders, setAvailableProviders] = useState<Record<string, boolean>>({});
+  const [turnstileToken, setTurnstileToken] = useState('');
   
   const isAdminLogin = mode === 'signin' && email.toLowerCase() === 'admin';
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -283,7 +285,7 @@ function AuthPageContent() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: normalizedEmail, password, firstName, lastName, role: selectedSignupRole }),
+        body: JSON.stringify({ email: normalizedEmail, password, firstName, lastName, role: selectedSignupRole, turnstileToken }),
       });
       const data = await res.json();
 
@@ -335,6 +337,8 @@ function AuthPageContent() {
             'warning',
             'Email Verification Required',
           );
+        } else if (res.error.includes('TooManyAttempts')) {
+          showToast('Too many sign in attempts. Please wait a few minutes before trying again.', 'error', 'Too Many Attempts');
         } else {
           showToast('Invalid email or password. Please try again.', 'error', 'Login Failed');
         }
@@ -646,11 +650,17 @@ function AuthPageContent() {
                 </div>
               )}
 
+              <TurnstileWidget
+                onVerify={(token) => setTurnstileToken(token)}
+                onExpire={() => setTurnstileToken('')}
+                onError={() => setTurnstileToken('')}
+              />
+
               <AnimatedButton
                 text={loading ? 'Please wait...' : (mode === 'signup' ? 'Create my account' : 'Sign in to OneRaise')}
                 onClick={mode === 'signup' ? handleSignup : handleSignin}
                 className={loading ? 'loading' : ''}
-                disabled={loading}
+                disabled={loading || !turnstileToken}
                 style={{ width: '100%', marginTop: '24px' }}
               />
 

@@ -82,7 +82,11 @@ export async function GET(req: Request) {
         emailVerified: !!u.emailVerified,
         verificationFullName: u.verificationFullName,
         verificationDocumentType: u.verificationIdType,
-        verificationDocumentUrl: u.verificationIdImage,
+        verificationDocumentUrl: u.verificationIdImage
+          ? u.verificationIdImage.startsWith("/uploads/verification/")
+            ? u.verificationIdImage.replace("/uploads/verification/", "/api/verification/document/")
+            : u.verificationIdImage
+          : null,
         campaignCount: u._count.campaigns,
         donationCount: u._count.donations,
       })),
