@@ -344,7 +344,7 @@ export default function CampaignsPage() {
 
   const handleCopyLink = () => {
     const slug = shareTitle.toLowerCase().replace(/\s+/g, '-');
-    navigator.clipboard.writeText(`https://oneraise.com/campaign/${slug}`);
+    navigator.clipboard.writeText(`https://oneraiseapp.com/campaign/${slug}`);
     showToast('Campaign link copied!', 'success');
     setShareOpen(false);
   };

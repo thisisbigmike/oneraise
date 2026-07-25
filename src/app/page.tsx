@@ -620,9 +620,9 @@ export default async function Home() {
   <div className="footer-bottom">
     <div className="footer-copy">© 2026 OneRaise Inc. All rights reserved.</div>
     <div className="footer-legal">
-      <a href="#">Privacy Policy</a>
-      <a href="#">Terms of Service</a>
-      <a href="#">Cookie Settings</a>
+      <Link href="/privacy">Privacy Policy</Link>
+      <Link href="/terms">Terms of Service</Link>
+      <Link href="/cookies">Cookie Settings</Link>
     </div>
   </div>
 </footer>

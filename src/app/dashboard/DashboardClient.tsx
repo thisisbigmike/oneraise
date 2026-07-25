@@ -23,7 +23,7 @@ export default function DashboardClient({
   const [updateText, setUpdateText] = useState('');
 
   const handleShare = () => {
-    navigator.clipboard.writeText('https://oneraise.com');
+    navigator.clipboard.writeText('https://oneraiseapp.com');
     showToast('Link copied to clipboard!', 'success');
     setShareOpen(false);
   };
