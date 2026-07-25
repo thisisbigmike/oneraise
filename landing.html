@@ -1453,15 +1453,15 @@
 [data-theme="light"] .cta-section {
   background: var(--ink);
 }
+</style>
 
-/* Initialize theme based on system preference */
+<!-- Initialize theme based on system preference -->
 <script>
 (function(){
   const prefers = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', prefers);
 })();
 </script>
-</style>
 </head>
 
 <body>

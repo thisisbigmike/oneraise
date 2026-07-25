@@ -454,33 +454,33 @@ function AuthPageContent() {
               </div>
             ))}
           </div>
-        </div>
-        <div className="stats-row">
-          {(() => {
-            const r = formatStatNum(platformStats.totalRaisedUsd);
-            return (
-              <div className="stat-pill">
-                <div className="sp-num">{platformStats.totalRaisedUsd > 0 ? <>${r.count}<span className="ac">{r.suffix}</span></> : <>$4.2<span className="ac">B</span></>}</div>
-                <div className="sp-lbl">Raised</div>
-              </div>
-            );
-          })()}
-          {(() => {
-            const c = formatStatNum(platformStats.creatorCount);
-            return (
-              <div className="stat-pill">
-                <div className="sp-num">{platformStats.creatorCount > 0 ? <>{c.count}<span className="ac">{c.suffix}</span></> : <>148<span className="ac">K</span></>}</div>
-                <div className="sp-lbl">Creators</div>
-              </div>
-            );
-          })()}
-          <div className="stat-pill">
-            <div className="sp-num">{platformStats.successRate > 0 ? <>{platformStats.successRate}<span className="ac">%</span></> : <>78<span className="ac">%</span></>}</div>
-            <div className="sp-lbl">Success</div>
-          </div>
-          <div className="stat-pill">
-            <div className="sp-num">78</div>
-            <div className="sp-lbl">Countries</div>
+          <div className="stats-row">
+            {(() => {
+              const r = formatStatNum(platformStats.totalRaisedUsd);
+              return (
+                <div className="stat-pill">
+                  <div className="sp-num">{platformStats.totalRaisedUsd > 0 ? <>${r.count}<span className="ac">{r.suffix}</span></> : <>$4.2<span className="ac">B</span></>}</div>
+                  <div className="sp-lbl">Raised</div>
+                </div>
+              );
+            })()}
+            {(() => {
+              const c = formatStatNum(platformStats.creatorCount);
+              return (
+                <div className="stat-pill">
+                  <div className="sp-num">{platformStats.creatorCount > 0 ? <>{c.count}<span className="ac">{c.suffix}</span></> : <>148<span className="ac">K</span></>}</div>
+                  <div className="sp-lbl">Creators</div>
+                </div>
+              );
+            })()}
+            <div className="stat-pill">
+              <div className="sp-num">{platformStats.successRate > 0 ? <>{platformStats.successRate}<span className="ac">%</span></> : <>78<span className="ac">%</span></>}</div>
+              <div className="sp-lbl">Success</div>
+            </div>
+            <div className="stat-pill">
+              <div className="sp-num">78</div>
+              <div className="sp-lbl">Countries</div>
+            </div>
           </div>
         </div>
       </div>
