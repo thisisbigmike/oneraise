@@ -101,18 +101,70 @@ async function sendWithBrevo(config: EmailConfig, email: string, subject: string
   }
 }
 
-async function sendWithResend(config: EmailConfig, email: string, subject: string, html: string, text: string) {
-  const resend = new Resend(config.apiKey);
-  const { error } = await resend.emails.send({
-    from: config.from,
-    to: [email],
-    subject,
-    html,
-    text,
-  });
+import dns from 'node:dns';
+import https from 'node:https';
 
-  if (error) {
-    throw new Error(`Resend email failed: ${error.message}`);
+try { dns.setDefaultResultOrder('ipv4first'); } catch {}
+
+async function sendWithResendAttempt(config: EmailConfig, email: string, subject: string, html: string, text: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const postData = JSON.stringify({
+      from: config.from,
+      to: [email],
+      subject,
+      html,
+      text,
+    });
+
+    const req = https.request('https://api.resend.com/emails', {
+      method: 'POST',
+      family: 4,
+      servername: 'api.resend.com',
+      headers: {
+        'Host': 'api.resend.com',
+        'Authorization': `Bearer ${config.apiKey}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData),
+        'Connection': 'close',
+      },
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+          resolve();
+        } else {
+          try {
+            const parsed = JSON.parse(data);
+            const msg = parsed.message || parsed.name || data;
+            reject(new Error(`Resend email failed: ${msg}`));
+          } catch {
+            reject(new Error(`Resend email failed: HTTP ${res.statusCode} - ${data}`));
+          }
+        }
+      });
+    });
+
+    req.on('error', (err) => {
+      reject(new Error(`Resend connection failed: ${err.message}`));
+    });
+
+    req.write(postData);
+    req.end();
+  });
+}
+
+async function sendWithResend(config: EmailConfig, email: string, subject: string, html: string, text: string) {
+  try {
+    await sendWithResendAttempt(config, email, subject, html, text);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '';
+    if (msg.includes('connection failed') || msg.includes('socket hang up') || msg.includes('ECONNRESET')) {
+      await new Promise(r => setTimeout(r, 500));
+      await sendWithResendAttempt(config, email, subject, html, text);
+      return;
+    }
+    throw err;
   }
 }
 

@@ -14,6 +14,10 @@ function getResendErrorMessage(error: unknown) {
     return 'The database is currently unavailable. Please wait a few seconds and try again.';
   }
 
+  if (message.includes('only send testing emails') || message.includes('resend.com/domains')) {
+    return 'Resend is in testing mode (using onboarding@resend.dev). Verification emails can only be sent to your Resend account email (egbo2255@gmail.com) until you add your domain in Resend.';
+  }
+
   if (/Brevo email failed|Resend email failed|Email service is not configured|EAUTH|Invalid login|authentication|Username and Password not accepted|Missing credentials/i.test(message)) {
     return 'Email service is not configured correctly. Check the email API key and sender address.';
   }

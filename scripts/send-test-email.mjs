@@ -1,5 +1,8 @@
+import dns from 'node:dns';
 import nextEnv from '@next/env';
 import { Resend } from 'resend';
+
+try { dns.setDefaultResultOrder('ipv4first'); } catch {}
 
 const { loadEnvConfig } = nextEnv;
 
@@ -45,22 +48,53 @@ async function sendWithBrevo() {
   console.log(`Sent Brevo test email to ${to}.`);
 }
 
-async function sendWithResend() {
-  if (!resendApiKey) throw new Error('Set RESEND_API_KEY in .env.local before sending a Resend test email.');
+async function sendWithResendAttempt() {
+  if (!resendApiKey) throw new Error('Set RESEND_API_KEY in .env before sending a Resend test email.');
 
-  const resend = new Resend(resendApiKey);
-  const { data, error } = await resend.emails.send({
-    from,
-    to,
-    subject,
-    html,
+  const https = await import('node:https');
+
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify({ from, to, subject, html });
+    const req = https.request('https://api.resend.com/emails', {
+      method: 'POST',
+      family: 4,
+      servername: 'api.resend.com',
+      headers: {
+        'Host': 'api.resend.com',
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData),
+        'Connection': 'close',
+      },
+    }, (res) => {
+      let body = '';
+      res.on('data', chunk => { body += chunk; });
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          console.log(`Sent Resend test email to ${to}. Response: ${body}`);
+          resolve();
+        } else {
+          reject(new Error(`Resend test email failed (HTTP ${res.statusCode}): ${body}`));
+        }
+      });
+    });
+    req.on('error', reject);
+    req.write(postData);
+    req.end();
   });
+}
 
-  if (error) {
-    throw new Error(`Resend test email failed: ${error.message}`);
+async function sendWithResend() {
+  try {
+    await sendWithResendAttempt();
+  } catch (err) {
+    if (err.message.includes('socket hang up') || err.message.includes('ECONNRESET')) {
+      await new Promise(r => setTimeout(r, 500));
+      await sendWithResendAttempt();
+      return;
+    }
+    throw err;
   }
-
-  console.log(`Sent Resend test email to ${to}. Message id: ${data?.id ?? 'unknown'}`);
 }
 
 if (provider === 'brevo' || (!provider && brevoApiKey)) {
