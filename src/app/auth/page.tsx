@@ -86,6 +86,7 @@ function AuthPageContent() {
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [terms, setTerms] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   
   // UI states
   const [showPw, setShowPw] = useState(false);
@@ -110,6 +111,20 @@ function AuthPageContent() {
 
   // Platform stats state
   const [platformStats, setPlatformStats] = useState<PlatformStats>(PLATFORM_STATS_DEFAULT);
+
+  // Restore remembered email & preference
+  useEffect(() => {
+    try {
+      const savedEmail = localStorage.getItem('oneraise_remembered_email');
+      const savedRemember = localStorage.getItem('oneraise_remember_me');
+      if (savedEmail) {
+        setEmail(savedEmail);
+      }
+      if (savedRemember !== null) {
+        setRememberMe(savedRemember === 'true');
+      }
+    } catch {}
+  }, []);
 
   // Fetch real platform stats
   useEffect(() => {
@@ -219,6 +234,29 @@ function AuthPageContent() {
 
     showToast(errorConfig.message, 'error', errorConfig.title);
   }, [oauthError, showToast]);
+
+  const verifiedHandledRef = useRef(false);
+
+  useEffect(() => {
+    const verifiedParam = searchParams.get('verified') || searchParams.get('emailVerified');
+    const verifiedEmail = searchParams.get('email');
+
+    if (verifiedHandledRef.current || !verifiedParam) return;
+    verifiedHandledRef.current = true;
+
+    if (verifiedEmail) {
+      setEmail(verifiedEmail);
+    }
+    setMode('signin');
+
+    if (verifiedParam === 'success') {
+      showToast('Email verified successfully! You can now sign in to your account.', 'success', 'Email Verified');
+    } else if (verifiedParam === 'expired') {
+      showToast('Verification link expired. Sign in to request a new verification link.', 'warning', 'Link Expired');
+    } else if (verifiedParam === 'invalid') {
+      showToast('Invalid or expired verification link.', 'error', 'Invalid Link');
+    }
+  }, [searchParams, showToast]);
 
   // Resend Timer Effect
   useEffect(() => {
@@ -346,6 +384,19 @@ function AuthPageContent() {
       }
 
       setSuccessState(true);
+      if (!isAdminLogin) {
+        try {
+          if (rememberMe) {
+            localStorage.setItem('oneraise_remembered_email', normalizedEmail);
+            localStorage.setItem('oneraise_remember_me', 'true');
+            document.cookie = `oneraise_remembered_email=${encodeURIComponent(normalizedEmail)}; path=/; max-age=2592000; SameSite=Lax`;
+          } else {
+            localStorage.removeItem('oneraise_remembered_email');
+            localStorage.setItem('oneraise_remember_me', 'false');
+            document.cookie = `oneraise_remembered_email=; path=/; max-age=0; SameSite=Lax`;
+          }
+        } catch {}
+      }
       const signedInRole = isAdminLogin ? 'admin' : await getSignedInRole();
       showToast('Login successful! Redirecting...', 'success', 'Welcome Back');
       setTimeout(() => {
@@ -635,7 +686,7 @@ function AuthPageContent() {
                 <>
                   <div className="forgot-pw"><a href="#" onClick={(e) => { e.preventDefault(); setForgotStep(1); }}>Forgot your password?</a></div>
                   <div className="check-row" style={{marginTop: 16}}>
-                    <input className="check-input" type="checkbox" id="remember" defaultChecked />
+                    <input className="check-input" type="checkbox" id="remember" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
                     <label className="check-label" htmlFor="remember">Keep me signed in on this device</label>
                   </div>
                 </>

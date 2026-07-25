@@ -18,20 +18,12 @@ type BrevoErrorResponse = {
 };
 
 function getEmailConfig(): EmailConfig | null {
-  const configuredProvider = process.env.EMAIL_PROVIDER?.trim().toLowerCase();
-  const brevoApiKey = process.env.BREVO_API_KEY?.trim() || '';
+  const configuredProvider = process.env.EMAIL_PROVIDER?.trim().toLowerCase() || 'resend';
   const resendApiKey = process.env.RESEND_API_KEY?.trim() || '';
+  const brevoApiKey = process.env.BREVO_API_KEY?.trim() || '';
   const from = process.env.EMAIL_FROM?.trim() || '';
 
-  if (configuredProvider === 'brevo' && brevoApiKey) {
-    return {
-      apiKey: brevoApiKey,
-      from: from || DEFAULT_DEV_FROM,
-      provider: 'brevo',
-    };
-  }
-
-  if (configuredProvider === 'resend' && resendApiKey) {
+  if ((configuredProvider === 'resend' || !configuredProvider) && resendApiKey) {
     return {
       apiKey: resendApiKey,
       from: from || DEFAULT_DEV_FROM,

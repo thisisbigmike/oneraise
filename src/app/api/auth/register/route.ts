@@ -106,10 +106,15 @@ export async function POST(req: Request) {
 
     await sendEmailVerificationEmail(normalizedEmail, token);
 
+    const devVerificationUrl = process.env.NODE_ENV !== 'production'
+      ? `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/email-verify/confirm?token=${token}&email=${encodeURIComponent(normalizedEmail)}`
+      : undefined;
+
     return NextResponse.json({
       success: true,
       verificationEmailSent: true,
       user: { id: user.id, email: user.email, role: user.role },
+      devVerificationUrl,
     });
   } catch (error: unknown) {
     console.error('Registration error:', error);

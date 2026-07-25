@@ -63,7 +63,11 @@ export async function POST(req: Request) {
 
     await sendEmailVerificationEmail(normalizedEmail, token);
 
-    return NextResponse.json({ success: true, sent: true });
+    const devVerificationUrl = process.env.NODE_ENV !== 'production'
+      ? `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/email-verify/confirm?token=${token}&email=${encodeURIComponent(normalizedEmail)}`
+      : undefined;
+
+    return NextResponse.json({ success: true, sent: true, devVerificationUrl });
   } catch (error) {
     console.error('Resend verification error:', error);
     return NextResponse.json({ error: getResendErrorMessage(error) }, { status: 500 });
