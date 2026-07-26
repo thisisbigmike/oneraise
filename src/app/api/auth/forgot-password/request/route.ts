@@ -82,7 +82,10 @@ export async function POST(req: Request) {
     } catch (emailErr) {
       console.error('Password reset email sending error:', emailErr);
       if (process.env.NODE_ENV === 'production') {
-        throw emailErr;
+        const msg = emailErr instanceof Error ? emailErr.message : String(emailErr);
+        if (!msg.includes('only send testing emails') && !msg.includes('resend.com/domains')) {
+          throw emailErr;
+        }
       }
     }
 

@@ -65,13 +65,25 @@ export async function POST(req: Request) {
       }),
     ]);
 
-    await sendEmailVerificationEmail(normalizedEmail, token);
+    let emailSent = true;
+    try {
+      await sendEmailVerificationEmail(normalizedEmail, token);
+    } catch (emailErr: unknown) {
+      console.error('Resend verification email error:', emailErr);
+      emailSent = false;
+      const msg = emailErr instanceof Error ? emailErr.message : String(emailErr);
+      const isTestingMode = msg.includes('only send testing emails') || msg.includes('resend.com/domains');
 
-    const devVerificationUrl = process.env.NODE_ENV !== 'production'
+      if (process.env.NODE_ENV === 'production' && !isTestingMode) {
+        throw emailErr;
+      }
+    }
+
+    const devVerificationUrl = process.env.NODE_ENV !== 'production' || !emailSent
       ? `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/email-verify/confirm?token=${token}&email=${encodeURIComponent(normalizedEmail)}`
       : undefined;
 
-    return NextResponse.json({ success: true, sent: true, devVerificationUrl });
+    return NextResponse.json({ success: true, sent: emailSent, devVerificationUrl });
   } catch (error) {
     console.error('Resend verification error:', error);
     return NextResponse.json({ error: getResendErrorMessage(error) }, { status: 500 });

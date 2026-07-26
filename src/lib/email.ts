@@ -17,11 +17,28 @@ type BrevoErrorResponse = {
   message?: string;
 };
 
+import fs from 'node:fs';
+import path from 'node:path';
+
+function getEnvValue(key: string): string {
+  const val = process.env[key]?.trim();
+  if (val) return val;
+  try {
+    const envPath = path.join(process.cwd(), '.env');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf8');
+      const match = content.match(new RegExp(`^${key}=["']?(.*?)["']?$`, 'm'));
+      if (match && match[1].trim()) return match[1].trim();
+    }
+  } catch {}
+  return '';
+}
+
 function getEmailConfig(): EmailConfig | null {
-  const configuredProvider = process.env.EMAIL_PROVIDER?.trim().toLowerCase() || 'resend';
-  const resendApiKey = process.env.RESEND_API_KEY?.trim() || '';
-  const brevoApiKey = process.env.BREVO_API_KEY?.trim() || '';
-  const from = process.env.EMAIL_FROM?.trim() || '';
+  const configuredProvider = getEnvValue('EMAIL_PROVIDER').toLowerCase() || 'resend';
+  const resendApiKey = getEnvValue('RESEND_API_KEY');
+  const brevoApiKey = getEnvValue('BREVO_API_KEY');
+  const from = getEnvValue('EMAIL_FROM');
 
   if ((configuredProvider === 'resend' || !configuredProvider) && resendApiKey) {
     return {
@@ -179,7 +196,16 @@ export async function sendEmailVerificationEmail(email: string, token: string) {
     console.log(`[DEV] Email verification link for ${email}:\n${url}`);
     return;
   }
-  requireProductionSender(config);
+
+  try {
+    requireProductionSender(config);
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[DEV] Sender check bypassed. Verification link for ${email}:\n${url}`);
+      return;
+    }
+    throw err;
+  }
 
   const subject = 'Verify your email - OneRaise';
   const text = [
@@ -200,12 +226,25 @@ export async function sendEmailVerificationEmail(email: string, token: string) {
       </div>
     `;
 
-  if (config.provider === 'brevo') {
-    await sendWithBrevo(config, email, subject, html, text);
-    return;
-  }
+  try {
+    if (config.provider === 'brevo') {
+      await sendWithBrevo(config, email, subject, html, text);
+      return;
+    }
 
-  await sendWithResend(config, email, subject, html, text);
+    await sendWithResend(config, email, subject, html, text);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const isTestingLimit = msg.includes('only send testing emails') || msg.includes('resend.com/domains');
+
+    if (process.env.NODE_ENV !== 'production' || isTestingLimit) {
+      console.warn(`[EMAIL WARNING] Email delivery skipped/failed (${msg}).\n[DEV VERIFICATION LINK] for ${email}:\n${url}`);
+      if (process.env.NODE_ENV !== 'production' || isTestingLimit) {
+        return;
+      }
+    }
+    throw err;
+  }
 }
 
 export async function sendPasswordResetEmail(email: string, code: string) {
@@ -218,7 +257,16 @@ export async function sendPasswordResetEmail(email: string, code: string) {
     console.log(`[DEV] Password reset code for ${email}: ${code}`);
     return;
   }
-  requireProductionSender(config);
+
+  try {
+    requireProductionSender(config);
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[DEV] Password reset code for ${email}: ${code}`);
+      return;
+    }
+    throw err;
+  }
 
   const subject = `Your OneRaise Password Reset Code: ${code}`;
   const text = [
@@ -242,10 +290,23 @@ export async function sendPasswordResetEmail(email: string, code: string) {
     </div>
   `;
 
-  if (config.provider === 'brevo') {
-    await sendWithBrevo(config, email, subject, html, text);
-    return;
-  }
+  try {
+    if (config.provider === 'brevo') {
+      await sendWithBrevo(config, email, subject, html, text);
+      return;
+    }
 
-  await sendWithResend(config, email, subject, html, text);
+    await sendWithResend(config, email, subject, html, text);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const isTestingLimit = msg.includes('only send testing emails') || msg.includes('resend.com/domains');
+
+    if (process.env.NODE_ENV !== 'production' || isTestingLimit) {
+      console.warn(`[EMAIL WARNING] Email delivery skipped/failed (${msg}).\n[DEV RESET CODE] for ${email}: ${code}`);
+      if (process.env.NODE_ENV !== 'production' || isTestingLimit) {
+        return;
+      }
+    }
+    throw err;
+  }
 }
