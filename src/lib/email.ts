@@ -207,3 +207,45 @@ export async function sendEmailVerificationEmail(email: string, token: string) {
 
   await sendWithResend(config, email, subject, html, text);
 }
+
+export async function sendPasswordResetEmail(email: string, code: string) {
+  const config = getEmailConfig();
+
+  if (!config) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Email service is not configured correctly.');
+    }
+    console.log(`[DEV] Password reset code for ${email}: ${code}`);
+    return;
+  }
+  requireProductionSender(config);
+
+  const subject = `Your OneRaise Password Reset Code: ${code}`;
+  const text = [
+    'Reset your password',
+    '',
+    `Your 6-digit password reset code is: ${code}`,
+    '',
+    'This code expires in 10 minutes.',
+    "If you didn't request a password reset, you can safely ignore this email.",
+  ].join('\n');
+
+  const html = `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0d1b14;color:#ffffff;border-radius:12px;">
+      <div style="font-size:20px;font-weight:800;color:#ffffff;margin-bottom:24px;">One<span style="color:#1d9e75;">Raise</span></div>
+      <h2 style="margin:0 0 12px 0;font-size:22px;color:#ffffff;">Password Reset Request</h2>
+      <p style="color:#a8b5ae;font-size:14px;line-height:1.6;margin-bottom:24px;">Enter the 6-digit code below to reset your OneRaise password. Code expires in 10 minutes.</p>
+      <div style="background:rgba(29,158,117,0.12);border:1px solid rgba(29,158,117,0.3);border-radius:8px;padding:16px;text-align:center;margin-bottom:24px;">
+        <span style="font-size:32px;font-weight:800;letter-spacing:6px;color:#5dcaa5;font-family:monospace;">${code}</span>
+      </div>
+      <p style="color:#6b7c73;font-size:12px;margin:0;">If you didn't request this code, your account is safe and you can ignore this email.</p>
+    </div>
+  `;
+
+  if (config.provider === 'brevo') {
+    await sendWithBrevo(config, email, subject, html, text);
+    return;
+  }
+
+  await sendWithResend(config, email, subject, html, text);
+}

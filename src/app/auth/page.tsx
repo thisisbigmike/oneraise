@@ -435,32 +435,76 @@ function AuthPageContent() {
     signIn(providerId, { callbackUrl: '/auth/oauth-complete' });
   };
 
-  const handleSendReset = () => {
+  const handleSendReset = async () => {
     if (!isValidEmail(email)) { showToast('Please enter a valid email address to reset your password', 'error'); return; }
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/auth/forgot-password/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      const data = await res.json();
       setLoading(false);
+      if (!res.ok) {
+        showToast(data.error || 'Failed to send reset code', 'error');
+        return;
+      }
+      showToast('Reset code sent! Check your inbox for the 6-digit code.', 'success', 'Code Sent');
       setForgotStep(2);
       setResendTimer(60);
-    }, 1400);
+    } catch {
+      setLoading(false);
+      showToast('Network error. Please try again.', 'error');
+    }
   };
 
-  const handleVerifyOtp = () => {
-    if (otp.some(d => !d)) return;
+  const handleVerifyOtp = async () => {
+    const code = otp.join('');
+    if (code.length !== 6) { showToast('Please enter the full 6-digit code', 'warning'); return; }
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/auth/forgot-password/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), code }),
+      });
+      const data = await res.json();
       setLoading(false);
+      if (!res.ok) {
+        showToast(data.error || 'Invalid reset code', 'error');
+        return;
+      }
+      showToast('Code verified! Create your new password.', 'success');
       setForgotStep(3);
-    }, 1200);
+    } catch {
+      setLoading(false);
+      showToast('Network error. Please try again.', 'error');
+    }
   };
 
-  const handleResetPassword = () => {
-    if (password.length < 8 || password !== passwordConfirm) return;
+  const handleResetPassword = async () => {
+    const code = otp.join('');
+    if (password.length < 8) { showToast('Password must be at least 8 characters long', 'warning'); return; }
+    if (password !== passwordConfirm) { showToast('Passwords do not match', 'error'); return; }
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/auth/forgot-password/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), code, newPassword: password }),
+      });
+      const data = await res.json();
       setLoading(false);
+      if (!res.ok) {
+        showToast(data.error || 'Failed to update password', 'error');
+        return;
+      }
       setForgotStep(4);
-    }, 1500);
+    } catch {
+      setLoading(false);
+      showToast('Network error. Please try again.', 'error');
+    }
   };
 
   const filteredCountries = COUNTRIES.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()));
