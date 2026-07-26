@@ -45,31 +45,53 @@ export async function POST(req: Request) {
       select: { id: true, email: true, password: true },
     });
 
+    if (!user) {
+      return NextResponse.json(
+        { error: 'No account was found with that email address. Please check the spelling or create an account.' },
+        { status: 400 }
+      );
+    }
+
+    if (!user.password) {
+      return NextResponse.json(
+        { error: 'This account uses social sign-in (Google/Apple). Please sign in using your social account.' },
+        { status: 400 }
+      );
+    }
+
     // Generate 6-digit numeric OTP code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expires = new Date(Date.now() + RESET_TTL_MS);
     const identifier = `reset:${normalizedEmail}`;
 
-    if (user && user.password) {
-      await prisma.$transaction([
-        prisma.verificationToken.deleteMany({ where: { identifier } }),
-        prisma.verificationToken.create({
-          data: {
-            identifier,
-            token: code,
-            expires,
-          },
-        }),
-      ]);
+    await prisma.$transaction([
+      prisma.verificationToken.deleteMany({ where: { identifier } }),
+      prisma.verificationToken.create({
+        data: {
+          identifier,
+          token: code,
+          expires,
+        },
+      }),
+    ]);
 
+    let emailSent = false;
+    try {
       await sendPasswordResetEmail(normalizedEmail, code);
+      emailSent = true;
+    } catch (emailErr) {
+      console.error('Password reset email sending error:', emailErr);
+      if (process.env.NODE_ENV === 'production') {
+        throw emailErr;
+      }
     }
 
     const devCode = process.env.NODE_ENV !== 'production' ? code : undefined;
 
     return NextResponse.json({
       success: true,
-      message: 'If an account exists with that email address, a password reset code has been sent.',
+      emailSent,
+      message: 'Reset code generated successfully.',
       devCode,
     });
   } catch (error) {

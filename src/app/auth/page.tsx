@@ -450,7 +450,12 @@ function AuthPageContent() {
         showToast(data.error || 'Failed to send reset code', 'error');
         return;
       }
-      showToast('Reset code sent! Check your inbox for the 6-digit code.', 'success', 'Code Sent');
+      if (data.devCode) {
+        console.log('[DEV] Reset Code:', data.devCode);
+        showToast(`Reset code sent to your inbox. [DEV Code: ${data.devCode}]`, 'success', 'Code Sent');
+      } else {
+        showToast('Reset code sent! Check your inbox for the 6-digit code.', 'success', 'Code Sent');
+      }
       setForgotStep(2);
       setResendTimer(60);
     } catch {
