@@ -13,12 +13,6 @@
 # testing
 /coverage
 
-# anchor / solana
-/target
-/.anchor
-/test-ledger
-programs/**/target
-
 # next.js
 /.next/
 /out/
